@@ -101,7 +101,7 @@ resource "aws_codebuild_project" "go_build" {
   artifacts {
     type                = "S3"
     location            = local.artifact_bucket
-    path                = "ahorro-transactions-service"
+    path                = "transactions-service"
     packaging           = "ZIP"
     name                = "build-ahorro-transactions-service.zip"
     encryption_disabled = true
@@ -109,7 +109,7 @@ resource "aws_codebuild_project" "go_build" {
 
   environment {
     compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "golang:1.23-bullseye"
+    image           = "aws/codebuild/standard:7.0"
     type            = "LINUX_CONTAINER"
     privileged_mode = false
   }
