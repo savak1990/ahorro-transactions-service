@@ -101,7 +101,7 @@ resource "aws_codebuild_project" "go_build" {
   artifacts {
     type                = "S3"
     location            = local.artifact_bucket
-    path                = "transactions-service"
+    path                = "ahorro-transactions-service"
     packaging           = "ZIP"
     name                = "ahorro-transactions-service.zip"
     encryption_disabled = true
