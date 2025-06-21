@@ -1,0 +1,52 @@
+# Binaries
+/app/test-dynamodb-app
+
+# OS files
+.DS_Store
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# Go build cache and modules
+/build
+/app/bin/
+/app/pkg/
+/app/coverage.out
+
+# Python
+.venv
+venv
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.manifest
+*.spec
+
+# pytest
+.cache/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+htmlcov/
+
+# Logs
+*.log
+
+# Terraform state
+.terraform/
+terraform.tfstate*

@@ -1,0 +1,402 @@
+[
+    {
+        "category_name": "Groceries",
+        "image_url": "https://cdn.ahorro.app/categories/groceries.png"
+    },
+    {
+        "category_name": "Restaurants",
+        "image_url": "https://cdn.ahorro.app/categories/restaurants.png"
+    },
+    {
+        "category_name": "Coffee Shops",
+        "image_url": "https://cdn.ahorro.app/categories/coffee.png"
+    },
+    {
+        "category_name": "Fast Food",
+        "image_url": "https://cdn.ahorro.app/categories/fastfood.png"
+    },
+    {
+        "category_name": "Alcohol & Bars",
+        "image_url": "https://cdn.ahorro.app/categories/alcohol.png"
+    },
+    {
+        "category_name": "Clothing",
+        "image_url": "https://cdn.ahorro.app/categories/clothing.png"
+    },
+    {
+        "category_name": "Shoes",
+        "image_url": "https://cdn.ahorro.app/categories/shoes.png"
+    },
+    {
+        "category_name": "Accessories",
+        "image_url": "https://cdn.ahorro.app/categories/accessories.png"
+    },
+    {
+        "category_name": "Electronics",
+        "image_url": "https://cdn.ahorro.app/categories/electronics.png"
+    },
+    {
+        "category_name": "Mobile Phone",
+        "image_url": "https://cdn.ahorro.app/categories/mobile.png"
+    },
+    {
+        "category_name": "Internet",
+        "image_url": "https://cdn.ahorro.app/categories/internet.png"
+    },
+    {
+        "category_name": "Streaming Services",
+        "image_url": "https://cdn.ahorro.app/categories/streaming.png"
+    },
+    {
+        "category_name": "Movies & Entertainment",
+        "image_url": "https://cdn.ahorro.app/categories/movies.png"
+    },
+    {
+        "category_name": "Music & Concerts",
+        "image_url": "https://cdn.ahorro.app/categories/music.png"
+    },
+    {
+        "category_name": "Books & Magazines",
+        "image_url": "https://cdn.ahorro.app/categories/books.png"
+    },
+    {
+        "category_name": "Fitness & Gym",
+        "image_url": "https://cdn.ahorro.app/categories/fitness.png"
+    },
+    {
+        "category_name": "Sports & Recreation",
+        "image_url": "https://cdn.ahorro.app/categories/sports.png"
+    },
+    {
+        "category_name": "Travel",
+        "image_url": "https://cdn.ahorro.app/categories/travel.png"
+    },
+    {
+        "category_name": "Flights",
+        "image_url": "https://cdn.ahorro.app/categories/flights.png"
+    },
+    {
+        "category_name": "Hotels",
+        "image_url": "https://cdn.ahorro.app/categories/hotels.png"
+    },
+    {
+        "category_name": "Public Transport",
+        "image_url": "https://cdn.ahorro.app/categories/transport.png"
+    },
+    {
+        "category_name": "Taxi & Ride Sharing",
+        "image_url": "https://cdn.ahorro.app/categories/taxi.png"
+    },
+    {
+        "category_name": "Car Payment",
+        "image_url": "https://cdn.ahorro.app/categories/car.png"
+    },
+    {
+        "category_name": "Car Insurance",
+        "image_url": "https://cdn.ahorro.app/categories/carinsurance.png"
+    },
+    {
+        "category_name": "Fuel",
+        "image_url": "https://cdn.ahorro.app/categories/fuel.png"
+    },
+    {
+        "category_name": "Car Maintenance",
+        "image_url": "https://cdn.ahorro.app/categories/maintenance.png"
+    },
+    {
+        "category_name": "Parking",
+        "image_url": "https://cdn.ahorro.app/categories/parking.png"
+    },
+    {
+        "category_name": "Home Rent",
+        "image_url": "https://cdn.ahorro.app/categories/rent.png"
+    },
+    {
+        "category_name": "Mortgage",
+        "image_url": "https://cdn.ahorro.app/categories/mortgage.png"
+    },
+    {
+        "category_name": "Home Insurance",
+        "image_url": "https://cdn.ahorro.app/categories/homeinsurance.png"
+    },
+    {
+        "category_name": "Utilities",
+        "image_url": "https://cdn.ahorro.app/categories/utilities.png"
+    },
+    {
+        "category_name": "Electricity",
+        "image_url": "https://cdn.ahorro.app/categories/electricity.png"
+    },
+    {
+        "category_name": "Water",
+        "image_url": "https://cdn.ahorro.app/categories/water.png"
+    },
+    {
+        "category_name": "Gas",
+        "image_url": "https://cdn.ahorro.app/categories/gas.png"
+    },
+    {
+        "category_name": "Trash",
+        "image_url": "https://cdn.ahorro.app/categories/trash.png"
+    },
+    {
+        "category_name": "Home Repairs",
+        "image_url": "https://cdn.ahorro.app/categories/repairs.png"
+    },
+    {
+        "category_name": "Furniture",
+        "image_url": "https://cdn.ahorro.app/categories/furniture.png"
+    },
+    {
+        "category_name": "Appliances",
+        "image_url": "https://cdn.ahorro.app/categories/appliances.png"
+    },
+    {
+        "category_name": "Cleaning Supplies",
+        "image_url": "https://cdn.ahorro.app/categories/cleaning.png"
+    },
+    {
+        "category_name": "Childcare",
+        "image_url": "https://cdn.ahorro.app/categories/childcare.png"
+    },
+    {
+        "category_name": "School Tuition",
+        "image_url": "https://cdn.ahorro.app/categories/tuition.png"
+    },
+    {
+        "category_name": "School Supplies",
+        "image_url": "https://cdn.ahorro.app/categories/schoolsupplies.png"
+    },
+    {
+        "category_name": "Books (Education)",
+        "image_url": "https://cdn.ahorro.app/categories/edbooks.png"
+    },
+    {
+        "category_name": "Student Loan",
+        "image_url": "https://cdn.ahorro.app/categories/studentloan.png"
+    },
+    {
+        "category_name": "Medical Bills",
+        "image_url": "https://cdn.ahorro.app/categories/medical.png"
+    },
+    {
+        "category_name": "Pharmacy",
+        "image_url": "https://cdn.ahorro.app/categories/pharmacy.png"
+    },
+    {
+        "category_name": "Health Insurance",
+        "image_url": "https://cdn.ahorro.app/categories/healthinsurance.png"
+    },
+    {
+        "category_name": "Dental Care",
+        "image_url": "https://cdn.ahorro.app/categories/dental.png"
+    },
+    {
+        "category_name": "Vision Care",
+        "image_url": "https://cdn.ahorro.app/categories/vision.png"
+    },
+    {
+        "category_name": "Pet Food",
+        "image_url": "https://cdn.ahorro.app/categories/petfood.png"
+    },
+    {
+        "category_name": "Pet Care",
+        "image_url": "https://cdn.ahorro.app/categories/petcare.png"
+    },
+    {
+        "category_name": "Vet Bills",
+        "image_url": "https://cdn.ahorro.app/categories/vet.png"
+    },
+    {
+        "category_name": "Gifts",
+        "image_url": "https://cdn.ahorro.app/categories/gifts.png"
+    },
+    {
+        "category_name": "Charity",
+        "image_url": "https://cdn.ahorro.app/categories/charity.png"
+    },
+    {
+        "category_name": "Donations",
+        "image_url": "https://cdn.ahorro.app/categories/donations.png"
+    },
+    {
+        "category_name": "Personal Care",
+        "image_url": "https://cdn.ahorro.app/categories/personalcare.png"
+    },
+    {
+        "category_name": "Haircut & Beauty",
+        "image_url": "https://cdn.ahorro.app/categories/haircut.png"
+    },
+    {
+        "category_name": "Cosmetics",
+        "image_url": "https://cdn.ahorro.app/categories/cosmetics.png"
+    },
+    {
+        "category_name": "Spa & Massage",
+        "image_url": "https://cdn.ahorro.app/categories/spa.png"
+    },
+    {
+        "category_name": "Laundry & Dry Cleaning",
+        "image_url": "https://cdn.ahorro.app/categories/laundry.png"
+    },
+    {
+        "category_name": "Subscriptions",
+        "image_url": "https://cdn.ahorro.app/categories/subscriptions.png"
+    },
+    {
+        "category_name": "Software & Apps",
+        "image_url": "https://cdn.ahorro.app/categories/software.png"
+    },
+    {
+        "category_name": "Office Supplies",
+        "image_url": "https://cdn.ahorro.app/categories/office.png"
+    },
+    {
+        "category_name": "Postage & Shipping",
+        "image_url": "https://cdn.ahorro.app/categories/shipping.png"
+    },
+    {
+        "category_name": "Bank Fees",
+        "image_url": "https://cdn.ahorro.app/categories/bankfees.png"
+    },
+    {
+        "category_name": "ATM Fees",
+        "image_url": "https://cdn.ahorro.app/categories/atm.png"
+    },
+    {
+        "category_name": "Credit Card Payment",
+        "image_url": "https://cdn.ahorro.app/categories/creditcard.png"
+    },
+    {
+        "category_name": "Loan Payment",
+        "image_url": "https://cdn.ahorro.app/categories/loan.png"
+    },
+    {
+        "category_name": "Investment",
+        "image_url": "https://cdn.ahorro.app/categories/investment.png"
+    },
+    {
+        "category_name": "Savings",
+        "image_url": "https://cdn.ahorro.app/categories/savings.png"
+    },
+    {
+        "category_name": "Retirement",
+        "image_url": "https://cdn.ahorro.app/categories/retirement.png"
+    },
+    {
+        "category_name": "Taxes",
+        "image_url": "https://cdn.ahorro.app/categories/taxes.png"
+    },
+    {
+        "category_name": "Legal Fees",
+        "image_url": "https://cdn.ahorro.app/categories/legal.png"
+    },
+    {
+        "category_name": "Parking Tickets",
+        "image_url": "https://cdn.ahorro.app/categories/parkingticket.png"
+    },
+    {
+        "category_name": "Fines",
+        "image_url": "https://cdn.ahorro.app/categories/fines.png"
+    },
+    {
+        "category_name": "Lottery & Gambling",
+        "image_url": "https://cdn.ahorro.app/categories/gambling.png"
+    },
+    {
+        "category_name": "Hobbies",
+        "image_url": "https://cdn.ahorro.app/categories/hobbies.png"
+    },
+    {
+        "category_name": "Crafts & DIY",
+        "image_url": "https://cdn.ahorro.app/categories/crafts.png"
+    },
+    {
+        "category_name": "Gardening",
+        "image_url": "https://cdn.ahorro.app/categories/gardening.png"
+    },
+    {
+        "category_name": "Baby Supplies",
+        "image_url": "https://cdn.ahorro.app/categories/baby.png"
+    },
+    {
+        "category_name": "Toys & Games",
+        "image_url": "https://cdn.ahorro.app/categories/toys.png"
+    },
+    {
+        "category_name": "Party & Events",
+        "image_url": "https://cdn.ahorro.app/categories/party.png"
+    },
+    {
+        "category_name": "Wedding",
+        "image_url": "https://cdn.ahorro.app/categories/wedding.png"
+    },
+    {
+        "category_name": "Anniversary",
+        "image_url": "https://cdn.ahorro.app/categories/anniversary.png"
+    },
+    {
+        "category_name": "Birthday",
+        "image_url": "https://cdn.ahorro.app/categories/birthday.png"
+    },
+    {
+        "category_name": "Holiday",
+        "image_url": "https://cdn.ahorro.app/categories/holiday.png"
+    },
+    {
+        "category_name": "Vacation",
+        "image_url": "https://cdn.ahorro.app/categories/vacation.png"
+    },
+    {
+        "category_name": "Camping",
+        "image_url": "https://cdn.ahorro.app/categories/camping.png"
+    },
+    {
+        "category_name": "Outdoor Gear",
+        "image_url": "https://cdn.ahorro.app/categories/outdoor.png"
+    },
+    {
+        "category_name": "Biking",
+        "image_url": "https://cdn.ahorro.app/categories/biking.png"
+    },
+    {
+        "category_name": "Fitness Equipment",
+        "image_url": "https://cdn.ahorro.app/categories/fitnesseq.png"
+    },
+    {
+        "category_name": "Photography",
+        "image_url": "https://cdn.ahorro.app/categories/photo.png"
+    },
+    {
+        "category_name": "Streaming TV",
+        "image_url": "https://cdn.ahorro.app/categories/streamingtv.png"
+    },
+    {
+        "category_name": "Online Courses",
+        "image_url": "https://cdn.ahorro.app/categories/onlinecourses.png"
+    },
+    {
+        "category_name": "Language Learning",
+        "image_url": "https://cdn.ahorro.app/categories/language.png"
+    },
+    {
+        "category_name": "Dating",
+        "image_url": "https://cdn.ahorro.app/categories/dating.png"
+    },
+    {
+        "category_name": "Insurance (Other)",
+        "image_url": "https://cdn.ahorro.app/categories/insurance.png"
+    },
+    {
+        "category_name": "Moving Expenses",
+        "image_url": "https://cdn.ahorro.app/categories/moving.png"
+    },
+    {
+        "category_name": "Storage",
+        "image_url": "https://cdn.ahorro.app/categories/storage.png"
+    },
+    {
+        "category_name": "Other",
+        "image_url": "https://cdn.ahorro.app/categories/other.png"
+    }
+]
