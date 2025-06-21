@@ -1,0 +1,25 @@
+version: 0.2
+
+env:
+  variables:
+    BUILD_PREFIX: "ahorro-ui/android"
+
+phases:
+  install:
+    runtime-versions:
+      golang: 1.21
+    commands:
+      - echo Installing dependencies...
+      - go version
+      - make --version
+  build:
+    commands:
+      - echo Building Go microservice...
+      - make package
+  post_build:
+    commands:
+      - echo Uploading artifact to S3...
+      - aws s3 cp build/service-handler/transactions_handler_lambda.zip s3://ahorro-artifacts/ahorro-transactions-service/transactions_handler_lambda.zip
+artifacts:
+  files:
+    - build/service-handler/transactions_handler_lambda.zip

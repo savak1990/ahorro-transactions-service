@@ -39,16 +39,12 @@ func lambdaHandler(adapter *gorillamux.GorillaMuxAdapter) func(ctx context.Conte
 			claims = map[string]interface{}{}
 		}
 		log.WithFields(log.Fields{
-			"method":           event.RequestContext.HTTP.Method,
-			"path":             event.RawPath,
-			"query":            event.RawQueryString,
-			"headers":          event.Headers,
-			"body":             event.Body,
-			"cognito_claims":   claims,
-			"cognito_sub":      claims["sub"],
-			"cognito_username": claims["cognito:username"],
-			"cognito_email":    claims["email"],
-			"cognito_name":     claims["cognito:name"],
+			"method":      event.RequestContext.HTTP.Method,
+			"path":        event.RawPath,
+			"query":       event.RawQueryString,
+			"headers":     event.Headers,
+			"body":        event.Body,
+			"cognito_sub": claims["sub"],
 		}).Info("REQUEST")
 
 		resp, err := adapter.ProxyWithContext(ctx, *core.NewSwitchableAPIGatewayRequestV2(&event))
