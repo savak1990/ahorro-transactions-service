@@ -27,23 +27,13 @@ provider "aws" {
   }
 }
 
-data "aws_secretsmanager_secret" "ahorro_app" {
-  name = local.secret_name
-}
-
-data "aws_secretsmanager_secret_version" "ahorro_app" {
-  secret_id = data.aws_secretsmanager_secret.ahorro_app.id
-}
-
 locals {
-  project_name       = "ahorro-transactions-service"
-  codebuild_name     = "${local.project_name}-build"
-  github_owner       = "savak1990"
-  github_repo        = "ahorro-transactions-service"
-  github_branch      = "main"
-  artifact_bucket    = "ahorro-artifacts"
-  secret_name        = "ahorro-app-secrets"
-  github_oauth_token = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["github_token"]
+  project_name    = "ahorro-transactions-service"
+  codebuild_name  = "${local.project_name}-build"
+  github_owner    = "savak1990"
+  github_repo     = "ahorro-transactions-service"
+  github_branch   = "main"
+  artifact_bucket = "ahorro-artifacts"
 }
 
 data "aws_codestarconnections_connection" "github" {
