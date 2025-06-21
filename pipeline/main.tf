@@ -109,7 +109,7 @@ resource "aws_codebuild_project" "go_build" {
 
   environment {
     compute_type    = "BUILD_GENERAL1_SMALL"
-    image           = "golang:1.21-bullseye"
+    image           = "golang:1.23-bullseye"
     type            = "LINUX_CONTAINER"
     privileged_mode = false
   }
