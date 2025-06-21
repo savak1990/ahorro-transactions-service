@@ -41,7 +41,8 @@ data "aws_codestarconnections_connection" "github" {
 }
 
 resource "aws_codepipeline" "go_pipeline" {
-  name     = "${local.project_name}-pipeline"
+  # Note that s3 bucket name comes from pipeline name, and can be truncated
+  name     = "transactions"
   role_arn = aws_iam_role.codepipeline_role.arn
 
   artifact_store {
@@ -89,9 +90,10 @@ resource "aws_codebuild_project" "go_build" {
   service_role = aws_iam_role.codebuild_role.arn
 
   artifacts {
-    type                = "S3"
-    location            = local.artifact_bucket
-    path                = "ahorro-transactions-service"
+    type     = "S3"
+    location = local.artifact_bucket
+    # The path should match the name of the CodePipeline to be in the same bucket
+    path                = "transactions"
     packaging           = "ZIP"
     name                = "ahorro-transactions-service.zip"
     encryption_disabled = true
