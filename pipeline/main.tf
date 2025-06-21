@@ -270,3 +270,22 @@ resource "aws_iam_role_policy_attachment" "codepipeline_pass_codebuild_role" {
   role       = aws_iam_role.codepipeline_role.name
   policy_arn = aws_iam_policy.codepipeline_pass_codebuild_role.arn
 }
+
+resource "aws_iam_policy" "codepipeline_codestar_connections" {
+  name = "${local.project_name}-codepipeline-codestar-connections"
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Effect = "Allow",
+      Action = [
+        "codestar-connections:UseConnection"
+      ],
+      Resource = data.aws_codestarconnections_connection.github.arn
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "codepipeline_codestar_connections" {
+  role       = aws_iam_role.codepipeline_role.name
+  policy_arn = aws_iam_policy.codepipeline_codestar_connections.arn
+}
