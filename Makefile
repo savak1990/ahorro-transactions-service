@@ -10,10 +10,13 @@ TRANSACTIONS_DB_TABLE_NAME=$(FULL_NAME)-transactions-db
 # Main app arguments
 APP_DIR=app
 APP_BUILD_DIR=./build/service-handler
-APP_LAMBDA_ZIP_NAME=transactions_handler_lambda.zip
+APP_LAMBDA_ZIP_BASE_NAME=$(SERVICE_NAME)-lambda
+APP_LAMBDA_ZIP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME).zip
+APP_LAMBDA_ZIP_TIMESTAMP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME)-$(shell date +%Y%m%d%H%M).zip
 APP_LAMBDA_HANDLER_ZIP=$(APP_BUILD_DIR)/$(APP_LAMBDA_ZIP_NAME)
 APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
+APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 
 .PHONY: all build run package test clean deploy undeploy plan
 
@@ -40,6 +43,12 @@ run: app-build-local
 	CATEGORIES_DB_TABLE_NAME=$(CATEGORIES_DB_TABLE_NAME) TRANSACTIONS_DB_TABLE_NAME=$(TRANSACTIONS_DB_TABLE_NAME) ./$(APP_BINARY)
 
 package: $(APP_LAMBDA_HANDLER_ZIP)
+
+upload: $(APP_LAMBDA_HANDLER_ZIP)
+	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_NAME)
+
+upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP)
+	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_TIMESTAMP_NAME)
 
 # Terraform deployment helpers
 

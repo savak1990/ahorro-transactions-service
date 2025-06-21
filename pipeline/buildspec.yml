@@ -15,11 +15,10 @@ phases:
   build:
     commands:
       - echo Building Go microservice...
-      - make package
+      - make upload-timestamp
   post_build:
     commands:
-      - echo Uploading artifact to S3...
-      - aws s3 cp build/service-handler/transactions_handler_lambda.zip s3://ahorro-artifacts/transactions/transactions_handler_lambda.zip
+      - echo Post Build...
 artifacts:
   files:
     - build/service-handler/transactions_handler_lambda.zip
