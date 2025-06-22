@@ -1,3 +1,9 @@
+# Project Health
+
+[![CodeBuild Status](https://codebuild.eu-west-1.amazonaws.com/badges?projectName=ahorro-transactions-service-build)](https://eu-west-1.console.aws.amazon.com/codesuite/codebuild/projects/ahorro-transactions-service-build/history)
+
+[![CodePipeline Status](https://aws-codepipeline-badges.s3.amazonaws.com/eu-west-1/transactions/badge.svg)](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/transactions/view)
+
 # Ahorro Transactions Service
 
 This project is a Go application that provides a REST API for managing user transactions, balances, and per-user category prioritization, backed by AWS Aurora PostgreSQL and DynamoDB. It includes infrastructure-as-code (Terraform), functional tests (pytest), and supports easy local and CI testing with isolated databases.
