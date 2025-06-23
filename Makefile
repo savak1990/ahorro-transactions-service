@@ -2,10 +2,14 @@
 APP_NAME=ahorro
 SERVICE_NAME=transactions
 INSTANCE_NAME=$(shell whoami)
+AWS_REGION=eu-west-1
 
 FULL_NAME=$(APP_NAME)-$(SERVICE_NAME)-$(INSTANCE_NAME)
-CATEGORIES_DB_TABLE_NAME=$(FULL_NAME)-categories-db
-TRANSACTIONS_DB_TABLE_NAME=$(FULL_NAME)-transactions-db
+
+# Database credentials from AWS Secrets Manager
+SECRET_NAME=$(APP_NAME)-app-secrets
+DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
+DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
 
 # Main app arguments
 APP_DIR=app
@@ -19,7 +23,7 @@ APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 
-.PHONY: all build run package test clean deploy undeploy plan
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip enable-db-public-access disable-db-public-access connect-db seed migrate migrate-up migrate-down migrate-status migrate-create
 
 # Build and package main app
 $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go')
@@ -41,11 +45,20 @@ $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP): $(APP_LAMBDA_BINARY)
 # Combined build and package targets
 build: $(APP_BINARY) $(APP_LAMBDA_BINARY)
 
+app-build-local: $(APP_BINARY)
+
+app-build-lambda: $(APP_LAMBDA_BINARY)
+
 test: $(APP_BINARY)
 	cd $(APP_DIR) && go test ./...
 
-run: app-build-local
-	CATEGORIES_DB_TABLE_NAME=$(CATEGORIES_DB_TABLE_NAME) TRANSACTIONS_DB_TABLE_NAME=$(TRANSACTIONS_DB_TABLE_NAME) ./$(APP_BINARY)
+run: app-build-local get-db-config
+	DB_HOST=$(shell $(MAKE) -s get-db-endpoint) \
+	DB_PORT=$(shell $(MAKE) -s get-db-port) \
+	DB_NAME=$(shell $(MAKE) -s get-db-name) \
+	DB_USERNAME="$(DB_USERNAME)" \
+	DB_PASSWORD="$(DB_PASSWORD)" \
+	./$(APP_BINARY)
 
 package: $(APP_LAMBDA_HANDLER_ZIP)
 
@@ -75,13 +88,26 @@ refresh:
 		-var="service_name=$(SERVICE_NAME)" \
 		-var="env=$(INSTANCE_NAME)"
 
-deploy:
+# Use this only for development purposes
+deploy-public:
+	@echo "WARNING: Enabling public database access for development!"
+	@echo "Your IP: $(shell curl -s ifconfig.me)"
 	cd deploy && \
-	terraform init && \
 	terraform apply -auto-approve \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)"
+		-var="env=$(INSTANCE_NAME)" \
+		-var="enable_db_public_access=true" \
+		-var="my_ip_cidr=$(shell curl -s ifconfig.me)/32"
+
+deploy-private:
+	@echo "Disabling public database access..."
+	cd deploy && \
+	terraform apply -auto-approve \
+		-var="app_name=$(APP_NAME)" \
+		-var="service_name=$(SERVICE_NAME)" \
+		-var="env=$(INSTANCE_NAME)" \
+		-var="enable_db_public_access=false"
 
 undeploy:
 	cd deploy && \
@@ -93,6 +119,106 @@ undeploy:
 
 show-api-url:
 	@cd deploy && terraform output -raw api_url
+
+# Database configuration helpers
+get-db-config:
+	@echo "Fetching database configuration from Terraform..."
+
+get-db-endpoint:
+	@cd deploy && terraform output -raw db_endpoint
+
+get-db-port:
+	@cd deploy && terraform output -raw db_port
+
+get-db-name:
+	@cd deploy && terraform output -raw db_name
+
+show-db-config: get-db-config
+	@echo "Database Endpoint: $(shell $(MAKE) -s get-db-endpoint)"
+	@echo "Database Port: $(shell $(MAKE) -s get-db-port)"
+	@echo "Database Name: $(shell $(MAKE) -s get-db-name)"
+	@echo "Database Username: $(DB_USERNAME)"
+	@echo "Database Password: [HIDDEN]"
+
+# Public database access helpers (SECURITY WARNING: Only for development!)
+get-my-ip:
+	@echo "Your current public IP address:"
+	@curl -s ifconfig.me
+	@echo
+
+connect-db:
+	@echo "Connecting to PostgreSQL database..."
+	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
+	@echo "Port: $(shell $(MAKE) -s get-db-port)"
+	@echo "Database: $(shell $(MAKE) -s get-db-name)"
+	@echo "Username: $(DB_USERNAME)"
+	@echo ""
+	docker run -it --rm postgres:15-alpine psql \
+		"postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require"
+
+seed:
+	@echo "Seeding PostgreSQL database with sample data..."
+	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
+	@echo "Database: $(shell $(MAKE) -s get-db-name)"
+	@echo "Username: $(DB_USERNAME)"
+	@echo ""
+	@if [ ! -f "seed/seed_data.sql" ]; then \
+		echo "Error: seed/seed_data.sql not found!"; \
+		exit 1; \
+	fi
+	@echo "Running seed script..."
+	docker run --rm -v "$(PWD):/app" -w /app \
+		-e PGPASSWORD="$(DB_PASSWORD)" \
+		postgres:15-alpine psql \
+		--host=$(shell $(MAKE) -s get-db-endpoint) \
+		--port=$(shell $(MAKE) -s get-db-port) \
+		--username=$(DB_USERNAME) \
+		--dbname=$(shell $(MAKE) -s get-db-name) \
+		--file=seed/seed_data.sql
+	@echo "Database seeding completed!"
+
+# Database migration targets using dbmate
+migrate:
+	@echo "Running database migrations..."
+	@echo "Database URL: postgres://$(DB_USERNAME):***@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require"
+	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+	docker run --rm -v "$(PWD):/app" -w /app \
+		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+		amacneil/dbmate:2 migrate
+	@echo "Migrations completed!"
+
+migrate-up:
+	@echo "Running migrate up..."
+	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+	docker run --rm -v "$(PWD):/app" -w /app \
+		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+		amacneil/dbmate:2 up
+
+migrate-down:
+	@echo "Running migrate down..."
+	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+	docker run --rm -v "$(PWD):/app" -w /app \
+		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+		amacneil/dbmate:2 down
+
+migrate-status:
+	@echo "Migration status..."
+	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+	docker run --rm -v "$(PWD):/app" -w /app \
+		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+		amacneil/dbmate:2 status
+
+migrate-create:
+	@echo "Creating new migration..."
+	@if [ -z "$(NAME)" ]; then \
+		echo "Error: Please provide a migration name using NAME=your_migration_name"; \
+		exit 1; \
+	fi
+	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+	docker run --rm -v "$(PWD):/app" -w /app \
+		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
+		amacneil/dbmate:2 new $(NAME)
+	@echo "Migration created!"
 
 # Clean up build artifacts and virtual environments
 

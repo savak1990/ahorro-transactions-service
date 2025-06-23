@@ -17,11 +17,33 @@ resource "aws_lambda_function" "app" {
   s3_key        = var.app_s3_artifact_zip_key
   timeout       = 15
 
+  vpc_config {
+    subnet_ids         = var.lambda_subnet_ids
+    security_group_ids = [aws_security_group.lambda_sg.id]
+  }
+
   environment {
     variables = {
-      TRANSACTIONS_DYNAMODB_TABLE = var.transactions_db_table_name
-      CATEGORIES_DYNAMODB_TABLE   = var.categories_db_table_name
+      # Aurora PostgreSQL connection details
+      DB_HOST     = var.db_endpoint
+      DB_NAME     = var.db_name
+      DB_USER     = var.db_username
+      DB_PASSWORD = var.db_password
+      DB_PORT     = "5432"
     }
+  }
+}
+
+resource "aws_security_group" "lambda_sg" {
+  name        = "${local.lambda_name}-sg"
+  description = "Security group for Lambda function"
+  vpc_id      = var.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -46,6 +68,11 @@ resource "aws_iam_role" "lambda_role" {
 resource "aws_iam_role_policy_attachment" "app_lambda_exec_policy_attachment" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_policy_attachment" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
 resource "aws_iam_role_policy" "logging_policy" {
@@ -99,58 +126,6 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
           "s3:GetObject"
         ],
         Resource = "arn:aws:s3:::ahorro-artifacts/*"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy" "categories_dynamodb_policy" {
-  name = "${local.lambda_name}-categories-dynamodb-policy"
-  role = aws_iam_role.lambda_role.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:Query",
-          "dynamodb:DescribeTable"
-        ],
-        Effect = "Allow",
-        Resource = [
-          "arn:aws:dynamodb:*:*:table/${var.categories_db_table_name}",
-          "arn:aws:dynamodb:*:*:table/${var.categories_db_table_name}/index/*"
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy" "transactions_dynamodb_policy" {
-  name = "${local.lambda_name}-transactions-dynamodb-policy"
-  role = aws_iam_role.lambda_role.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:Query",
-          "dynamodb:DescribeTable"
-        ],
-        Effect = "Allow",
-        Resource = [
-          "arn:aws:dynamodb:*:*:table/${var.transactions_db_table_name}",
-          "arn:aws:dynamodb:*:*:table/${var.transactions_db_table_name}/index/*"
-        ]
       }
     ]
   })

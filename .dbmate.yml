@@ -1,0 +1,10 @@
+# Database URL will be constructed from environment variables
+# Format: postgres://username:password@host:port/database?sslmode=require
+
+# Migration settings
+migrations_dir: db/migrations
+schema_file: db/schema.sql
+
+# Wait for database to be ready
+wait: true
+wait_timeout: 60s

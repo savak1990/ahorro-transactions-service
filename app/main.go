@@ -65,23 +65,24 @@ func main() {
 	log.WithFields(log.Fields{
 		"region":  appCfg.AWSRegion,
 		"profile": appCfg.AWSProfile,
+		"db_host": appCfg.DBHost,
+		"db_port": appCfg.DBPort,
+		"db_name": appCfg.DBName,
 	}).Info("Loaded config")
 
-	awsCfg := aws.LoadAWSConfig(appCfg.AWSRegion, appCfg.AWSProfile)
-	log.WithField("region", awsCfg.Region).Info("AWS Debug Info")
+	// Initialize GORM database connection
+	gormDB := aws.GetGormDB(appCfg)
 
-	dbClient := aws.GetDynamoDbClient(awsCfg)
-	log.WithField("endpointResolver", dbClient.Options().BaseEndpoint).Info("DynamoDB client info")
-
-	transactionsRepo := repo.NewDynamoDbTransactionsRepository(dbClient, appCfg.TransactionsDynamoDbTable)
+	// Initialize PostgreSQL repositories
+	transactionsRepo := repo.NewPostgreSQLTransactionsRepository(gormDB)
 	transactionsService := service.NewTransactionsServiceImpl(transactionsRepo)
 	transactionsHandler := handler.NewTransactionsHandlerImpl(transactionsService)
 
-	categoriesRepo := repo.NewDynamoDbCategoriesRepository(dbClient, appCfg.CategoriesDynamoDbTable)
-	categoriesService := service.NewCategoriesServiceImpl(categoriesRepo)
+	// Categories use the same repository (unified implementation)
+	categoriesService := service.NewCategoriesServiceImpl(transactionsRepo)
 	categoriesHandler := handler.NewCategoriesHandlerImpl(categoriesService)
 
-	commonHandler := handler.NewCommonHandlerImpl()
+	commonHandler := handler.NewCommonHandlerImpl(gormDB)
 
 	router := mux.NewRouter()
 	router.Use(mux.CORSMethodMiddleware(router))

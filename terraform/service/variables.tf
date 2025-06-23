@@ -1,13 +1,3 @@
-variable "transactions_db_table_name" {
-  description = "The name of the DynamoDB table for transactions"
-  type        = string
-}
-
-variable "categories_db_table_name" {
-  description = "The name of the DynamoDB table"
-  type        = string
-}
-
 variable "base_name" {
   description = "The base name for the application, used for naming resources"
   type        = string
@@ -51,4 +41,41 @@ variable "cognito_user_pool_id" {
 variable "cognito_user_pool_client_id" {
   description = "The ID of the Cognito User Pool Client for authentication"
   type        = string
+}
+
+variable "vpc_id" {
+  description = "VPC ID for Lambda networking."
+  type        = string
+}
+
+variable "lambda_subnet_ids" {
+  description = "List of subnet IDs for Lambda networking."
+  type        = list(string)
+}
+
+variable "db_endpoint" {
+  description = "Aurora cluster endpoint."
+  type        = string
+}
+
+variable "db_port" {
+  description = "Aurora database port."
+  type        = number
+  default     = 5432
+}
+
+variable "db_name" {
+  description = "Aurora database name."
+  type        = string
+}
+
+variable "db_username" {
+  description = "Aurora database username."
+  type        = string
+}
+
+variable "db_password" {
+  description = "Aurora database password."
+  type        = string
+  sensitive   = true
 }
