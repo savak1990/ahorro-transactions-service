@@ -42,13 +42,15 @@ data "terraform_remote_state" "cognito" {
 }
 
 locals {
-  base_name              = "${var.app_name}-${var.service_name}-${var.env}"
-  app_lambda_name        = "${local.base_name}-app-lambda"
-  categories_table_name  = "${local.base_name}-categories-db"
-  transaction_table_name = "${local.base_name}-transactions-db"
-  secret_name            = "${var.app_name}-app-secrets"
-  domain_name            = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["domain_name"]
-  full_api_name          = "api-${local.base_name}"
+  base_name               = "${var.app_name}-${var.service_name}-${var.env}"
+  app_lambda_name         = "${local.base_name}-app-lambda"
+  app_s3_bucket_name      = "ahorro-artifacts"
+  app_s3_artifact_zip_key = "transactions/transactions-lambda.zip"
+  categories_table_name   = "${local.base_name}-categories-db"
+  transaction_table_name  = "${local.base_name}-transactions-db"
+  secret_name             = "${var.app_name}-app-secrets"
+  domain_name             = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["domain_name"]
+  full_api_name           = "api-${local.base_name}"
 }
 
 module "categories_database" {
@@ -69,7 +71,8 @@ module "ahorro_transactions_service" {
   api_name                    = local.full_api_name
   domain_name                 = local.domain_name
   base_name                   = local.base_name
-  app_handler_zip             = var.app_handler_zip
+  app_s3_bucket_name          = local.app_s3_bucket_name
+  app_s3_artifact_zip_key     = local.app_s3_artifact_zip_key
   certificate_arn             = data.aws_acm_certificate.cert.arn
   zone_id                     = data.aws_route53_zone.public.zone_id
   cognito_user_pool_id        = data.terraform_remote_state.cognito.outputs.user_pool_id

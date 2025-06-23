@@ -65,8 +65,7 @@ plan:
 	terraform plan \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="app_handler_zip=../$(APP_LAMBDA_HANDLER_ZIP)"
+		-var="env=$(INSTANCE_NAME)"
 
 refresh:
 	cd deploy && \
@@ -74,8 +73,7 @@ refresh:
 	terraform refresh \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="app_handler_zip=../$(APP_LAMBDA_HANDLER_ZIP)"
+		-var="env=$(INSTANCE_NAME)"
 
 deploy:
 	cd deploy && \
@@ -83,8 +81,7 @@ deploy:
 	terraform apply -auto-approve \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="app_handler_zip=../$(APP_LAMBDA_HANDLER_ZIP)"
+		-var="env=$(INSTANCE_NAME)"
 
 undeploy:
 	cd deploy && \
@@ -92,8 +89,7 @@ undeploy:
 	terraform destroy -auto-approve \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="app_handler_zip=../$(APP_LAMBDA_HANDLER_ZIP)"
+		-var="env=$(INSTANCE_NAME)"
 
 show-api-url:
 	@cd deploy && terraform output -raw api_url

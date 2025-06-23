@@ -13,8 +13,13 @@ variable "base_name" {
   type        = string
 }
 
-variable "app_handler_zip" {
-  description = "Path to the zipped Go Lambda handler for the app."
+variable "app_s3_bucket_name" {
+  description = "The name of the S3 bucket for storing application assets"
+  type        = string
+}
+
+variable "app_s3_artifact_zip_key" {
+  description = "The key for the zip file in the S3 bucket"
   type        = string
 }
 

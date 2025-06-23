@@ -9,12 +9,13 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
 }
 
 resource "aws_lambda_function" "app" {
-  function_name    = local.lambda_name
-  role             = aws_iam_role.lambda_role.arn
-  handler          = "bootstrap"
-  runtime          = "provided.al2"
-  filename         = var.app_handler_zip
-  source_code_hash = filebase64sha256(var.app_handler_zip)
+  function_name = local.lambda_name
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "bootstrap"
+  runtime       = "provided.al2"
+  s3_bucket     = var.app_s3_bucket_name
+  s3_key        = var.app_s3_artifact_zip_key
+  timeout       = 15
 
   environment {
     variables = {
@@ -85,8 +86,26 @@ resource "aws_iam_role_policy" "cloudwatch_policy" {
   })
 }
 
+resource "aws_iam_role_policy" "lambda_s3_access" {
+  name = "${local.lambda_name}-s3-access"
+  role = aws_iam_role.lambda_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "s3:GetObject"
+        ],
+        Resource = "arn:aws:s3:::ahorro-artifacts/*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy" "categories_dynamodb_policy" {
-  name = "categories-dynamodb-policy"
+  name = "${local.lambda_name}-categories-dynamodb-policy"
   role = aws_iam_role.lambda_role.name
 
   policy = jsonencode({
@@ -112,7 +131,7 @@ resource "aws_iam_role_policy" "categories_dynamodb_policy" {
 }
 
 resource "aws_iam_role_policy" "transactions_dynamodb_policy" {
-  name = "transactions-dynamodb-policy"
+  name = "${local.lambda_name}-transactions-dynamodb-policy"
   role = aws_iam_role.lambda_role.name
 
   policy = jsonencode({
