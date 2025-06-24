@@ -23,7 +23,7 @@ APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip enable-db-public-access disable-db-public-access connect-db seed migrate migrate-up migrate-down migrate-status migrate-create
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom
 
 # Build and package main app
 $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go')
@@ -91,14 +91,35 @@ refresh:
 # Use this only for development purposes
 deploy-public:
 	@echo "WARNING: Enabling public database access for development!"
-	@echo "Your IP: $(shell curl -s ifconfig.me)"
+	@IP=$$(curl -4 -s ifconfig.me || curl -s ipv4.icanhazip.com || dig +short myip.opendns.com @resolver1.opendns.com); \
+	echo "Your IPv4: $$IP"; \
+	echo "Using CIDR block: $$IP/32"; \
 	cd deploy && \
 	terraform apply -auto-approve \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
 		-var="env=$(INSTANCE_NAME)" \
 		-var="enable_db_public_access=true" \
-		-var="my_ip_cidr=$(shell curl -s ifconfig.me)/32"
+		-var="my_ip_cidr=$$IP/32"
+
+deploy-public-custom:
+	@echo "WARNING: Enabling public database access for development!"
+	@IP=$$(curl -4 -s ifconfig.me || curl -s ipv4.icanhazip.com || dig +short myip.opendns.com @resolver1.opendns.com); \
+	echo "Your current IPv4: $$IP"; \
+	echo -n "Enter CIDR block (e.g., $$IP/32 or 0.0.0.0/0): "; \
+	read CIDR_BLOCK; \
+	if [ -z "$$CIDR_BLOCK" ]; then \
+		echo "Error: CIDR block cannot be empty"; \
+		exit 1; \
+	fi; \
+	echo "Using CIDR block: $$CIDR_BLOCK"; \
+	cd deploy && \
+	terraform apply -auto-approve \
+		-var="app_name=$(APP_NAME)" \
+		-var="service_name=$(SERVICE_NAME)" \
+		-var="env=$(INSTANCE_NAME)" \
+		-var="enable_db_public_access=true" \
+		-var="my_ip_cidr=$$CIDR_BLOCK"
 
 deploy-private:
 	@echo "Disabling public database access..."
@@ -142,9 +163,9 @@ show-db-config: get-db-config
 
 # Public database access helpers (SECURITY WARNING: Only for development!)
 get-my-ip:
-	@echo "Your current public IP address:"
-	@curl -s ifconfig.me
-	@echo
+	@echo "Your current public IPv4 address:"
+	@IP=$$(curl -4 -s ifconfig.me || curl -s ipv4.icanhazip.com || dig +short myip.opendns.com @resolver1.opendns.com); \
+	echo "IPv4: $$IP (use $$IP/32 for CIDR)"
 
 connect-db:
 	@echo "Connecting to PostgreSQL database..."
@@ -177,48 +198,11 @@ seed:
 		--file=seed/seed_data.sql
 	@echo "Database seeding completed!"
 
-# Database migration targets using dbmate
-migrate:
-	@echo "Running database migrations..."
-	@echo "Database URL: postgres://$(DB_USERNAME):***@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require"
-	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-	docker run --rm -v "$(PWD):/app" -w /app \
-		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-		amacneil/dbmate:2 migrate
-	@echo "Migrations completed!"
-
-migrate-up:
-	@echo "Running migrate up..."
-	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-	docker run --rm -v "$(PWD):/app" -w /app \
-		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-		amacneil/dbmate:2 up
-
-migrate-down:
-	@echo "Running migrate down..."
-	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-	docker run --rm -v "$(PWD):/app" -w /app \
-		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-		amacneil/dbmate:2 down
-
-migrate-status:
-	@echo "Migration status..."
-	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-	docker run --rm -v "$(PWD):/app" -w /app \
-		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-		amacneil/dbmate:2 status
-
-migrate-create:
-	@echo "Creating new migration..."
-	@if [ -z "$(NAME)" ]; then \
-		echo "Error: Please provide a migration name using NAME=your_migration_name"; \
-		exit 1; \
-	fi
-	DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-	docker run --rm -v "$(PWD):/app" -w /app \
-		-e DATABASE_URL="postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require" \
-		amacneil/dbmate:2 new $(NAME)
-	@echo "Migration created!"
+# Docker image management
+pull-postgres:
+	@echo "Pulling latest PostgreSQL Docker image..."
+	docker pull postgres:15-alpine
+	@echo "PostgreSQL Docker image updated!"
 
 # Clean up build artifacts and virtual environments
 

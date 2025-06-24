@@ -74,13 +74,9 @@ func main() {
 	gormDB := aws.GetGormDB(appCfg)
 
 	// Initialize PostgreSQL repositories
-	transactionsRepo := repo.NewPostgreSQLTransactionsRepository(gormDB)
-	transactionsService := service.NewTransactionsServiceImpl(transactionsRepo)
-	transactionsHandler := handler.NewTransactionsHandlerImpl(transactionsService)
-
-	// Categories use the same repository (unified implementation)
-	categoriesService := service.NewCategoriesServiceImpl(transactionsRepo)
-	categoriesHandler := handler.NewCategoriesHandlerImpl(categoriesService)
+	repo := repo.NewPostgreSQLRepository(gormDB)
+	service := service.NewServiceImpl(repo)
+	serviceHandler := handler.NewHandlerImpl(service)
 
 	commonHandler := handler.NewCommonHandlerImpl(gormDB)
 
@@ -93,14 +89,11 @@ func main() {
 	router.HandleFunc("/info", commonHandler.HandleInfo).Methods("GET")
 
 	// Transactions APIs
-	router.HandleFunc("/transactions", transactionsHandler.CreateTransaction).Methods("POST")
-	router.HandleFunc("/transactions", transactionsHandler.ListTransactions).Methods("GET")
-	router.HandleFunc("/transactions/{transaction_id}", transactionsHandler.GetTransaction).Methods("GET")
-	router.HandleFunc("/transactions/{transaction_id}", transactionsHandler.UpdateTransaction).Methods("PUT")
-	router.HandleFunc("/transactions/{transaction_id}", transactionsHandler.DeleteTransaction).Methods("DELETE")
-
-	// Categories APIs
-	router.HandleFunc("/categories", categoriesHandler.ListCategoriesForUser).Methods("GET")
+	router.HandleFunc("/transactions", serviceHandler.CreateTransaction).Methods("POST")
+	router.HandleFunc("/transactions", serviceHandler.ListTransactions).Methods("GET")
+	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.GetTransaction).Methods("GET")
+	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.UpdateTransaction).Methods("PUT")
+	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.DeleteTransaction).Methods("DELETE")
 
 	// Lambda/API Gateway integration: use the muxadapter if running in Lambda
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" || os.Getenv("_LAMBDA_SERVER_PORT") != "" {

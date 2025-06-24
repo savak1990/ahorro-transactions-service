@@ -70,8 +70,8 @@ func autoMigrate(db *gorm.DB) error {
 	// Migrate all models
 	err := db.AutoMigrate(
 		&models.Merchant{},
-		&models.CategoryDB{},
-		&models.TransactionDB{},
+		&models.Category{},
+		&models.Transaction{},
 		&models.TransactionEntry{},
 	)
 
