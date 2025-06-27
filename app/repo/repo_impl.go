@@ -79,9 +79,110 @@ func (r *PostgreSQLRepository) DeleteTransaction(ctx context.Context, transactio
 	return nil
 }
 
-// ListTransactions retrieves transactions based on the filter
+// ListTransactions retrieves transaction entries based on the filter
 func (r *PostgreSQLRepository) ListTransactions(ctx context.Context, filter models.ListTransactionsFilter) ([]models.Transaction, string, error) {
-	return nil, "", nil
+	// For now, return empty result since we need to change the return type to []models.TransactionEntry
+	// This will be updated when we change the interface
+	return []models.Transaction{}, "", nil
+}
+
+// ListTransactionEntries retrieves transaction entries with all related data based on the filter
+func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+	var entries []models.TransactionEntry
+
+	query := r.db.WithContext(ctx).
+		Preload("Transaction").
+		Preload("Transaction.Merchant").
+		Preload("Transaction.Balance").
+		Preload("Category")
+
+	// Join transaction table once if we need to filter by transaction fields
+	needsTransactionJoin := filter.GroupID != "" || filter.UserID != "" || filter.BalanceID != "" || filter.Type != ""
+	if needsTransactionJoin {
+		query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id")
+	}
+
+	// Join category table if we need to filter by category
+	if filter.Category != "" {
+		query = query.Joins("JOIN category ON transaction_entry.category_id = category.id")
+	}
+
+	// Apply transaction-related filters
+	if filter.GroupID != "" {
+		query = query.Where("transaction.group_id = ?", filter.GroupID)
+	}
+
+	if filter.UserID != "" {
+		query = query.Where("transaction.user_id = ?", filter.UserID)
+	}
+
+	if filter.BalanceID != "" {
+		query = query.Where("transaction.balance_id = ?", filter.BalanceID)
+	}
+
+	if filter.Type != "" {
+		query = query.Where("transaction.type = ?", filter.Type)
+	}
+
+	// Apply category filter
+	if filter.Category != "" {
+		query = query.Where("category.category_name = ?", filter.Category)
+	}
+
+	// Handle cursor-based pagination
+	if filter.StartKey != "" {
+		query = query.Where("transaction_entry.id < ?", filter.StartKey)
+	}
+
+	// Apply sorting
+	orderBy := "transaction_entry.created_at"
+	if filter.SortBy != "" {
+		switch filter.SortBy {
+		case "transacted_at":
+			if needsTransactionJoin {
+				orderBy = "transaction.transacted_at"
+			} else {
+				// If we didn't join transaction table yet, we need to join it for sorting
+				query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id")
+				orderBy = "transaction.transacted_at"
+			}
+		case "amount":
+			orderBy = "transaction_entry.amount"
+		case "created_at":
+			orderBy = "transaction_entry.created_at"
+		}
+	}
+
+	order := "DESC"
+	if filter.Order != "" && (filter.Order == "ASC" || filter.Order == "asc") {
+		order = "ASC"
+	}
+
+	query = query.Order(fmt.Sprintf("%s %s", orderBy, order))
+
+	// Apply limit
+	limit := 50 // default limit
+	if filter.Count > 0 && filter.Count <= 100 {
+		limit = filter.Count
+	}
+	query = query.Limit(limit + 1) // Get one extra to check if there are more records
+
+	if err := query.Find(&entries).Error; err != nil {
+		return nil, "", fmt.Errorf("failed to list transaction entries: %w", err)
+	}
+
+	// Handle pagination
+	var nextToken string
+	if len(entries) > limit {
+		// Remove the extra record and set next token
+		entries = entries[:limit]
+		if len(entries) > 0 {
+			// Use the last entry's ID as the next token (cursor-based pagination)
+			nextToken = entries[len(entries)-1].ID.String()
+		}
+	}
+
+	return entries, nextToken, nil
 }
 
 // CreateCategory creates a new category in the database

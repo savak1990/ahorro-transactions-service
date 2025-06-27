@@ -12,6 +12,7 @@ type Repository interface {
 	CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error)
 	GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error)
 	ListTransactions(ctx context.Context, filter models.ListTransactionsFilter) ([]models.Transaction, string, error)
+	ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error)
 	UpdateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error)
 	DeleteTransaction(ctx context.Context, transactionID string) error
 

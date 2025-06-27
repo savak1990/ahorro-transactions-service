@@ -48,6 +48,14 @@ func (svc *MockService) ListTransactions(ctx context.Context, filter models.List
 	return args.Get(0).([]models.Transaction), args.String(1), args.Error(2)
 }
 
+func (svc *MockService) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+	args := svc.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, "", args.Error(2)
+	}
+	return args.Get(0).([]models.TransactionEntry), args.String(1), args.Error(2)
+}
+
 func (svc *MockService) CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
 	args := svc.Called(ctx, balance)
 	if args.Get(0) == nil {

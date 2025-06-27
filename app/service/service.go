@@ -13,6 +13,7 @@ type Service interface {
 	UpdateTransaction(ctx context.Context, tx m.Transaction) (*m.Transaction, error)
 	DeleteTransaction(ctx context.Context, transactionID string) error
 	ListTransactions(ctx context.Context, filter m.ListTransactionsFilter) ([]m.Transaction, string, error)
+	ListTransactionEntries(ctx context.Context, filter m.ListTransactionsFilter) ([]m.TransactionEntry, string, error)
 
 	CreateBalance(ctx context.Context, balance m.Balance) (*m.Balance, error)
 	GetBalance(ctx context.Context, balanceID string) (*m.Balance, error)

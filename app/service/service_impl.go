@@ -77,5 +77,9 @@ func (s *ServiceImpl) DeleteCategory(ctx context.Context, categoryID string) err
 	return s.repo.DeleteCategory(ctx, categoryID)
 }
 
+func (s *ServiceImpl) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+	return s.repo.ListTransactionEntries(ctx, filter)
+}
+
 // Ensure ServiceImpl implements Service
 var _ Service = (*ServiceImpl)(nil)

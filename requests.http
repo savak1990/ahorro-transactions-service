@@ -1,5 +1,5 @@
-@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
-@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI3MjA1ZTQ3NC1mMDkxLTcwM2QtYzhlNS1lNDBmOTMyNWQ5ZWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiNzIwNWU0NzQtZjA5MS03MDNkLWM4ZTUtZTQwZjkzMjVkOWVkIiwib3JpZ2luX2p0aSI6IjMxODM4Zjc3LTQ5NjMtNDViYy1hYTA3LTljMTYzZDQyOTkwNyIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6IjBiYTUxMzZmLTNkNTMtNGU5My1hMzQwLTU0YzJlYzFlZTQ5MSIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMDI2NTEwLCJuYW1lIjoiTmljZUpPQiEiLCJleHAiOjE3NTEwMzAxMTAsImlhdCI6MTc1MTAyNjUxMCwianRpIjoiNDg5OGMwNGUtNDUyZS00MTE4LWI3MDEtM2M1MGUyMDVkMzBmIiwiZW1haWwiOiJnaW5nZXJ6bG9AeWFuZGV4LnJ1In0.QLZ9rdfqzTPoLKPvtyM-zGyNDDv8W1fU5vr9Z0uKvKw-2iUB6SL9O1slDaFgp7Yc8bFHsTAFsG6KWK688ePHQ19zibGJfFmTEu1QlvAnkoCq1sTlwUKw4j9uLzqs2XH5XGkrjuadWpjJYzSpQWIu7WGf85WbE03QCkIJhvriQhWx0LZjuyKbGK4Pc7sXq-zYTYkRn1VYHFKnkBS6Dh8JnZjvhug9Lzr4pkZi9T1j39QGSAjvlCAHNA7iUJ1guZucMocDWzWCTIpmNtSbdEnxMaysDk-Lptl53JJ8udusA1d-p46ikNJDXOfIL5sMHmfUYefpBfRCo4MfsLeAjaJtTQ
+@baseUrl=localhost:8080
+@authToken=<PASTE TOKEN HERE>
 @userId=02c514a4-2021-708d-efff-ea6cd5e4eac9
 @groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
 @balanceId=847ac10b-58cc-4372-a567-0e02b2c3d479
@@ -100,8 +100,68 @@ Authorization: Bearer {{authToken}}
     ]
 }
 
-### List transactions for a specific balance
+### ============================================================
+### TRANSACTION LISTING ENDPOINTS (Returns TransactionEntryDto)
+### ============================================================
+### The GET /transactions endpoint returns flattened transaction entries
+### Each entry includes:
+### - Transaction details (id, type, merchant, dates)
+### - Balance details (title, currency)
+### - Category details (name, image)
+### - Entry-specific details (description, amount)
+###
+### Supported query parameters:
+### - user_id: Filter by user ID
+### - group_id: Filter by group ID  
+### - type: Filter by transaction type (income, expense, movement)
+### - category: Filter by category name
+### - sorted_by: Sort field (transacted_at, amount, created_at)
+### - order: Sort order (ASC, DESC)
+### - count: Number of items per page (max 100, default 50)
+### - startKey: Cursor for pagination (use nextKey from previous response)
+
+### List transaction entries for a specific balance (basic)
 GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries with all filters
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&group_id={{groupId}}&type=expense&category=Groceries&sorted_by=transacted_at&order=DESC&count=10
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries by type (income only)
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&type=income
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries by type (expense only)
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&type=expense
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries by category
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&category=Groceries
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries sorted by amount (ascending)
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&sorted_by=amount&order=ASC&count=5
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries sorted by creation date (descending)
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&sorted_by=created_at&order=DESC&count=20
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries with pagination
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&count=5
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries for specific group
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?group_id={{groupId}}&count=10
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 

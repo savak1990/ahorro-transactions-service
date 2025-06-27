@@ -79,6 +79,7 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 
 	filter := models.ListTransactionsFilter{
 		UserID:    r.URL.Query().Get("user_id"),
+		GroupID:   r.URL.Query().Get("group_id"),
 		BalanceID: balanceID, // Filter by the balance_id from the URL path
 		Type:      r.URL.Query().Get("type"),
 		Category:  r.URL.Query().Get("category"),
@@ -92,17 +93,21 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	filter.StartKey = r.URL.Query().Get("startKey")
-	results, nextToken, err := h.Service.ListTransactions(r.Context(), filter)
+
+	entries, nextToken, err := h.Service.ListTransactionEntries(r.Context(), filter)
 	if err != nil {
-		logrus.WithError(err).Error("ListTransactions failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		logrus.WithError(err).Error("ListTransactionEntries failed")
+		WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeInternalServer, err.Error())
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"transactions": results,
-		"nextToken":    nextToken,
-	})
+
+	// Convert to DTOs for response
+	entryDtos := make([]models.TransactionEntryDto, len(entries))
+	for i, entry := range entries {
+		entryDtos[i] = models.ToAPITransactionEntry(&entry)
+	}
+
+	WriteJSONListResponse(w, entryDtos, nextToken)
 }
 
 // GET /balances/{balance_id}/transactions/{transaction_id}

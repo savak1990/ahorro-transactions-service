@@ -85,6 +85,7 @@ type Transaction struct {
 
 	// Relationships
 	Merchant           *Merchant          `gorm:"foreignKey:MerchantID"`
+	Balance            *Balance           `gorm:"foreignKey:BalanceID"`
 	TransactionEntries []TransactionEntry `gorm:"foreignKey:TransactionID"`
 }
 

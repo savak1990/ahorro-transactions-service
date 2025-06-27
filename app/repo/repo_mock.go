@@ -61,6 +61,19 @@ func (m *MockRepository) ListTransactions(ctx context.Context, filter models.Lis
 	return transactions, nextToken, args.Error(2)
 }
 
+func (m *MockRepository) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+	args := m.Called(ctx, filter)
+	var entries []models.TransactionEntry
+	if v := args.Get(0); v != nil {
+		entries = v.([]models.TransactionEntry)
+	}
+	var nextToken string
+	if v := args.Get(1); v != nil {
+		nextToken = v.(string)
+	}
+	return entries, nextToken, args.Error(2)
+}
+
 // Category methods
 
 func (m *MockRepository) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {

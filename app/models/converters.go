@@ -295,3 +295,80 @@ func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID u
 		CategoryID:    categoryID,
 	}, nil
 }
+
+// ToAPITransactionEntry converts TransactionEntry (DAO) to TransactionEntryDto (API model for GET responses)
+func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
+	if te == nil {
+		return TransactionEntryDto{}
+	}
+
+	// Get transaction info
+	transactionID := ""
+	groupID := ""
+	userID := ""
+	balanceID := ""
+	transactionType := ""
+	merchantName := ""
+	merchantImageUrl := ""
+	operationID := ""
+	approvedAt := ""
+	transactedAt := ""
+
+	if te.Transaction != nil {
+		transactionID = te.Transaction.ID.String()
+		groupID = te.Transaction.GroupID.String()
+		userID = te.Transaction.UserID.String()
+		balanceID = te.Transaction.BalanceID.String()
+		transactionType = te.Transaction.Type
+		if te.Transaction.Merchant != nil {
+			merchantName = te.Transaction.Merchant.Name
+			if te.Transaction.Merchant.ImageUrl != nil {
+				merchantImageUrl = *te.Transaction.Merchant.ImageUrl
+			}
+		}
+		if te.Transaction.OperationID != nil {
+			operationID = te.Transaction.OperationID.String()
+		}
+		if !te.Transaction.ApprovedAt.IsZero() {
+			approvedAt = te.Transaction.ApprovedAt.Format(time.RFC3339)
+		}
+		transactedAt = te.Transaction.TransactedAt.Format(time.RFC3339)
+	}
+
+	// Get balance info
+	balanceTitle := ""
+	balanceCurrency := ""
+	if te.Transaction != nil && te.Transaction.Balance != nil {
+		balanceTitle = te.Transaction.Balance.Title
+		balanceCurrency = te.Transaction.Balance.Currency
+	}
+
+	// Get category info
+	categoryName := ""
+	categoryImageUrl := ""
+	if te.Category != nil {
+		categoryName = te.Category.CategoryName
+		if te.Category.ImageUrl != nil {
+			categoryImageUrl = *te.Category.ImageUrl
+		}
+	}
+
+	return TransactionEntryDto{
+		GroupID:            groupID,
+		UserID:             userID,
+		BalanceID:          balanceID,
+		TransactionID:      transactionID,
+		TransactionEntryID: te.ID.String(),
+		Type:               transactionType,
+		Amount:             te.Amount,
+		BalanceTitle:       balanceTitle,
+		BalanceCurrency:    balanceCurrency,
+		CategoryName:       categoryName,
+		CategoryImageUrl:   categoryImageUrl,
+		MerchantName:       merchantName,
+		MerchantImageUrl:   merchantImageUrl,
+		OperationID:        operationID,
+		ApprovedAt:         approvedAt,
+		TransactedAt:       transactedAt,
+	}
+}
