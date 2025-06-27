@@ -159,6 +159,11 @@ module "apigateway" {
   cognito_unauth_paths = [
     "GET /info",
     "GET /health",
+    "GET /docs",
+    "GET /schema",
+    "GET /schema/info",
+    "GET /schema/raw",
+    "GET /schema/json",
   ]
 }
 

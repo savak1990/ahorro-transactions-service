@@ -26,11 +26,11 @@ APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 .PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom drop-tables
 
 # Build and package main app
-$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go')
+$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(shell find $(APP_DIR) -type f -name '*.yml')
 	@mkdir -p $(APP_BUILD_DIR)
 	cd $(APP_DIR) && GOOS=linux GOARCH=amd64 go build -o ../$(APP_LAMBDA_BINARY) main.go
 
-$(APP_BINARY): $(APP_DIR)/main.go
+$(APP_BINARY): $(APP_DIR)/main.go $(shell find $(APP_DIR) -type f -name '*.yml')
 	@mkdir -p $(APP_BUILD_DIR)
 	cd $(APP_DIR) && go build -o ../$(APP_BINARY) main.go
 

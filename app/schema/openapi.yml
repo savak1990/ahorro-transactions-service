@@ -1,0 +1,1644 @@
+openapi: 3.0.3
+info:
+  version: 1.0.0
+  title: "Ahorro Transactions Service API"
+  description: |
+    API for managing user transactions, balances, and categories in the Ahorro platform.
+    
+    This service provides endpoints for:
+    - Creating and managing financial transactions with multiple entries
+    - Managing user balances/accounts
+    - Managing transaction categories
+    - Retrieving transaction history with filtering and pagination
+  contact:
+    name: "Ahorro Development Team"
+  license:
+    name: "Proprietary"
+
+servers:
+  - url: http://localhost:8080
+    description: "Local development server"
+  - url: https://api-ahorro-transactions-savak.vkdev1.com:443
+    description: "User deployment server"
+
+security:
+  - bearerAuth: []
+
+paths:
+  /transactions:
+    post:
+      summary: Create a new transaction
+      description: |
+        Creates a new financial transaction with one or more transaction entries.
+        Each transaction can have multiple entries for different categories.
+      tags: [transactions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTransactionRequest'
+            examples:
+              expense_transaction:
+                summary: "Grocery shopping with multiple items"
+                value:
+                  userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+                  groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+                  balanceId: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+                  type: "expense"
+                  merchant: "Mercadona"
+                  transactedAt: "2024-06-19T12:00:00Z"
+                  transactionEntries:
+                    - description: "Organic vegetables"
+                      amount: 45.50
+                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                    - description: "Cleaning supplies"
+                      amount: 28.75
+                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d487"
+              income_transaction:
+                summary: "Monthly salary"
+                value:
+                  userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+                  groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+                  balanceId: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+                  type: "income"
+                  merchant: "Acme Corp Payroll"
+                  approvedAt: "2024-06-19T09:00:00Z"
+                  transactedAt: "2024-06-19T09:00:00Z"
+                  transactionEntries:
+                    - description: "Monthly salary"
+                      amount: 3500.00
+                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4a3"
+      responses:
+        '201':
+          description: Transaction created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTransactionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    get:
+      summary: List transaction entries
+      description: |
+        Retrieves a paginated list of transaction entries. Returns flattened transaction entries
+        with all related data (transaction, balance, category information).
+        At least one of userId or groupId must be provided.
+      tags: [transactions]
+      parameters:
+        - name: userId
+          in: query
+          description: "Filter transactions by user ID. Required if groupId is not provided."
+          schema:
+            type: string
+            format: uuid
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        - name: groupId
+          in: query
+          description: "Filter transactions by group ID. Required if userId is not provided."
+          schema:
+            type: string
+            format: uuid
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        - name: balanceId
+          in: query
+          description: "Filter transactions by balance/account ID"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        - name: type
+          in: query
+          description: "Filter by transaction type"
+          schema:
+            type: string
+            enum: [expense, income, movement]
+          example: "expense"
+        - name: category
+          in: query
+          description: "Filter by category name"
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+          example: "Groceries"
+        - name: sortedBy
+          in: query
+          description: "Field to sort by"
+          schema:
+            type: string
+            enum: [transactedAt, createdAt, amount]
+            default: transactedAt
+          example: "transactedAt"
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: [ASC, DESC, asc, desc]
+            default: DESC
+          example: "DESC"
+        - name: count
+          in: query
+          description: "Number of items to return per page"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          example: 20
+        - name: startKey
+          in: query
+          description: "Pagination cursor from previous response"
+          schema:
+            type: string
+          example: "eyJpZCI6IjEyMzQ1In0="
+      responses:
+        '200':
+          description: List of transaction entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionEntryListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for transactions endpoint
+      tags: [transactions-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /transactions/{transaction_id}:
+    get:
+      summary: Get transaction details
+      description: Retrieves a specific transaction by ID with all its entries and related data
+      tags: [transactions]
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          description: "Unique identifier for the transaction"
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Transaction found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTransactionResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    put:
+      summary: Update transaction
+      description: Updates an existing transaction with new data
+      tags: [transactions]
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          description: "Unique identifier for the transaction"
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTransactionRequest'
+      responses:
+        '200':
+          description: Transaction updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateTransactionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    delete:
+      summary: Delete transaction
+      description: Soft deletes a transaction and all its entries
+      tags: [transactions]
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          description: "Unique identifier for the transaction"
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '204':
+          description: Transaction deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for specific transaction endpoint
+      tags: [transactions-cors]
+      security: []
+      parameters:
+        - name: transaction_id
+          in: path
+          required: true
+          description: "Unique identifier for the transaction"
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /balances:
+    post:
+      summary: Create a new balance
+      description: Creates a new balance/account for a user
+      tags: [balances]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBalanceRequest'
+            example:
+              userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+              groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+              currency: "EUR"
+              title: "Main Checking Account"
+              description: "Primary bank account for daily expenses"
+      responses:
+        '201':
+          description: Balance created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    get:
+      summary: List balances
+      description: |
+        Retrieves a list of balances. At least one of userId or groupId must be provided.
+      tags: [balances]
+      parameters:
+        - name: userId
+          in: query
+          description: "Filter balances by user ID. Required if groupId is not provided."
+          schema:
+            type: string
+            format: uuid
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        - name: groupId
+          in: query
+          description: "Filter balances by group ID. Required if userId is not provided."
+          schema:
+            type: string
+            format: uuid
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+      responses:
+        '200':
+          description: List of balances retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for balances endpoint
+      tags: [balances-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /balances/{balance_id}:
+    get:
+      summary: Get balance details
+      description: Retrieves a specific balance by ID
+      tags: [balances]
+      parameters:
+        - name: balance_id
+          in: path
+          required: true
+          description: "Unique identifier for the balance"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '200':
+          description: Balance found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    put:
+      summary: Update balance
+      description: Updates an existing balance with new data
+      tags: [balances]
+      parameters:
+        - name: balance_id
+          in: path
+          required: true
+          description: "Unique identifier for the balance"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBalanceRequest'
+      responses:
+        '200':
+          description: Balance updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BalanceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    delete:
+      summary: Delete balance
+      description: Soft deletes a balance
+      tags: [balances]
+      parameters:
+        - name: balance_id
+          in: path
+          required: true
+          description: "Unique identifier for the balance"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '204':
+          description: Balance deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for specific balance endpoint
+      tags: [balances-cors]
+      security: []
+      parameters:
+        - name: balance_id
+          in: path
+          required: true
+          description: "Unique identifier for the balance"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /categories:
+    post:
+      summary: Create a new category
+      description: Creates a new transaction category
+      tags: [categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+            example:
+              name: "Restaurants"
+              imageUrl: "https://example.com/restaurant-icon.png"
+      responses:
+        '201':
+          description: Category created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    get:
+      summary: List categories
+      description: Retrieves a list of available transaction categories
+      tags: [categories]
+      parameters:
+        - name: userId
+          in: query
+          description: "Filter categories by user ID (required for user-specific categories)"
+          schema:
+            type: string
+            format: uuid
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        - name: limit
+          in: query
+          description: "Maximum number of categories to return"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          example: 20
+        - name: startKey
+          in: query
+          description: "Pagination cursor from previous response"
+          schema:
+            type: string
+          example: "eyJpZCI6IjEyMzQ1In0="
+      responses:
+        '200':
+          description: List of categories retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for categories endpoint
+      tags: [categories-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /categories/{category_id}:
+    delete:
+      summary: Delete category
+      description: Soft deletes a category
+      tags: [categories]
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: "Unique identifier for the category"
+          schema:
+            type: string
+            format: uuid
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '204':
+          description: Category deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for specific category endpoint
+      tags: [categories-cors]
+      security: []
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: "Unique identifier for the category"
+          schema:
+            type: string
+            format: uuid
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the service
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  timestamp:
+                    type: string
+                    format: date-time
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for health endpoint
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /info:
+    get:
+      summary: Service information endpoint
+      description: Returns information about the service version and configuration
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Service information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "ahorro-transactions-service"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  environment:
+                    type: string
+                    example: "development"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for info endpoint
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /docs:
+    get:
+      summary: API Documentation (Swagger UI)
+      description: Serves an interactive Swagger UI interface for the API documentation
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Swagger UI HTML page served successfully
+          content:
+            text/html:
+              schema:
+                type: string
+                description: "HTML page with embedded Swagger UI"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for docs endpoint
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /schema:
+    get:
+      summary: API Documentation (Swagger UI)
+      description: Serves an interactive Swagger UI interface for the API documentation
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Swagger UI HTML page served successfully
+          content:
+            text/html:
+              schema:
+                type: string
+                description: "HTML page with embedded Swagger UI"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for schema endpoint (Swagger UI)
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /schema/info:
+    get:
+      summary: Get schema information
+      description: Returns metadata about the embedded OpenAPI schema
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Schema information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  format:
+                    type: string
+                    example: "yaml"
+                    description: "Format of the schema file"
+                  version:
+                    type: string
+                    example: "3.1.0"
+                    description: "OpenAPI specification version"
+                  size:
+                    type: integer
+                    example: 45678
+                    description: "Size of the schema in bytes"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for schema info endpoint
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /schema/raw:
+    get:
+      summary: Get raw OpenAPI schema
+      description: Returns the embedded OpenAPI schema in raw YAML format (used by Swagger UI)
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: Raw OpenAPI schema retrieved successfully
+          content:
+            application/x-yaml:
+              schema:
+                type: string
+                description: "Raw OpenAPI 3.1.0 specification in YAML format"
+            text/yaml:
+              schema:
+                type: string
+                description: "Raw OpenAPI 3.1.0 specification in YAML format"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for schema raw endpoint
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /schema/json:
+    get:
+      summary: Get OpenAPI schema in JSON format
+      description: Returns the embedded OpenAPI schema converted to JSON format
+      tags: [system]
+      security: []
+      responses:
+        '200':
+          description: OpenAPI schema in JSON format retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: "OpenAPI 3.1.0 specification in JSON format"
+                properties:
+                  openapi:
+                    type: string
+                    example: "3.1.0"
+                  info:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+                        example: "Ahorro Transactions Service API"
+                      version:
+                        type: string
+                        example: "1.0.0"
+                      description:
+                        type: string
+                        example: "API for managing user transactions, balances, and categories"
+                  paths:
+                    type: object
+                    description: "API endpoints and operations"
+                  components:
+                    type: object
+                    description: "Reusable components including schemas and responses"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+    options:
+      summary: CORS preflight for schema JSON endpoint
+      tags: [system-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "AWS Cognito JWT token"
+
+  responses:
+    CorsResponse:
+      description: "CORS preflight response"
+      headers:
+        Access-Control-Allow-Origin:
+          schema:
+            type: string
+            example: "*"
+        Access-Control-Allow-Methods:
+          schema:
+            type: string
+            example: "GET,POST,PUT,DELETE,OPTIONS"
+        Access-Control-Allow-Headers:
+          schema:
+            type: string
+            example: "Content-Type,Authorization"
+      content:
+        application/json:
+          schema:
+            type: object
+
+    BadRequestError:
+      description: "Bad request - validation error or missing required fields"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "BadRequest"
+            error: "userId is required when groupId is not provided"
+
+    UnauthorizedError:
+      description: "Unauthorized - invalid or missing authentication token"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "Unauthorized"
+            error: "Invalid or expired authentication token"
+
+    NotFoundError:
+      description: "Resource not found"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "NotFound"
+            error: "Transaction not found"
+
+    InternalServerError:
+      description: "Internal server error"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "InternalServerError"
+            error: "An unexpected error occurred"
+
+  schemas:
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - error
+      properties:
+        code:
+          type: string
+          description: "Error code"
+          enum: [BadRequest, Unauthorized, NotFound, InternalServerError, DatabaseError]
+          example: "BadRequest"
+        error:
+          type: string
+          description: "Human-readable error message"
+          example: "userId is required when groupId is not provided"
+
+    CreateTransactionRequest:
+      type: object
+      required:
+        - userId
+        - groupId
+        - balanceId
+        - type
+        - transactedAt
+        - transactionEntries
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        balanceId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the balance/account"
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        type:
+          type: string
+          enum: [expense, income, movement]
+          description: "Type of transaction"
+          example: "expense"
+        merchant:
+          type: string
+          description: "Merchant name (optional for income transactions)"
+          example: "Mercadona"
+        operationId:
+          type: string
+          format: uuid
+          description: "Optional operation ID for tracking"
+        approvedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was approved (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactedAt:
+          type: string
+          format: date-time
+          description: "When the transaction occurred (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactionEntries:
+          type: array
+          minItems: 1
+          maxItems: 50
+          description: "List of transaction entries"
+          items:
+            $ref: '#/components/schemas/CreateTransactionEntry'
+
+    CreateTransactionEntry:
+      type: object
+      required:
+        - description
+        - amount
+        - categoryId
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: "Description of the transaction entry"
+          example: "Organic vegetables and fruits"
+        amount:
+          type: number
+          format: double
+          minimum: 0.01
+          maximum: 999999.99
+          description: "Amount for this entry"
+          example: 45.50
+        categoryId:
+          type: string
+          format: uuid
+          description: "Category ID for this entry"
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+    UpdateTransactionRequest:
+      type: object
+      required:
+        - userId
+        - groupId
+        - balanceId
+        - type
+        - transactedAt
+        - transactionEntries
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        balanceId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the balance/account"
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        type:
+          type: string
+          enum: [expense, income, movement]
+          description: "Type of transaction"
+          example: "expense"
+        merchant:
+          type: string
+          description: "Merchant name"
+          example: "Mercadona"
+        operationId:
+          type: string
+          format: uuid
+          description: "Optional operation ID for tracking"
+        approvedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was approved (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactedAt:
+          type: string
+          format: date-time
+          description: "When the transaction occurred (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactionEntries:
+          type: array
+          minItems: 1
+          maxItems: 50
+          description: "List of transaction entries"
+          items:
+            $ref: '#/components/schemas/CreateTransactionEntry'
+
+    CreateTransactionResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the created transaction"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        balanceId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the balance/account"
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        type:
+          type: string
+          enum: [expense, income, movement]
+          description: "Type of transaction"
+          example: "expense"
+        merchant:
+          type: string
+          description: "Merchant name"
+          example: "Mercadona"
+        operationId:
+          type: string
+          format: uuid
+          description: "Operation ID for tracking"
+        approvedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was approved (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactedAt:
+          type: string
+          format: date-time
+          description: "When the transaction occurred (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the transaction was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactionEntries:
+          type: array
+          description: "List of transaction entries"
+          items:
+            $ref: '#/components/schemas/TransactionEntryResponse'
+
+    TransactionEntryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Unique identifier for the transaction entry"
+          example: "456e7890-e89b-12d3-a456-426614174000"
+        description:
+          type: string
+          description: "Description of the transaction entry"
+          example: "Organic vegetables and fruits"
+        amount:
+          type: number
+          format: double
+          description: "Amount for this entry"
+          example: 45.50
+        categoryId:
+          type: string
+          format: uuid
+          description: "Category ID for this entry"
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the entry was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the entry was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+
+    TransactionEntryListResponse:
+      type: object
+      properties:
+        transactionEntries:
+          type: array
+          description: "List of flattened transaction entries with all related data"
+          items:
+            $ref: '#/components/schemas/TransactionEntryDto'
+        nextToken:
+          type: string
+          description: "Pagination token for next page (if available)"
+          example: "eyJpZCI6IjEyMzQ1In0="
+
+    TransactionEntryDto:
+      type: object
+      description: "Flattened transaction entry with all related data for listing endpoints"
+      properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        balanceId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the balance/account"
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        transactionId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the transaction"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        transactionEntryId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the transaction entry"
+          example: "456e7890-e89b-12d3-a456-426614174000"
+        type:
+          type: string
+          enum: [expense, income, movement]
+          description: "Type of transaction"
+          example: "expense"
+        amount:
+          type: number
+          format: double
+          description: "Amount for this entry"
+          example: 45.50
+        balanceTitle:
+          type: string
+          description: "Title of the balance/account"
+          example: "Main Checking Account"
+        balanceCurrency:
+          type: string
+          description: "Currency of the balance"
+          example: "EUR"
+        categoryName:
+          type: string
+          description: "Name of the category"
+          example: "Groceries"
+        categoryImageUrl:
+          type: string
+          description: "URL of the category image"
+          example: "https://example.com/groceries-icon.png"
+        merchantName:
+          type: string
+          description: "Name of the merchant"
+          example: "Mercadona"
+        merchantImageUrl:
+          type: string
+          description: "URL of the merchant image"
+          example: "https://example.com/mercadona-logo.png"
+        operationId:
+          type: string
+          format: uuid
+          description: "Operation ID for tracking"
+        approvedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was approved (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactedAt:
+          type: string
+          format: date-time
+          description: "When the transaction occurred (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+
+    CreateBalanceRequest:
+      type: object
+      required:
+        - userId
+        - groupId
+        - currency
+        - title
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          pattern: "^[A-Z]{3}$"
+          description: "Currency code (ISO 4217)"
+          example: "EUR"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "Title of the balance/account"
+          example: "Main Checking Account"
+        description:
+          type: string
+          maxLength: 500
+          description: "Optional description of the balance"
+          example: "Primary bank account for daily expenses"
+
+    UpdateBalanceRequest:
+      type: object
+      required:
+        - userId
+        - groupId
+        - currency
+        - title
+      properties:
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+          pattern: "^[A-Z]{3}$"
+          description: "Currency code (ISO 4217)"
+          example: "EUR"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "Title of the balance/account"
+          example: "Updated Checking Account"
+        description:
+          type: string
+          maxLength: 500
+          description: "Optional description of the balance"
+          example: "Updated primary bank account for daily expenses"
+
+    BalanceResponse:
+      type: object
+      properties:
+        balanceId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the balance"
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        currency:
+          type: string
+          description: "Currency code (ISO 4217)"
+          example: "EUR"
+        title:
+          type: string
+          description: "Title of the balance/account"
+          example: "Main Checking Account"
+        description:
+          type: string
+          description: "Description of the balance"
+          example: "Primary bank account for daily expenses"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the balance was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the balance was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        deletedAt:
+          type: string
+          format: date-time
+          description: "When the balance was deleted (ISO 8601, null if not deleted)"
+
+    BalanceListResponse:
+      type: object
+      properties:
+        balances:
+          type: array
+          description: "List of balances"
+          items:
+            $ref: '#/components/schemas/BalanceResponse'
+
+    CreateCategoryRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "Name of the category"
+          example: "Restaurants"
+        imageUrl:
+          type: string
+          format: uri
+          description: "Optional URL of the category image"
+          example: "https://example.com/restaurant-icon.png"
+
+    CategoryResponse:
+      type: object
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the category"
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+        name:
+          type: string
+          description: "Name of the category"
+          example: "Restaurants"
+        imageUrl:
+          type: string
+          format: uri
+          description: "URL of the category image"
+          example: "https://example.com/restaurant-icon.png"
+
+    CategoryListResponse:
+      type: object
+      properties:
+        categories:
+          type: array
+          description: "List of categories"
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+
+x-amazon-apigateway-request-validators:
+  validate-all:
+    validateRequestBody: true
+    validateRequestParameters: true
+x-amazon-apigateway-request-validator: "validate-all"

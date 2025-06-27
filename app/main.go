@@ -14,6 +14,7 @@ import (
 	"github.com/savak1990/transactions-service/app/config"
 	"github.com/savak1990/transactions-service/app/handler"
 	"github.com/savak1990/transactions-service/app/repo"
+	"github.com/savak1990/transactions-service/app/schema"
 	"github.com/savak1990/transactions-service/app/service"
 
 	log "github.com/sirupsen/logrus"
@@ -61,6 +62,11 @@ func lambdaHandler(adapter *gorillamux.GorillaMuxAdapter) func(ctx context.Conte
 }
 
 func main() {
+	// Validate embedded schema first
+	if err := schema.ValidateSchemaEmbedded(); err != nil {
+		log.WithError(err).Fatal("Failed to validate embedded OpenAPI schema")
+	}
+
 	appCfg := config.LoadConfig()
 	log.WithFields(log.Fields{
 		"region":  appCfg.AWSRegion,
@@ -87,6 +93,13 @@ func main() {
 	// Common APIs
 	router.HandleFunc("/health", commonHandler.HandleHealth).Methods("GET")
 	router.HandleFunc("/info", commonHandler.HandleInfo).Methods("GET")
+
+	// Schema APIs (serve embedded OpenAPI schema)
+	router.HandleFunc("/docs", schema.ServeSwaggerUIHandler()).Methods("GET", "OPTIONS")
+	router.HandleFunc("/schema", schema.ServeSwaggerUIHandler()).Methods("GET", "OPTIONS")
+	router.HandleFunc("/schema/raw", schema.ServeSchemaRawHandler()).Methods("GET", "OPTIONS")
+	router.HandleFunc("/schema/json", schema.ServeSchemaJSONHandler()).Methods("GET", "OPTIONS")
+	router.HandleFunc("/schema/info", schema.ServeSchemaInfoHandler()).Methods("GET", "OPTIONS")
 
 	// Transactions APIs
 	router.HandleFunc("/transactions", serviceHandler.CreateTransaction).Methods("POST")
