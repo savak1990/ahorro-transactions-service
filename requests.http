@@ -1,8 +1,8 @@
-@baseUrl=localhost:8080
-@authToken=
+@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
+@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiI3MjA1ZTQ3NC1mMDkxLTcwM2QtYzhlNS1lNDBmOTMyNWQ5ZWQiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiNzIwNWU0NzQtZjA5MS03MDNkLWM4ZTUtZTQwZjkzMjVkOWVkIiwib3JpZ2luX2p0aSI6IjMxODM4Zjc3LTQ5NjMtNDViYy1hYTA3LTljMTYzZDQyOTkwNyIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6IjBiYTUxMzZmLTNkNTMtNGU5My1hMzQwLTU0YzJlYzFlZTQ5MSIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMDI2NTEwLCJuYW1lIjoiTmljZUpPQiEiLCJleHAiOjE3NTEwMzAxMTAsImlhdCI6MTc1MTAyNjUxMCwianRpIjoiNDg5OGMwNGUtNDUyZS00MTE4LWI3MDEtM2M1MGUyMDVkMzBmIiwiZW1haWwiOiJnaW5nZXJ6bG9AeWFuZGV4LnJ1In0.QLZ9rdfqzTPoLKPvtyM-zGyNDDv8W1fU5vr9Z0uKvKw-2iUB6SL9O1slDaFgp7Yc8bFHsTAFsG6KWK688ePHQ19zibGJfFmTEu1QlvAnkoCq1sTlwUKw4j9uLzqs2XH5XGkrjuadWpjJYzSpQWIu7WGf85WbE03QCkIJhvriQhWx0LZjuyKbGK4Pc7sXq-zYTYkRn1VYHFKnkBS6Dh8JnZjvhug9Lzr4pkZi9T1j39QGSAjvlCAHNA7iUJ1guZucMocDWzWCTIpmNtSbdEnxMaysDk-Lptl53JJ8udusA1d-p46ikNJDXOfIL5sMHmfUYefpBfRCo4MfsLeAjaJtTQ
 @userId=02c514a4-2021-708d-efff-ea6cd5e4eac9
 @groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
-@balanceId=65f578e9-ba29-45e1-bdbd-07f80eb6666f
+@balanceId=847ac10b-58cc-4372-a567-0e02b2c3d479
 
 ### Info
 GET {{baseUrl}}/info
@@ -25,106 +25,169 @@ GET {{baseUrl}}/health
 # c47ac10b-58cc-4372-a567-0e02b2c3d4a3 - "Salary" (Income)
 
 ### Create a new transaction with multiple entries
-POST {{baseUrl}}/transactions
+POST {{baseUrl}}/balances/{{balanceId}}/transactions
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
-    "user_id": "{{userId}}",
-    "group_id": "{{groupId}}",
-    "balance_id": "{{balanceId}}",
+    "userId": "{{userId}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
     "type": "expense",
     "merchant": "Mercadona",
-    "operation_id": null,
-    "transacted_at": "2024-06-19T12:00:00Z",
-    "transaction_entries": [
+    "operationId": null,
+    "transactedAt": "2024-06-19T12:00:00Z",
+    "transactionEntries": [
         {
             "description": "Organic vegetables and fruits",
             "amount": 45.50,
-            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
         },
         {
             "description": "Household cleaning supplies",
             "amount": 28.75,
-            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d487"
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d487"
         },
         {
             "description": "Personal care products",
             "amount": 15.25,
-            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d4a2"
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4a2"
         }
     ]
 }
 
 ### Create a simple single-entry transaction
-POST {{baseUrl}}/transactions
+POST {{baseUrl}}/balances/{{balanceId}}/transactions
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
-    "user_id": "{{userId}}",
-    "group_id": "{{groupId}}",
-    "balance_id": "{{balanceId}}",
+    "userId": "{{userId}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
     "type": "income",
     "merchant": "Acme Corp Payroll",
-    "approved_at": "2024-06-19T09:00:00Z",
-    "transacted_at": "2024-06-19T09:00:00Z",
-    "transaction_entries": [
+    "approvedAt": "2024-06-19T09:00:00Z",
+    "transactedAt": "2024-06-19T09:00:00Z",
+    "transactionEntries": [
         {
             "description": "Monthly salary",
             "amount": 3500.00,
-            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d484"
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d484"
         }
     ]
 }
 
 ### Create a movement transaction (transfer between accounts)
-POST {{baseUrl}}/transactions
+POST {{baseUrl}}/balances/{{balanceId}}/transactions
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
-    "user_id": "{{userId}}",
-    "group_id": "{{groupId}}",
-    "balance_id": "{{balanceId}}",
+    "userId": "{{userId}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
     "type": "movement",
     "merchant": null,
-    "approved_at": "2024-06-19T14:30:00Z",
-    "transacted_at": "2024-06-19T14:30:00Z",
-    "transaction_entries": [
+    "approvedAt": "2024-06-19T14:30:00Z",
+    "transactedAt": "2024-06-19T14:30:00Z",
+    "transactionEntries": [
         {
             "description": "Transfer to savings account",
             "amount": 500.00,
-            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
         }
     ]
 }
 
-### List transactions for user1
-GET {{baseUrl}}/transactions?user_id={{userId}}
+### List transactions for a specific balance
+GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### Get a specific transaction
-GET {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
+GET {{baseUrl}}/balances/{{balanceId}}/transactions/REPLACE_WITH_TRANSACTION_ID
+Authorization: Bearer {{authToken}}
 
 ### Update a transaction
-PUT {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
+PUT {{baseUrl}}/balances/{{balanceId}}/transactions/REPLACE_WITH_TRANSACTION_ID
 Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 {
-    "user_id": "user1",
-    "group_id": "group1",
+    "userId": "{{userId}}",
+    "groupId": "{{groupId}}",
     "type": "expense",
     "amount": 120.00,
-    "balance_id": "balance1",
+    "balanceId": "{{balanceId}}",
     "category": "Groceries",
     "description": "Updated groceries",
-    "transacted_at": "2024-06-19T12:00:00Z"
+    "transactedAt": "2024-06-19T12:00:00Z"
 }
 
 ### Delete a transaction
-DELETE {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
+DELETE {{baseUrl}}/balances/{{balanceId}}/transactions/REPLACE_WITH_TRANSACTION_ID
+Authorization: Bearer {{authToken}}
+
+### Create a new balance
+POST {{baseUrl}}/balances
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId}}",
+    "groupId": "{{groupId}}",
+    "currency": "EUR",
+    "title": "Main Checking Account",
+    "description": "Primary bank account for daily expenses"
+}
+
+### List balances for group
+GET {{baseUrl}}/balances?group_id={{groupId}}
+Authorization: Bearer {{authToken}}
+
+### List balances for user
+GET {{baseUrl}}/balances?user_id={{userId}}
+Authorization: Bearer {{authToken}}
+
+### Get a specific balance
+GET {{baseUrl}}/balances/{{balanceId}}
+Authorization: Bearer {{authToken}}
+
+### Update a balance
+PUT {{baseUrl}}/balances/{{balanceId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId}}",
+    "groupId": "{{groupId}}",
+    "currency": "EUR",
+    "title": "Updated Checking Account",
+    "description": "Updated primary bank account for daily expenses"
+}
+
+### Delete a balance
+DELETE {{baseUrl}}/balances/{{balanceId}}
+Authorization: Bearer {{authToken}}
+
+### Create a new category
+POST {{baseUrl}}/categories
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Restaurants",
+    "imageUrl": "https://example.com/restaurant-icon.png"
+}
+
+### List categories
+GET {{baseUrl}}/categories?user_id={{userId}}&limit=10
+Authorization: Bearer {{authToken}}
+
+### Delete a category (replace REPLACE_WITH_CATEGORY_ID with actual category_id from response)
+DELETE {{baseUrl}}/categories/REPLACE_WITH_CATEGORY_ID
+Authorization: Bearer {{authToken}}
 
 ### List categories for user1
 GET {{baseUrl}}/categories/user1

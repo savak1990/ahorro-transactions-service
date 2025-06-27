@@ -88,12 +88,24 @@ func main() {
 	router.HandleFunc("/health", commonHandler.HandleHealth).Methods("GET")
 	router.HandleFunc("/info", commonHandler.HandleInfo).Methods("GET")
 
-	// Transactions APIs
-	router.HandleFunc("/transactions", serviceHandler.CreateTransaction).Methods("POST")
-	router.HandleFunc("/transactions", serviceHandler.ListTransactions).Methods("GET")
-	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.GetTransaction).Methods("GET")
-	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.UpdateTransaction).Methods("PUT")
-	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.DeleteTransaction).Methods("DELETE")
+	// Transactions APIs (nested under balances)
+	router.HandleFunc("/balances/{balance_id}/transactions", serviceHandler.CreateTransaction).Methods("POST")
+	router.HandleFunc("/balances/{balance_id}/transactions", serviceHandler.ListTransactions).Methods("GET")
+	router.HandleFunc("/balances/{balance_id}/transactions/{transaction_id}", serviceHandler.GetTransaction).Methods("GET")
+	router.HandleFunc("/balances/{balance_id}/transactions/{transaction_id}", serviceHandler.UpdateTransaction).Methods("PUT")
+	router.HandleFunc("/balances/{balance_id}/transactions/{transaction_id}", serviceHandler.DeleteTransaction).Methods("DELETE")
+
+	// Balances APIs
+	router.HandleFunc("/balances", serviceHandler.CreateBalance).Methods("POST")
+	router.HandleFunc("/balances", serviceHandler.ListBalances).Methods("GET")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.GetBalance).Methods("GET")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.UpdateBalance).Methods("PUT")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.DeleteBalance).Methods("DELETE")
+
+	// Categories APIs
+	router.HandleFunc("/categories", serviceHandler.CreateCategory).Methods("POST")
+	router.HandleFunc("/categories", serviceHandler.ListCategories).Methods("GET")
+	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE")
 
 	// Lambda/API Gateway integration: use the muxadapter if running in Lambda
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" || os.Getenv("_LAMBDA_SERVER_PORT") != "" {

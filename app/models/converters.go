@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,20 +12,23 @@ import (
 
 // ToAPICategory converts Category (DAO) to CategoryDto (API model)
 func ToAPICategory(c *Category) CategoryDto {
-	score := 0
-	if c.Rank != nil {
-		score = *c.Rank
+	if c == nil {
+		return CategoryDto{}
 	}
 
 	return CategoryDto{
-		Name:     c.CategoryName,
-		ImageUrl: "", // No image URL in current schema
-		Score:    score,
+		Name:       c.CategoryName,
+		CategoryID: c.ID.String(),
+		ImageUrl:   c.ImageUrl,
 	}
 }
 
 // ToAPIBalance converts Balance (DAO) to BalanceDto (API model)
 func ToAPIBalance(b *Balance) BalanceDto {
+	if b == nil {
+		return BalanceDto{}
+	}
+
 	desc := ""
 	if b.Description != nil {
 		desc = *b.Description
@@ -43,49 +47,57 @@ func ToAPIBalance(b *Balance) BalanceDto {
 	}
 }
 
-// ToAPITransaction converts Transaction (DAO) to TransactionDto (API model)
-func ToAPITransaction(t *Transaction) TransactionDto {
-	// Calculate total amount from transaction entries
-	var totalAmount decimal.Decimal
+// ToAPICreateTransaction converts Transaction (DAO) to CreateTransactionDto (API model)
+func ToAPICreateTransaction(t *Transaction) CreateTransactionDto {
+	if t == nil {
+		return CreateTransactionDto{}
+	}
+
+	// Convert transaction entries to DTOs
+	var entryDtos []CreateTransactionEntryDto
 	for _, entry := range t.TransactionEntries {
-		totalAmount = totalAmount.Add(entry.Amount)
+		entryDtos = append(entryDtos, ToAPICreateTransactionEntry(&entry))
 	}
 
-	// Get primary category and description from first entry
-	var category, description string
-	if len(t.TransactionEntries) > 0 {
-		if t.TransactionEntries[0].Category != nil {
-			category = t.TransactionEntries[0].Category.CategoryName
-		}
-		if t.TransactionEntries[0].Description != nil {
-			description = *t.TransactionEntries[0].Description
-		}
+	// Get merchant name if available
+	var merchant *string
+	if t.Merchant != nil {
+		merchant = &t.Merchant.Name
 	}
 
-	// Convert decimal to float64 for API response
-	totalAmountFloat, _ := totalAmount.Float64()
+	// Convert operation ID to string if available
+	var operationID *string
+	if t.OperationID != nil {
+		opID := t.OperationID.String()
+		operationID = &opID
+	}
 
-	return TransactionDto{
-		TransactionID: t.ID.String(),
-		UserID:        t.UserID.String(),
-		GroupID:       t.GroupID.String(),
-		Type:          t.Type,
-		Amount:        totalAmountFloat,
-		BalanceID:     t.BalanceID.String(),
-		FromBalanceID: t.BalanceID.String(), // Assuming from and to are same for now
-		ToBalanceID:   "",                   // Can be populated based on business logic
-		Category:      category,
-		Description:   description,
-		ApprovedAt:    t.ApprovedAt.Format(time.RFC3339),
-		TransactedAt:  t.TransactedAt.Format(time.RFC3339),
-		CreatedAt:     t.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:     t.UpdatedAt.Format(time.RFC3339),
-		DeletedAt:     formatTimePtr(t.DeletedAt),
+	// Convert approvedAt to pointer string for consistency
+	var approvedAt *string
+	if !t.ApprovedAt.IsZero() {
+		approvedAtStr := t.ApprovedAt.Format(time.RFC3339)
+		approvedAt = &approvedAtStr
+	}
+
+	return CreateTransactionDto{
+		TransactionID:      t.ID.String(),
+		UserID:             t.UserID.String(),
+		GroupID:            t.GroupID.String(),
+		BalanceID:          t.BalanceID.String(),
+		Type:               t.Type,
+		Merchant:           merchant,
+		OperationID:        operationID,
+		ApprovedAt:         approvedAt,
+		TransactedAt:       t.TransactedAt.Format(time.RFC3339),
+		CreatedAt:          t.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:          t.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:          formatTimePtr(t.DeletedAt),
+		TransactionEntries: entryDtos,
 	}
 }
 
-// FromAPITransaction converts TransactionDto (API model) to Transaction (DAO)
-func FromAPITransaction(t TransactionDto) (*Transaction, error) {
+// FromAPICreateTransaction converts CreateTransactionDto (API model) to Transaction (DAO)
+func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	// Parse UUIDs
 	id, err := parseUUID(t.TransactionID)
 	if err != nil {
@@ -107,32 +119,58 @@ func FromAPITransaction(t TransactionDto) (*Transaction, error) {
 		return nil, err
 	}
 
-	// Parse timestamps
-	approvedAt, err := time.Parse(time.RFC3339, t.ApprovedAt)
-	if err != nil {
-		approvedAt = time.Now()
+	// Parse operation ID if provided
+	var operationID *uuid.UUID
+	if t.OperationID != nil && *t.OperationID != "" {
+		opID, err := uuid.Parse(*t.OperationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid operation ID format: %w", err)
+		}
+		operationID = &opID
 	}
 
+	// Parse timestamps
 	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
 	if err != nil {
-		transactedAt = time.Now()
+		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
 	}
 
-	return &Transaction{
-		ID:           id,
+	approvedAt := transactedAt // Default to transacted_at
+	if t.ApprovedAt != nil && *t.ApprovedAt != "" {
+		approvedAt, err = time.Parse(time.RFC3339, *t.ApprovedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid approved_at format: %w", err)
+		}
+	}
+
+	// Create transaction
+	transactionID := id
+	transaction := &Transaction{
+		ID:           transactionID,
 		GroupID:      groupID,
 		UserID:       userID,
 		BalanceID:    balanceID,
 		Type:         t.Type,
+		OperationID:  operationID,
 		ApprovedAt:   approvedAt,
 		TransactedAt: transactedAt,
-		TransactionEntries: []TransactionEntry{
-			{
-				Description: &t.Description,
-				Amount:      decimal.NewFromFloat(t.Amount),
-			},
-		},
-	}, nil
+		// Note: Merchant handling would require lookup/creation of Merchant entity
+		// For now, merchant information is not stored directly on transaction
+		// This could be implemented later with a merchant lookup/creation service
+	}
+
+	// Create transaction entries
+	var entries []TransactionEntry
+	for _, entryDto := range t.TransactionEntries {
+		entry, err := FromAPICreateTransactionEntry(entryDto, transactionID)
+		if err != nil {
+			return nil, fmt.Errorf("error converting transaction entry: %w", err)
+		}
+		entries = append(entries, *entry)
+	}
+
+	transaction.TransactionEntries = entries
+	return transaction, nil
 }
 
 // FromAPIBalance converts BalanceDto (API model) to Balance (DAO)
@@ -165,5 +203,95 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 		Currency:    b.Currency,
 		Title:       b.Title,
 		Description: desc,
+	}, nil
+}
+
+// FromAPICategory converts CategoryDto (API model) to Category (DAO)
+func FromAPICategory(c CategoryDto) (*Category, error) {
+
+	// Parse CategoryID if provided, otherwise generate new ID
+	var id uuid.UUID
+	var err error
+	if c.CategoryID != "" {
+		id, err = uuid.Parse(c.CategoryID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category ID format: %w", err)
+		}
+	} else {
+		id = uuid.New() // Generate new ID if not provided
+	}
+
+	return &Category{
+		ID:           id,
+		CategoryName: c.Name,
+		ImageUrl:     c.ImageUrl,
+	}, nil
+}
+
+// ToAPICreateTransactionEntry converts TransactionEntry (DAO) to CreateTransactionEntryDto (API model)
+func ToAPICreateTransactionEntry(te *TransactionEntry) CreateTransactionEntryDto {
+	if te == nil {
+		return CreateTransactionEntryDto{}
+	}
+
+	desc := ""
+	if te.Description != nil {
+		desc = *te.Description
+	}
+
+	categoryID := ""
+	if te.CategoryID != nil {
+		categoryID = te.CategoryID.String()
+	}
+
+	// Convert decimal to float64 for API response
+	amountFloat, _ := te.Amount.Float64()
+
+	return CreateTransactionEntryDto{
+		ID:          te.ID.String(),
+		Description: desc,
+		Amount:      amountFloat,
+		CategoryID:  categoryID,
+		CreatedAt:   te.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   te.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:   formatTimePtr(te.DeletedAt),
+	}
+}
+
+// FromAPICreateTransactionEntry converts CreateTransactionEntryDto (API model) to TransactionEntry (DAO)
+func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID uuid.UUID) (*TransactionEntry, error) {
+	// Parse entry ID if provided, otherwise generate new ID
+	var id uuid.UUID
+	var err error
+	if te.ID != "" {
+		id, err = uuid.Parse(te.ID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transaction entry ID format: %w", err)
+		}
+	} else {
+		id = uuid.New()
+	}
+
+	// Parse category ID if provided
+	var categoryID *uuid.UUID
+	if te.CategoryID != "" {
+		catID, err := uuid.Parse(te.CategoryID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category ID format: %w", err)
+		}
+		categoryID = &catID
+	}
+
+	var desc *string
+	if te.Description != "" {
+		desc = &te.Description
+	}
+
+	return &TransactionEntry{
+		ID:            id,
+		TransactionID: transactionID,
+		Description:   desc,
+		Amount:        decimal.NewFromFloat(te.Amount),
+		CategoryID:    categoryID,
 	}, nil
 }

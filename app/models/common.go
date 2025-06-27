@@ -5,6 +5,7 @@ const (
 	ErrorCodeInternalServer = "InternalServerError"
 	ErrorCodeNotFound       = "NotFound"
 	ErrorCodeBadResponse    = "BadResponse"
+	ErrorCodeDbError        = "DatabaseError"
 )
 
 // ListCategoriesInput defines the input options for listing categories.

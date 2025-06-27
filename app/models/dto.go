@@ -1,40 +1,71 @@
 package models
 
-// Transaction represents a financial transaction in the system.
-type TransactionDto struct {
-	TransactionID string  `json:"transaction_id"`
-	GroupID       string  `json:"group_id"`
-	UserID        string  `json:"user_id"`
-	BalanceID     string  `json:"balance_id"`
-	Type          string  `json:"type"`
-	Amount        float64 `json:"amount"`
-	FromBalanceID string  `json:"from_balance_id"`
-	ToBalanceID   string  `json:"to_balance_id,omitempty"`
-	Category      string  `json:"category"`
-	Description   string  `json:"description"`
-	ApprovedAt    string  `json:"approved_at,omitempty"`
-	TransactedAt  string  `json:"transacted_at"`
-	CreatedAt     string  `json:"created_at"`
-	UpdatedAt     string  `json:"updated_at"`
-	DeletedAt     string  `json:"deleted_at,omitempty"`
+import "github.com/shopspring/decimal"
+
+// CreateTransactionDto represents a financial transaction for creation via POST requests.
+type CreateTransactionDto struct {
+	TransactionID      string                      `json:"transactionId,omitempty"`
+	GroupID            string                      `json:"groupId"`
+	UserID             string                      `json:"userId"`
+	BalanceID          string                      `json:"balanceId"`
+	Type               string                      `json:"type"`
+	Merchant           *string                     `json:"merchant,omitempty"`
+	OperationID        *string                     `json:"operationId,omitempty"`
+	ApprovedAt         *string                     `json:"approvedAt,omitempty"`
+	TransactedAt       string                      `json:"transactedAt"`
+	CreatedAt          string                      `json:"createdAt,omitempty"`
+	UpdatedAt          string                      `json:"updatedAt,omitempty"`
+	DeletedAt          string                      `json:"deletedAt,omitempty"`
+	TransactionEntries []CreateTransactionEntryDto `json:"transactionEntries"`
+}
+
+// CreateTransactionEntryDto represents a single entry within a transaction for creation
+type CreateTransactionEntryDto struct {
+	ID          string  `json:"id,omitempty"`
+	Description string  `json:"description"`
+	Amount      float64 `json:"amount"`
+	CategoryID  string  `json:"categoryId"`
+	CreatedAt   string  `json:"createdAt,omitempty"`
+	UpdatedAt   string  `json:"updatedAt,omitempty"`
+	DeletedAt   string  `json:"deletedAt,omitempty"`
+}
+
+// TransactionDto represents a financial transaction for API responses.
+type TransactionEntryDto struct {
+	GroupID            string          `json:"groupId"`
+	UserID             string          `json:"userId"`
+	BalanceID          string          `json:"balanceId"`
+	TransactionID      string          `json:"transactionId"`
+	TransactionEntryID string          `json:"transactionEntryId"`
+	Type               string          `json:"type"`
+	Amount             decimal.Decimal `json:"amount"`
+	BalanceTitle       string          `json:"balanceTitle"`
+	BalanceCurrency    string          `json:"balanceCurrency"`
+	CategoryName       string          `json:"categoryName"`
+	CategoryImageUrl   string          `json:"categoryImageUrl,omitempty"`
+	MerchantName       string          `json:"merchantName,omitempty"`
+	MerchantImageUrl   string          `json:"merchantImageUrl,omitempty"`
+	OperationID        string          `json:"operationId,omitempty"`
+	ApprovedAt         string          `json:"approvedAt,omitempty"`
+	TransactedAt       string          `json:"transactedAt"`
 }
 
 // Balance represents a user's balance/account for API responses.
 type BalanceDto struct {
-	BalanceID   string `json:"balance_id"`
-	GroupID     string `json:"group_id"`
-	UserID      string `json:"user_id"`
+	BalanceID   string `json:"balanceId"`
+	GroupID     string `json:"groupId"`
+	UserID      string `json:"userId"`
 	Currency    string `json:"currency"`
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
-	DeletedAt   string `json:"deleted_at,omitempty"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+	DeletedAt   string `json:"deletedAt,omitempty"`
 }
 
 // Category represents a user's category with a score for prioritization.
 type CategoryDto struct {
-	Name     string `json:"name"`
-	ImageUrl string `json:"image_url,omitempty"`
-	Score    int    `json:"-"`
+	Name       string  `json:"name"`
+	CategoryID string  `json:"categoryId"`
+	ImageUrl   *string `json:"imageUrl,omitempty"`
 }

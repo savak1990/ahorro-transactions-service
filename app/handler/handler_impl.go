@@ -1,8 +1,8 @@
-// filepath: /Users/savak/Projects/Ahorro/ahorro-transactions-service/app/handler/transactions_handler_impl.go
 package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,31 +24,66 @@ func NewHandlerImpl(svc service.Service) *HandlerImpl {
 	return &HandlerImpl{Service: svc}
 }
 
-// POST /transactions
+// POST /balances/{balance_id}/transactions
 func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) {
-	var tx models.Transaction
-	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+	vars := mux.Vars(r)
+	balanceID := vars["balance_id"]
+
+	var req models.CreateTransactionDto
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
-	created, err := h.Service.CreateTransaction(r.Context(), tx)
+
+	// Ensure the transaction is created for the specified balance
+	if balanceID != "" {
+		balanceUUID, err := uuid.Parse(balanceID)
+		if err != nil {
+			WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid balance ID format: "+err.Error())
+			return
+		}
+		// Override the balance ID from URL path
+		req.BalanceID = balanceUUID.String()
+	}
+
+	// Convert request DTO to transaction
+	transaction, err := models.FromAPICreateTransaction(req)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to convert request DTO")
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request: "+err.Error())
+		return
+	}
+
+	created, err := h.Service.CreateTransaction(r.Context(), *transaction)
 	if err != nil {
 		logrus.WithError(err).Error("CreateTransaction failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if isDatabaseError(err) {
+			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeDbError, err.Error())
+		} else {
+			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeInternalServer, err.Error())
+		}
 		return
 	}
+
+	// Convert response to DTO
+	responseDto := models.ToAPICreateTransaction(created)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(created)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
-// GET /transactions
+// GET /balances/{balance_id}/transactions
 func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	balanceID := vars["balance_id"]
+
 	filter := models.ListTransactionsFilter{
-		UserID:   r.URL.Query().Get("user_id"),
-		Type:     r.URL.Query().Get("type"),
-		Category: r.URL.Query().Get("category"),
-		SortBy:   r.URL.Query().Get("sorted_by"),
-		Order:    r.URL.Query().Get("order"),
+		UserID:    r.URL.Query().Get("user_id"),
+		BalanceID: balanceID, // Filter by the balance_id from the URL path
+		Type:      r.URL.Query().Get("type"),
+		Category:  r.URL.Query().Get("category"),
+		SortBy:    r.URL.Query().Get("sorted_by"),
+		Order:     r.URL.Query().Get("order"),
 	}
 	if count := r.URL.Query().Get("count"); count != "" {
 		// parse count as int
@@ -70,28 +105,38 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /transactions/{transaction_id}
+// GET /balances/{balance_id}/transactions/{transaction_id}
 func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	userID := r.URL.Query().Get("user_id")
+	balanceID := vars["balance_id"]
 	transactionID := vars["transaction_id"]
-	if userID == "" || transactionID == "" {
-		http.Error(w, "Missing user_id or transaction_id", http.StatusBadRequest)
+
+	if transactionID == "" {
+		http.Error(w, "Missing transaction_id", http.StatusBadRequest)
 		return
 	}
+
 	tx, err := h.Service.GetTransaction(r.Context(), transactionID)
 	if err != nil {
 		logrus.WithError(err).Error("GetTransaction failed")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Optional: Verify the transaction belongs to the specified balance
+	if balanceID != "" && tx.BalanceID.String() != balanceID {
+		http.Error(w, "Transaction does not belong to the specified balance", http.StatusNotFound)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tx)
 }
 
-// PUT /transactions/{transaction_id}
+// PUT /balances/{balance_id}/transactions/{transaction_id}
 func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	balanceID := vars["balance_id"]
 	transactionID := vars["transaction_id"]
 	var tx models.Transaction
 	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
@@ -105,6 +150,17 @@ func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	tx.ID = id
+
+	// Ensure the transaction belongs to the specified balance
+	if balanceID != "" {
+		balanceUUID, err := uuid.Parse(balanceID)
+		if err != nil {
+			http.Error(w, "Invalid balance ID format", http.StatusBadRequest)
+			return
+		}
+		tx.BalanceID = balanceUUID
+	}
+
 	updated, err := h.Service.UpdateTransaction(r.Context(), tx)
 	if err != nil {
 		logrus.WithError(err).Error("UpdateTransaction failed")
@@ -115,14 +171,30 @@ func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(updated)
 }
 
-// DELETE /transactions/{transaction_id}
+// DELETE /balances/{balance_id}/transactions/{transaction_id}
 func (h *HandlerImpl) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
+	balanceID := vars["balance_id"]
 	transactionID := vars["transaction_id"]
 	if transactionID == "" {
 		http.Error(w, "Missing transaction_id", http.StatusBadRequest)
 		return
 	}
+
+	// Optional: Verify the transaction belongs to the specified balance before deletion
+	if balanceID != "" {
+		tx, err := h.Service.GetTransaction(r.Context(), transactionID)
+		if err != nil {
+			logrus.WithError(err).Error("Failed to verify transaction before deletion")
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if tx.BalanceID.String() != balanceID {
+			http.Error(w, "Transaction does not belong to the specified balance", http.StatusNotFound)
+			return
+		}
+	}
+
 	err := h.Service.DeleteTransaction(r.Context(), transactionID)
 	if err != nil {
 		logrus.WithError(err).Error("DeleteTransaction failed")
@@ -134,19 +206,30 @@ func (h *HandlerImpl) DeleteTransaction(w http.ResponseWriter, r *http.Request) 
 
 // Balance handlers
 func (h *HandlerImpl) CreateBalance(w http.ResponseWriter, r *http.Request) {
-	var balance models.Balance
-	if err := json.NewDecoder(r.Body).Decode(&balance); err != nil {
+	var balanceDto models.BalanceDto
+	if err := json.NewDecoder(r.Body).Decode(&balanceDto); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	created, err := h.Service.CreateBalance(r.Context(), balance)
+
+	// Convert DTO to DAO model
+	balance, err := models.FromAPIBalance(balanceDto)
+	if err != nil {
+		http.Error(w, "Invalid balance data: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	created, err := h.Service.CreateBalance(r.Context(), *balance)
 	if err != nil {
 		logrus.WithError(err).Error("CreateBalance failed")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPIBalance(created)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(created)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
 func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
@@ -160,9 +243,16 @@ func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Convert to DTOs for response
+	balanceDtos := make([]models.BalanceDto, len(results))
+	for i, balance := range results {
+		balanceDtos[i] = models.ToAPIBalance(&balance)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"balances": results,
+		"balances": balanceDtos,
 	})
 }
 
@@ -176,35 +266,60 @@ func (h *HandlerImpl) GetBalance(w http.ResponseWriter, r *http.Request) {
 	balance, err := h.Service.GetBalance(r.Context(), balanceID)
 	if err != nil {
 		logrus.WithError(err).Error("GetBalance failed")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		if err.Error() == fmt.Sprintf("balance not found: %s", balanceID) {
+			http.Error(w, "Balance not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		return
 	}
+
+	if balance == nil {
+		http.Error(w, "Balance not found", http.StatusNotFound)
+		return
+	}
+
+	// Convert to DTO for response
+	responseDto := models.ToAPIBalance(balance)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(balance)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
 func (h *HandlerImpl) UpdateBalance(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	balanceID := vars["balance_id"]
-	var balance models.Balance
-	if err := json.NewDecoder(r.Body).Decode(&balance); err != nil {
+	var balanceDto models.BalanceDto
+	if err := json.NewDecoder(r.Body).Decode(&balanceDto); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	// Parse balance ID and set it in DTO
 	id, err := uuid.Parse(balanceID)
 	if err != nil {
 		http.Error(w, "Invalid balance ID format", http.StatusBadRequest)
 		return
 	}
-	balance.ID = id
-	updated, err := h.Service.UpdateBalance(r.Context(), balance)
+	balanceDto.BalanceID = id.String()
+
+	// Convert DTO to DAO model
+	balance, err := models.FromAPIBalance(balanceDto)
+	if err != nil {
+		http.Error(w, "Invalid balance data: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	updated, err := h.Service.UpdateBalance(r.Context(), *balance)
 	if err != nil {
 		logrus.WithError(err).Error("UpdateBalance failed")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPIBalance(updated)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updated)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
 func (h *HandlerImpl) DeleteBalance(w http.ResponseWriter, r *http.Request) {
@@ -225,19 +340,30 @@ func (h *HandlerImpl) DeleteBalance(w http.ResponseWriter, r *http.Request) {
 
 // Category handlers
 func (h *HandlerImpl) CreateCategory(w http.ResponseWriter, r *http.Request) {
-	var category models.Category
-	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
+	var categoryDto models.CategoryDto
+	if err := json.NewDecoder(r.Body).Decode(&categoryDto); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	created, err := h.Service.CreateCategory(r.Context(), category)
+
+	// Convert DTO to DAO model
+	category, err := models.FromAPICategory(categoryDto)
+	if err != nil {
+		http.Error(w, "Invalid category data: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	created, err := h.Service.CreateCategory(r.Context(), *category)
 	if err != nil {
 		logrus.WithError(err).Error("CreateCategory failed")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPICategory(created)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(created)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
 func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
@@ -256,9 +382,16 @@ func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Convert to DTOs for response
+	categoryDtos := make([]models.CategoryDto, len(results))
+	for i, category := range results {
+		categoryDtos[i] = models.ToAPICategory(&category)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"categories": results,
+		"categories": categoryDtos,
 	})
 }
 
