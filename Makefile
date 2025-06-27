@@ -6,15 +6,7 @@ AWS_REGION=eu-west-1
 
 FULL_NAME=$(APP_NAME)-$(SERVICE_NAME)-$(INSTANCE_NAME)
 
-# Database credentials	@echo "Running seed script..."
-	docker run --pull=missing -v "$(PWD):/app" -w /app \
-		-e PGPASSWORD="$(DB_PASSWORD)" \
-		postgres:15-alpine psql \
-		--host=$(shell $(MAKE) -s get-db-endpoint) \
-		--port=$(shell $(MAKE) -s get-db-port) \
-		--username=$(DB_USERNAME) \
-		--dbname=$(shell $(MAKE) -s get-db-name) \
-		--file=seed/seed_data.sql Secrets Manager
+# Database credentials from AWS Secrets Manager
 SECRET_NAME=$(APP_NAME)-app-secrets
 DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
