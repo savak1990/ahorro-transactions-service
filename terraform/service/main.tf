@@ -8,20 +8,49 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
   retention_in_days = 14
 }
 
+data "aws_s3_object" "lambda_zip" {
+  bucket = var.app_s3_bucket_name
+  key    = var.app_s3_artifact_zip_key
+}
+
 resource "aws_lambda_function" "app" {
-  function_name = local.lambda_name
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "bootstrap"
-  runtime       = "provided.al2"
-  s3_bucket     = var.app_s3_bucket_name
-  s3_key        = var.app_s3_artifact_zip_key
-  timeout       = 15
+  function_name     = local.lambda_name
+  role              = aws_iam_role.lambda_role.arn
+  handler           = "bootstrap"
+  runtime           = "provided.al2"
+  s3_bucket         = var.app_s3_bucket_name
+  s3_key            = var.app_s3_artifact_zip_key
+  s3_object_version = data.aws_s3_object.lambda_zip.version_id
+  source_code_hash  = data.aws_s3_object.lambda_zip.etag
+  timeout           = 15
+
+  vpc_config {
+    subnet_ids         = var.lambda_subnet_ids
+    security_group_ids = [aws_security_group.lambda_sg.id]
+  }
 
   environment {
     variables = {
-      TRANSACTIONS_DYNAMODB_TABLE = var.transactions_db_table_name
-      CATEGORIES_DYNAMODB_TABLE   = var.categories_db_table_name
+      # Aurora PostgreSQL connection details
+      DB_HOST     = var.db_endpoint
+      DB_NAME     = var.db_name
+      DB_USER     = var.db_username
+      DB_PASSWORD = var.db_password
+      DB_PORT     = "5432"
     }
+  }
+}
+
+resource "aws_security_group" "lambda_sg" {
+  name        = "${local.lambda_name}-sg"
+  description = "Security group for Lambda function"
+  vpc_id      = var.vpc_id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -46,6 +75,11 @@ resource "aws_iam_role" "lambda_role" {
 resource "aws_iam_role_policy_attachment" "app_lambda_exec_policy_attachment" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_vpc_policy_attachment" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
 resource "aws_iam_role_policy" "logging_policy" {
@@ -104,58 +138,6 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
   })
 }
 
-resource "aws_iam_role_policy" "categories_dynamodb_policy" {
-  name = "${local.lambda_name}-categories-dynamodb-policy"
-  role = aws_iam_role.lambda_role.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:Query",
-          "dynamodb:DescribeTable"
-        ],
-        Effect = "Allow",
-        Resource = [
-          "arn:aws:dynamodb:*:*:table/${var.categories_db_table_name}",
-          "arn:aws:dynamodb:*:*:table/${var.categories_db_table_name}/index/*"
-        ]
-      }
-    ]
-  })
-}
-
-resource "aws_iam_role_policy" "transactions_dynamodb_policy" {
-  name = "${local.lambda_name}-transactions-dynamodb-policy"
-  role = aws_iam_role.lambda_role.name
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "dynamodb:GetItem",
-          "dynamodb:PutItem",
-          "dynamodb:UpdateItem",
-          "dynamodb:DeleteItem",
-          "dynamodb:Query",
-          "dynamodb:DescribeTable"
-        ],
-        Effect = "Allow",
-        Resource = [
-          "arn:aws:dynamodb:*:*:table/${var.transactions_db_table_name}",
-          "arn:aws:dynamodb:*:*:table/${var.transactions_db_table_name}/index/*"
-        ]
-      }
-    ]
-  })
-}
-
 module "apigateway" {
   source                      = "../../../ahorro-shared/terraform/apigateway_http"
   api_name                    = var.api_name
@@ -167,12 +149,12 @@ module "apigateway" {
   cognito_user_pool_id        = var.cognito_user_pool_id
   cognito_user_pool_client_id = var.cognito_user_pool_client_id
   cognito_auth_paths = [
-    "GET /transactions",
-    "POST /transactions",
-    "GET /transactions/{transaction_id}",
-    "PUT /transactions/{transaction_id}",
-    "DELETE /transactions/{transaction_id}",
-    "GET /categories"
+    "ANY /transactions",
+    "ANY /transactions/{transaction_id}",
+    "ANY /balances",
+    "ANY /balances/{balance_id}",
+    "ANY /categories",
+    "ANY /categories/{category_id}",
   ]
   cognito_unauth_paths = [
     "GET /info",

@@ -65,23 +65,20 @@ func main() {
 	log.WithFields(log.Fields{
 		"region":  appCfg.AWSRegion,
 		"profile": appCfg.AWSProfile,
+		"db_host": appCfg.DBHost,
+		"db_port": appCfg.DBPort,
+		"db_name": appCfg.DBName,
 	}).Info("Loaded config")
 
-	awsCfg := aws.LoadAWSConfig(appCfg.AWSRegion, appCfg.AWSProfile)
-	log.WithField("region", awsCfg.Region).Info("AWS Debug Info")
+	// Initialize GORM database connection
+	gormDB := aws.GetGormDB(appCfg)
 
-	dbClient := aws.GetDynamoDbClient(awsCfg)
-	log.WithField("endpointResolver", dbClient.Options().BaseEndpoint).Info("DynamoDB client info")
+	// Initialize PostgreSQL repositories
+	repo := repo.NewPostgreSQLRepository(gormDB)
+	service := service.NewServiceImpl(repo)
+	serviceHandler := handler.NewHandlerImpl(service)
 
-	transactionsRepo := repo.NewDynamoDbTransactionsRepository(dbClient, appCfg.TransactionsDynamoDbTable)
-	transactionsService := service.NewTransactionsServiceImpl(transactionsRepo)
-	transactionsHandler := handler.NewTransactionsHandlerImpl(transactionsService)
-
-	categoriesRepo := repo.NewDynamoDbCategoriesRepository(dbClient, appCfg.CategoriesDynamoDbTable)
-	categoriesService := service.NewCategoriesServiceImpl(categoriesRepo)
-	categoriesHandler := handler.NewCategoriesHandlerImpl(categoriesService)
-
-	commonHandler := handler.NewCommonHandlerImpl()
+	commonHandler := handler.NewCommonHandlerImpl(gormDB)
 
 	router := mux.NewRouter()
 	router.Use(mux.CORSMethodMiddleware(router))
@@ -92,14 +89,23 @@ func main() {
 	router.HandleFunc("/info", commonHandler.HandleInfo).Methods("GET")
 
 	// Transactions APIs
-	router.HandleFunc("/transactions", transactionsHandler.CreateTransaction).Methods("POST")
-	router.HandleFunc("/transactions", transactionsHandler.ListTransactions).Methods("GET")
-	router.HandleFunc("/transactions/{transaction_id}", transactionsHandler.GetTransaction).Methods("GET")
-	router.HandleFunc("/transactions/{transaction_id}", transactionsHandler.UpdateTransaction).Methods("PUT")
-	router.HandleFunc("/transactions/{transaction_id}", transactionsHandler.DeleteTransaction).Methods("DELETE")
+	router.HandleFunc("/transactions", serviceHandler.CreateTransaction).Methods("POST")
+	router.HandleFunc("/transactions", serviceHandler.ListTransactions).Methods("GET")
+	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.GetTransaction).Methods("GET")
+	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.UpdateTransaction).Methods("PUT")
+	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.DeleteTransaction).Methods("DELETE")
+
+	// Balances APIs
+	router.HandleFunc("/balances", serviceHandler.CreateBalance).Methods("POST")
+	router.HandleFunc("/balances", serviceHandler.ListBalances).Methods("GET")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.GetBalance).Methods("GET")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.UpdateBalance).Methods("PUT")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.DeleteBalance).Methods("DELETE")
 
 	// Categories APIs
-	router.HandleFunc("/categories", categoriesHandler.ListCategoriesForUser).Methods("GET")
+	router.HandleFunc("/categories", serviceHandler.CreateCategory).Methods("POST")
+	router.HandleFunc("/categories", serviceHandler.ListCategories).Methods("GET")
+	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE")
 
 	// Lambda/API Gateway integration: use the muxadapter if running in Lambda
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" || os.Getenv("_LAMBDA_SERVER_PORT") != "" {

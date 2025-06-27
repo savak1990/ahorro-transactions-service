@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 type Error struct {
@@ -38,4 +39,18 @@ func WriteJSONListResponse[T any](w http.ResponseWriter, items []T, nextKey stri
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}
+}
+
+// isDatabaseError checks if the error is related to database operations
+func isDatabaseError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "sqlstate") ||
+		strings.Contains(errStr, "constraint") ||
+		strings.Contains(errStr, "foreign key") ||
+		strings.Contains(errStr, "database") ||
+		strings.Contains(errStr, "gorm") ||
+		strings.Contains(errStr, "postgres")
 }

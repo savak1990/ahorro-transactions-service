@@ -41,33 +41,78 @@ data "terraform_remote_state" "cognito" {
   }
 }
 
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
+# Get CIDR blocks of the subnets where Lambda will run
+data "aws_subnet" "lambda_subnets" {
+  for_each = toset(data.aws_subnets.default.ids)
+  id       = each.value
+}
+
 locals {
   base_name               = "${var.app_name}-${var.service_name}-${var.env}"
+  db_name                 = "${var.app_name}_${var.service_name}_${var.env}_db"
+  db_cluster_name         = "${local.db_name}-cluster"
   app_lambda_name         = "${local.base_name}-app-lambda"
   app_s3_bucket_name      = "ahorro-artifacts"
   app_s3_artifact_zip_key = "transactions/transactions-lambda.zip"
-  categories_table_name   = "${local.base_name}-categories-db"
-  transaction_table_name  = "${local.base_name}-transactions-db"
-  secret_name             = "${var.app_name}-app-secrets"
-  domain_name             = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["domain_name"]
   full_api_name           = "api-${local.base_name}"
+
+  db_subnet_ids = data.aws_subnets.default.ids
+  vpc_id        = data.aws_vpc.default.id
+  # Extract CIDR blocks from Lambda subnets
+  lambda_cidr_blocks = [for subnet in data.aws_subnet.lambda_subnets : subnet.cidr_block]
+
+  secret_name              = "${var.app_name}-app-secrets"
+  domain_name              = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["domain_name"]
+  transactions_db_username = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["transactions_db_username"]
+  transactions_db_password = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["transactions_db_password"]
 }
 
-module "categories_database" {
-  source        = "../terraform/categoriesdb"
-  db_table_name = local.categories_table_name
-}
+module "transactions_db" {
+  source = "../terraform/database"
 
-module "transactions_database" {
-  source        = "../terraform/transactionsdb"
-  db_table_name = local.transaction_table_name
+  cluster_identifier = "${local.base_name}-db-cluster"
+  db_name            = local.db_name
+  engine_version     = "15.3"
+  master_username    = local.transactions_db_username
+  master_password    = local.transactions_db_password
+  min_capacity       = 0.5
+  max_capacity       = 2
+  instance_count     = 1
+  instance_class     = "db.serverless"
+  subnet_ids         = local.db_subnet_ids
+  vpc_id             = local.vpc_id
+  lambda_cidr_blocks = local.lambda_cidr_blocks
+
+  # Temporary public access configuration
+  enable_public_access       = var.enable_db_public_access
+  allowed_public_cidr_blocks = var.enable_db_public_access ? [var.my_ip_cidr] : []
 }
 
 module "ahorro_transactions_service" {
   source = "../terraform/service"
 
-  categories_db_table_name    = local.categories_table_name
-  transactions_db_table_name  = local.transaction_table_name
+  # VPC Configuration
+  vpc_id            = local.vpc_id
+  lambda_subnet_ids = local.db_subnet_ids
+
+  # Aurora Database Configuration
+  db_endpoint = module.transactions_db.db_endpoint
+  db_name     = module.transactions_db.db_name
+  db_username = local.transactions_db_username
+  db_password = local.transactions_db_password
+
+  # API Gateway Configuration
   api_name                    = local.full_api_name
   domain_name                 = local.domain_name
   base_name                   = local.base_name
@@ -78,7 +123,7 @@ module "ahorro_transactions_service" {
   cognito_user_pool_id        = data.terraform_remote_state.cognito.outputs.user_pool_id
   cognito_user_pool_client_id = data.terraform_remote_state.cognito.outputs.user_pool_client_id
 
-  depends_on = [module.categories_database, module.transactions_database]
+  depends_on = [module.transactions_db]
 }
 
 terraform {
