@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 // Conversion methods between DAO models (database) and DTO models (API)
@@ -25,8 +26,8 @@ func ToAPICategory(c *Category) CategoryDto {
 // ToAPIBalance converts Balance (DAO) to BalanceDto (API model)
 func ToAPIBalance(b *Balance) BalanceDto {
 	desc := ""
-	if b.Desc != nil {
-		desc = *b.Desc
+	if b.Description != nil {
+		desc = *b.Description
 	}
 
 	return BalanceDto{
@@ -45,9 +46,9 @@ func ToAPIBalance(b *Balance) BalanceDto {
 // ToAPITransaction converts Transaction (DAO) to TransactionDto (API model)
 func ToAPITransaction(t *Transaction) TransactionDto {
 	// Calculate total amount from transaction entries
-	var totalAmount float64
+	var totalAmount decimal.Decimal
 	for _, entry := range t.TransactionEntries {
-		totalAmount += entry.Amount
+		totalAmount = totalAmount.Add(entry.Amount)
 	}
 
 	// Get primary category and description from first entry
@@ -61,12 +62,15 @@ func ToAPITransaction(t *Transaction) TransactionDto {
 		}
 	}
 
+	// Convert decimal to float64 for API response
+	totalAmountFloat, _ := totalAmount.Float64()
+
 	return TransactionDto{
 		TransactionID: t.ID.String(),
 		UserID:        t.UserID.String(),
 		GroupID:       t.GroupID.String(),
 		Type:          t.Type,
-		Amount:        totalAmount,
+		Amount:        totalAmountFloat,
 		BalanceID:     t.BalanceID.String(),
 		FromBalanceID: t.BalanceID.String(), // Assuming from and to are same for now
 		ToBalanceID:   "",                   // Can be populated based on business logic
@@ -125,7 +129,7 @@ func FromAPITransaction(t TransactionDto) (*Transaction, error) {
 		TransactionEntries: []TransactionEntry{
 			{
 				Description: &t.Description,
-				Amount:      t.Amount,
+				Amount:      decimal.NewFromFloat(t.Amount),
 			},
 		},
 	}, nil
@@ -155,11 +159,11 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 	}
 
 	return &Balance{
-		ID:       id,
-		GroupID:  groupID,
-		UserID:   userID,
-		Currency: b.Currency,
-		Title:    b.Title,
-		Desc:     desc,
+		ID:          id,
+		GroupID:     groupID,
+		UserID:      userID,
+		Currency:    b.Currency,
+		Title:       b.Title,
+		Description: desc,
 	}, nil
 }

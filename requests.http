@@ -1,4 +1,8 @@
-@baseUrl = http://localhost:8080
+@baseUrl=localhost:8080
+@authToken=
+@userId=02c514a4-2021-708d-efff-ea6cd5e4eac9
+@groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
+@balanceId=65f578e9-ba29-45e1-bdbd-07f80eb6666f
 
 ### Info
 GET {{baseUrl}}/info
@@ -9,24 +13,97 @@ GET {{baseUrl}}/health
 # To get auth token, use the following command:
 # aws cognito-idp initiate-auth --auth-flow USER_PASSWORD_AUTH --client-id 4jnf5pcfr7gvo2vseif36bu6k --auth-parameters USERNAME=<user>,PASSWORD=<password>
 
-### Create a new transaction
+# Available Category IDs (from seed data):
+# c47ac10b-58cc-4372-a567-0e02b2c3d479 - "Groceries" (Food & Dining)
+# c47ac10b-58cc-4372-a567-0e02b2c3d480 - "Restaurants" (Food & Dining)
+# c47ac10b-58cc-4372-a567-0e02b2c3d481 - "Fast Food" (Food & Dining)
+# c47ac10b-58cc-4372-a567-0e02b2c3d482 - "Coffee & Tea" (Food & Dining)
+# c47ac10b-58cc-4372-a567-0e02b2c3d485 - "Clothing" (Shopping)
+# c47ac10b-58cc-4372-a567-0e02b2c3d486 - "Electronics" (Shopping)
+# c47ac10b-58cc-4372-a567-0e02b2c3d48c - "Taxi & Rideshare" (Transportation)
+# c47ac10b-58cc-4372-a567-0e02b2c3d493 - "Streaming Services" (Entertainment)
+# c47ac10b-58cc-4372-a567-0e02b2c3d4a3 - "Salary" (Income)
+
+### Create a new transaction with multiple entries
 POST {{baseUrl}}/transactions
 Content-Type: application/json
-Authorization: Bearer eyJraWQiOiJpckwyWThJUW5rOXdXd3l1RE1EMlUySkFnMjd2eCtCM3RpSmJhSzhUUCs0PSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjbGllbnRfaWQiOiI0am5mNXBjZnI3Z3ZvMnZzZWlmMzZidTZrIiwib3JpZ2luX2p0aSI6ImI5MDA2OWQ1LWExNjctNGJjNi05NjAwLWJjYjhjZWY4Y2MxZCIsImV2ZW50X2lkIjoiYzA4MjE4YWEtMmQxOS00OWFkLWI1ZjgtZjY1MTI1ZjU2ZTIwIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwic2NvcGUiOiJhd3MuY29nbml0by5zaWduaW4udXNlci5hZG1pbiIsImF1dGhfdGltZSI6MTc1MDUxNDQzOSwiZXhwIjoxNzUwNTE4MDM5LCJpYXQiOjE3NTA1MTQ0MzksImp0aSI6IjVmOTU1ZjJmLTIwNjktNDQxMC1iMDFmLWRmZWFjYzk0MTZlMiIsInVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5In0.I9vgh4lvvA4NrTYv9z-g5gAtJ5n-bT71oasi-7FHNgSLwpqXA5x3DWVqUoeZTSHhc6fGHZkftVFr3bjaeH4zvzmLKuMe3JzB_hD_ffdz4GEgzfoBRk8CSF53Xkx2dPwDyNCateCpLyohCRu_IzAttCf2KU9NBrWgh35ghUH7qJJrwom4R5B4oWsV3TdgNtceyrTUARjX8sx9ms83o7gcEgQ4wG05R_uOKW50Oelixot_Rjf3RGNCZWNNVIfmq0txQCrRXHzwqw92CJzKKxRUeykJs1O3H8plHvcfyO8NewPVKnZ6uJEPZYpN-VIDGAA5dGaxfaHxextm_gneHe8X5g
+Authorization: Bearer {{authToken}}
 
 {
-    "user_id": "user1",
-    "group_id": "group1",
+    "user_id": "{{userId}}",
+    "group_id": "{{groupId}}",
+    "balance_id": "{{balanceId}}",
     "type": "expense",
-    "amount": 100.50,
-    "balance_id": "balance1",
-    "category": "Groceries",
-    "description": "Weekly groceries",
-    "transacted_at": "2024-06-19T12:00:00Z"
+    "merchant": "Mercadona",
+    "operation_id": null,
+    "transacted_at": "2024-06-19T12:00:00Z",
+    "transaction_entries": [
+        {
+            "description": "Organic vegetables and fruits",
+            "amount": 45.50,
+            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+        },
+        {
+            "description": "Household cleaning supplies",
+            "amount": 28.75,
+            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d487"
+        },
+        {
+            "description": "Personal care products",
+            "amount": 15.25,
+            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d4a2"
+        }
+    ]
+}
+
+### Create a simple single-entry transaction
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": "{{userId}}",
+    "group_id": "{{groupId}}",
+    "balance_id": "{{balanceId}}",
+    "type": "income",
+    "merchant": "Acme Corp Payroll",
+    "approved_at": "2024-06-19T09:00:00Z",
+    "transacted_at": "2024-06-19T09:00:00Z",
+    "transaction_entries": [
+        {
+            "description": "Monthly salary",
+            "amount": 3500.00,
+            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d484"
+        }
+    ]
+}
+
+### Create a movement transaction (transfer between accounts)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "user_id": "{{userId}}",
+    "group_id": "{{groupId}}",
+    "balance_id": "{{balanceId}}",
+    "type": "movement",
+    "merchant": null,
+    "approved_at": "2024-06-19T14:30:00Z",
+    "transacted_at": "2024-06-19T14:30:00Z",
+    "transaction_entries": [
+        {
+            "description": "Transfer to savings account",
+            "amount": 500.00,
+            "category_id": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+        }
+    ]
 }
 
 ### List transactions for user1
-GET {{baseUrl}}/transactions?user_id=user1
+GET {{baseUrl}}/transactions?user_id={{userId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
 
 ### Get a specific transaction
 GET {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID

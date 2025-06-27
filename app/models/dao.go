@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -12,15 +13,15 @@ import (
 
 // Balance represents a balance/account in the system
 type Balance struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	GroupID   uuid.UUID  `gorm:"type:uuid;not null;index:idx_balance_group_id"`
-	UserID    uuid.UUID  `gorm:"type:uuid;not null;index:idx_balance_user_id"`
-	Currency  string     `gorm:"type:varchar(3);not null;default:'EUR'"` // ISO 4217 currency codes (3 chars)
-	Title     string     `gorm:"type:varchar(100);not null"`             // Limited to 100 characters
-	Desc      *string    `gorm:"type:varchar(500)"`                      // Optional description, limited to 500 characters
-	CreatedAt time.Time  `gorm:"default:now()"`
-	UpdatedAt time.Time  `gorm:"default:now()"`
-	DeletedAt *time.Time `gorm:"index"`
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	GroupID     uuid.UUID  `gorm:"type:uuid;not null;index:idx_balance_group_id"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null;index:idx_balance_user_id"`
+	Currency    string     `gorm:"type:varchar(3);not null;default:'EUR'"` // ISO 4217 currency codes (3 chars)
+	Title       string     `gorm:"type:varchar(100);not null"`             // Limited to 100 characters
+	Description *string    `gorm:"type:varchar(500)"`                      // Optional description, limited to 500 characters
+	CreatedAt   time.Time  `gorm:"default:now()"`
+	UpdatedAt   time.Time  `gorm:"default:now()"`
+	DeletedAt   *time.Time `gorm:"index"`
 
 	// Relationships
 	Transactions []Transaction `gorm:"foreignKey:BalanceID"`
@@ -33,13 +34,13 @@ func (Balance) TableName() string {
 
 // Merchant represents a merchant in the system
 type Merchant struct {
-	ID        uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	Name      string     `gorm:"not null"`
-	Desc      *string    `gorm:"type:varchar(500)"`
-	ImageUrl  *string    `gorm:"type:varchar(255)"`
-	CreatedAt time.Time  `gorm:"default:now()"`
-	UpdatedAt time.Time  `gorm:"default:now()"`
-	DeletedAt *time.Time `gorm:"index"`
+	ID          uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Name        string     `gorm:"not null"`
+	Description *string    `gorm:"type:varchar(500)"`
+	ImageUrl    *string    `gorm:"type:varchar(255)"`
+	CreatedAt   time.Time  `gorm:"default:now()"`
+	UpdatedAt   time.Time  `gorm:"default:now()"`
+	DeletedAt   *time.Time `gorm:"index"`
 
 	// Relationships
 	Transactions []Transaction `gorm:"foreignKey:MerchantID"`
@@ -97,12 +98,11 @@ type TransactionEntry struct {
 	ID            uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	TransactionID uuid.UUID `gorm:"type:uuid;not null;index:idx_transaction_entry_transaction_id"`
 	Description   *string
-	Amount        float64    `gorm:"type:numeric(18,2);not null"`
-	CategoryID    *uuid.UUID `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
-	BudgetID      *uuid.UUID `gorm:"type:uuid"`
-	CreatedAt     time.Time  `gorm:"default:now()"`
-	UpdatedAt     time.Time  `gorm:"default:now()"`
-	DeletedAt     *time.Time `gorm:"index"`
+	Amount        decimal.Decimal `gorm:"type:numeric(18,2);not null"`
+	CategoryID    *uuid.UUID      `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
+	CreatedAt     time.Time       `gorm:"default:now()"`
+	UpdatedAt     time.Time       `gorm:"default:now()"`
+	DeletedAt     *time.Time      `gorm:"index"`
 
 	// Relationships
 	Transaction *Transaction `gorm:"foreignKey:TransactionID"`

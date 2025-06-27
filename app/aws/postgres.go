@@ -67,8 +67,9 @@ func GetGormDB(cfg config.AppConfig) *gorm.DB {
 func autoMigrate(db *gorm.DB) error {
 	log.Info("Running GORM auto-migration...")
 
-	// Migrate all models
+	// Migrate all models (using DAO models for PostgreSQL)
 	err := db.AutoMigrate(
+		&models.Balance{},
 		&models.Merchant{},
 		&models.Category{},
 		&models.Transaction{},

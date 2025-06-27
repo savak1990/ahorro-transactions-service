@@ -8,14 +8,21 @@ resource "aws_cloudwatch_log_group" "lambda_log_group" {
   retention_in_days = 14
 }
 
+data "aws_s3_object" "lambda_zip" {
+  bucket = var.app_s3_bucket_name
+  key    = var.app_s3_artifact_zip_key
+}
+
 resource "aws_lambda_function" "app" {
-  function_name = local.lambda_name
-  role          = aws_iam_role.lambda_role.arn
-  handler       = "bootstrap"
-  runtime       = "provided.al2"
-  s3_bucket     = var.app_s3_bucket_name
-  s3_key        = var.app_s3_artifact_zip_key
-  timeout       = 15
+  function_name     = local.lambda_name
+  role              = aws_iam_role.lambda_role.arn
+  handler           = "bootstrap"
+  runtime           = "provided.al2"
+  s3_bucket         = var.app_s3_bucket_name
+  s3_key            = var.app_s3_artifact_zip_key
+  s3_object_version = data.aws_s3_object.lambda_zip.version_id
+  source_code_hash  = data.aws_s3_object.lambda_zip.etag
+  timeout           = 15
 
   vpc_config {
     subnet_ids         = var.lambda_subnet_ids

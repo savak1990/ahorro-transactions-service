@@ -6,7 +6,15 @@ AWS_REGION=eu-west-1
 
 FULL_NAME=$(APP_NAME)-$(SERVICE_NAME)-$(INSTANCE_NAME)
 
-# Database credentials from AWS Secrets Manager
+# Database credentials	@echo "Running seed script..."
+	docker run --pull=missing -v "$(PWD):/app" -w /app \
+		-e PGPASSWORD="$(DB_PASSWORD)" \
+		postgres:15-alpine psql \
+		--host=$(shell $(MAKE) -s get-db-endpoint) \
+		--port=$(shell $(MAKE) -s get-db-port) \
+		--username=$(DB_USERNAME) \
+		--dbname=$(shell $(MAKE) -s get-db-name) \
+		--file=seed/seed_data.sql Secrets Manager
 SECRET_NAME=$(APP_NAME)-app-secrets
 DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
@@ -23,7 +31,7 @@ APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom drop-tables
 
 # Build and package main app
 $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go')
@@ -65,6 +73,7 @@ package: $(APP_LAMBDA_HANDLER_ZIP)
 package-timestamp: $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP)
 
 upload: $(APP_LAMBDA_HANDLER_ZIP)
+	aws s3 rm $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_NAME) --quiet || true
 	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_NAME)
 
 upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP)
@@ -174,7 +183,7 @@ connect-db:
 	@echo "Database: $(shell $(MAKE) -s get-db-name)"
 	@echo "Username: $(DB_USERNAME)"
 	@echo ""
-	docker run -it --rm postgres:15-alpine psql \
+	docker run -it --pull=missing postgres:15-alpine psql \
 		"postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require"
 
 seed:
@@ -188,7 +197,7 @@ seed:
 		exit 1; \
 	fi
 	@echo "Running seed script..."
-	docker run --rm -v "$(PWD):/app" -w /app \
+	docker run --pull=missing -v "$(PWD):/app" -w /app \
 		-e PGPASSWORD="$(DB_PASSWORD)" \
 		postgres:15-alpine psql \
 		--host=$(shell $(MAKE) -s get-db-endpoint) \
@@ -197,6 +206,29 @@ seed:
 		--dbname=$(shell $(MAKE) -s get-db-name) \
 		--file=seed/seed_data.sql
 	@echo "Database seeding completed!"
+
+drop-tables:
+	@echo "WARNING: This will DROP ALL TABLES in the database!"
+	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
+	@echo "Database: $(shell $(MAKE) -s get-db-name)"
+	@echo "Username: $(DB_USERNAME)"
+	@echo ""
+	@echo -n "Are you sure you want to continue? (y/N): "; \
+	read CONFIRM; \
+	if [ "$$CONFIRM" != "y" ] && [ "$$CONFIRM" != "Y" ]; then \
+		echo "Operation cancelled."; \
+		exit 1; \
+	fi
+	@echo "Dropping all tables..."
+	docker run --pull=missing \
+		-e PGPASSWORD="$(DB_PASSWORD)" \
+		postgres:15-alpine psql \
+		--host=$(shell $(MAKE) -s get-db-endpoint) \
+		--port=$(shell $(MAKE) -s get-db-port) \
+		--username=$(DB_USERNAME) \
+		--dbname=$(shell $(MAKE) -s get-db-name) \
+		--command="DROP TABLE IF EXISTS transaction_entry CASCADE; DROP TABLE IF EXISTS transaction CASCADE; DROP TABLE IF EXISTS balance CASCADE; DROP TABLE IF EXISTS merchant CASCADE; DROP TABLE IF EXISTS category CASCADE;"
+	@echo "All tables dropped successfully!"
 
 # Docker image management
 pull-postgres:
