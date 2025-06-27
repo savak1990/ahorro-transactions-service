@@ -24,26 +24,12 @@ func NewHandlerImpl(svc service.Service) *HandlerImpl {
 	return &HandlerImpl{Service: svc}
 }
 
-// POST /balances/{balance_id}/transactions
+// POST /transactions
 func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	balanceID := vars["balance_id"]
-
 	var req models.CreateTransactionDto
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
 		return
-	}
-
-	// Ensure the transaction is created for the specified balance
-	if balanceID != "" {
-		balanceUUID, err := uuid.Parse(balanceID)
-		if err != nil {
-			WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid balance ID format: "+err.Error())
-			return
-		}
-		// Override the balance ID from URL path
-		req.BalanceID = balanceUUID.String()
 	}
 
 	// Convert request DTO to transaction
@@ -72,18 +58,15 @@ func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(responseDto)
 }
 
-// GET /balances/{balance_id}/transactions
+// GET /transactions
 func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	balanceID := vars["balance_id"]
-
 	filter := models.ListTransactionsFilter{
-		UserID:    r.URL.Query().Get("user_id"),
-		GroupID:   r.URL.Query().Get("group_id"),
-		BalanceID: balanceID, // Filter by the balance_id from the URL path
+		UserID:    r.URL.Query().Get("userId"),
+		GroupID:   r.URL.Query().Get("groupId"),
+		BalanceID: r.URL.Query().Get("balanceId"), // Now from query parameter
 		Type:      r.URL.Query().Get("type"),
 		Category:  r.URL.Query().Get("category"),
-		SortBy:    r.URL.Query().Get("sorted_by"),
+		SortBy:    r.URL.Query().Get("sortedBy"),
 		Order:     r.URL.Query().Get("order"),
 	}
 	if count := r.URL.Query().Get("count"); count != "" {
@@ -110,10 +93,9 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	WriteJSONListResponse(w, entryDtos, nextToken)
 }
 
-// GET /balances/{balance_id}/transactions/{transaction_id}
+// GET /transactions/{transaction_id}
 func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	balanceID := vars["balance_id"]
 	transactionID := vars["transaction_id"]
 
 	if transactionID == "" {
@@ -128,20 +110,13 @@ func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Optional: Verify the transaction belongs to the specified balance
-	if balanceID != "" && tx.BalanceID.String() != balanceID {
-		http.Error(w, "Transaction does not belong to the specified balance", http.StatusNotFound)
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tx)
 }
 
-// PUT /balances/{balance_id}/transactions/{transaction_id}
+// PUT /transactions/{transaction_id}
 func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	balanceID := vars["balance_id"]
 	transactionID := vars["transaction_id"]
 	var tx models.Transaction
 	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
@@ -156,16 +131,6 @@ func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) 
 	}
 	tx.ID = id
 
-	// Ensure the transaction belongs to the specified balance
-	if balanceID != "" {
-		balanceUUID, err := uuid.Parse(balanceID)
-		if err != nil {
-			http.Error(w, "Invalid balance ID format", http.StatusBadRequest)
-			return
-		}
-		tx.BalanceID = balanceUUID
-	}
-
 	updated, err := h.Service.UpdateTransaction(r.Context(), tx)
 	if err != nil {
 		logrus.WithError(err).Error("UpdateTransaction failed")
@@ -176,28 +141,13 @@ func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(updated)
 }
 
-// DELETE /balances/{balance_id}/transactions/{transaction_id}
+// DELETE /transactions/{transaction_id}
 func (h *HandlerImpl) DeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	balanceID := vars["balance_id"]
 	transactionID := vars["transaction_id"]
 	if transactionID == "" {
 		http.Error(w, "Missing transaction_id", http.StatusBadRequest)
 		return
-	}
-
-	// Optional: Verify the transaction belongs to the specified balance before deletion
-	if balanceID != "" {
-		tx, err := h.Service.GetTransaction(r.Context(), transactionID)
-		if err != nil {
-			logrus.WithError(err).Error("Failed to verify transaction before deletion")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		if tx.BalanceID.String() != balanceID {
-			http.Error(w, "Transaction does not belong to the specified balance", http.StatusNotFound)
-			return
-		}
 	}
 
 	err := h.Service.DeleteTransaction(r.Context(), transactionID)
@@ -239,8 +189,8 @@ func (h *HandlerImpl) CreateBalance(w http.ResponseWriter, r *http.Request) {
 
 func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
 	filter := models.ListBalancesFilter{
-		UserID:  r.URL.Query().Get("user_id"),
-		GroupID: r.URL.Query().Get("group_id"),
+		UserID:  r.URL.Query().Get("userId"),
+		GroupID: r.URL.Query().Get("groupId"),
 	}
 	results, err := h.Service.ListBalances(r.Context(), filter)
 	if err != nil {
@@ -373,7 +323,7 @@ func (h *HandlerImpl) CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 	filter := models.ListCategoriesInput{
-		UserID: r.URL.Query().Get("user_id"),
+		UserID: r.URL.Query().Get("userId"),
 	}
 	if limit := r.URL.Query().Get("limit"); limit != "" {
 		if n, err := parseInt(limit); err == nil {

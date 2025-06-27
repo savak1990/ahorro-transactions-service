@@ -149,19 +149,12 @@ module "apigateway" {
   cognito_user_pool_id        = var.cognito_user_pool_id
   cognito_user_pool_client_id = var.cognito_user_pool_client_id
   cognito_auth_paths = [
-    "GET /balances/{balance_id}/transactions",
-    "POST /balances/{balance_id}/transactions",
-    "GET /balances/{balance_id}/transactions/{transaction_id}",
-    "PUT /balances/{balance_id}/transactions/{transaction_id}",
-    "DELETE /balances/{balance_id}/transactions/{transaction_id}",
-    "GET /balances",
-    "POST /balances",
-    "GET /balances/{balance_id}",
-    "PUT /balances/{balance_id}",
-    "DELETE /balances/{balance_id}",
-    "GET /categories",
-    "POST /categories",
-    "DELETE /categories/{category_id}",
+    "ANY /transactions",
+    "ANY /transactions/{transaction_id}",
+    "ANY /balances",
+    "ANY /balances/{balance_id}",
+    "ANY /categories",
+    "ANY /categories/{category_id}",
   ]
   cognito_unauth_paths = [
     "GET /info",

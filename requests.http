@@ -1,5 +1,6 @@
 @baseUrl=localhost:8080
-@authToken=<PASTE TOKEN HERE>
+@authToken=<PLACE_TOKEN_HERE>
+
 @userId=02c514a4-2021-708d-efff-ea6cd5e4eac9
 @groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
 @balanceId=847ac10b-58cc-4372-a567-0e02b2c3d479
@@ -25,7 +26,7 @@ GET {{baseUrl}}/health
 # c47ac10b-58cc-4372-a567-0e02b2c3d4a3 - "Salary" (Income)
 
 ### Create a new transaction with multiple entries
-POST {{baseUrl}}/balances/{{balanceId}}/transactions
+POST {{baseUrl}}/transactions
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
@@ -35,7 +36,6 @@ Authorization: Bearer {{authToken}}
     "balanceId": "{{balanceId}}",
     "type": "expense",
     "merchant": "Mercadona",
-    "operationId": null,
     "transactedAt": "2024-06-19T12:00:00Z",
     "transactionEntries": [
         {
@@ -57,7 +57,7 @@ Authorization: Bearer {{authToken}}
 }
 
 ### Create a simple single-entry transaction
-POST {{baseUrl}}/balances/{{balanceId}}/transactions
+POST {{baseUrl}}/transactions
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
@@ -79,7 +79,7 @@ Authorization: Bearer {{authToken}}
 }
 
 ### Create a movement transaction (transfer between accounts)
-POST {{baseUrl}}/balances/{{balanceId}}/transactions
+POST {{baseUrl}}/transactions
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
@@ -111,66 +111,66 @@ Authorization: Bearer {{authToken}}
 ### - Entry-specific details (description, amount)
 ###
 ### Supported query parameters:
-### - user_id: Filter by user ID
-### - group_id: Filter by group ID  
+### - userId: Filter by user ID
+### - groupId: Filter by group ID  
 ### - type: Filter by transaction type (income, expense, movement)
 ### - category: Filter by category name
-### - sorted_by: Sort field (transacted_at, amount, created_at)
+### - sortedBy: Sort field (transactedAt, amount, createdAt)
 ### - order: Sort order (ASC, DESC)
 ### - count: Number of items per page (max 100, default 50)
 ### - startKey: Cursor for pagination (use nextKey from previous response)
 
 ### List transaction entries for a specific balance (basic)
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries with all filters
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&group_id={{groupId}}&type=expense&category=Groceries&sorted_by=transacted_at&order=DESC&count=10
+GET {{baseUrl}}/transactions?userId={{userId}}&groupId={{groupId}}&balanceId={{balanceId}}&type=expense&category=Groceries&sortedBy=transactedAt&order=DESC&count=10
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries by type (income only)
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&type=income
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&type=income
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries by type (expense only)
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&type=expense
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&type=expense
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries by category
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&category=Groceries
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&category=Groceries
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries sorted by amount (ascending)
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&sorted_by=amount&order=ASC&count=5
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&sortedBy=amount&order=ASC&count=5
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries sorted by creation date (descending)
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&sorted_by=created_at&order=DESC&count=20
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&sortedBy=transactedAt&order=DESC&count=20
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries with pagination
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?user_id={{userId}}&count=5
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&count=5
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries for specific group
-GET {{baseUrl}}/balances/{{balanceId}}/transactions?group_id={{groupId}}&count=10
+GET {{baseUrl}}/transactions?groupId={{groupId}}&count=10
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### Get a specific transaction
-GET {{baseUrl}}/balances/{{balanceId}}/transactions/REPLACE_WITH_TRANSACTION_ID
+GET {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
 Authorization: Bearer {{authToken}}
 
 ### Update a transaction
-PUT {{baseUrl}}/balances/{{balanceId}}/transactions/REPLACE_WITH_TRANSACTION_ID
+PUT {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
@@ -186,7 +186,7 @@ Authorization: Bearer {{authToken}}
 }
 
 ### Delete a transaction
-DELETE {{baseUrl}}/balances/{{balanceId}}/transactions/REPLACE_WITH_TRANSACTION_ID
+DELETE {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
 Authorization: Bearer {{authToken}}
 
 ### Create a new balance
@@ -203,11 +203,15 @@ Authorization: Bearer {{authToken}}
 }
 
 ### List balances for group
-GET {{baseUrl}}/balances?group_id={{groupId}}
+GET {{baseUrl}}/balances?groupId={{groupId}}
+Authorization: Bearer {{authToken}}
+
+### List balances by user
+GET {{baseUrl}}/balances?userId={{userId}}
 Authorization: Bearer {{authToken}}
 
 ### List balances for user
-GET {{baseUrl}}/balances?user_id={{userId}}
+GET {{baseUrl}}/balances?userId={{userId}}
 Authorization: Bearer {{authToken}}
 
 ### Get a specific balance
@@ -242,7 +246,7 @@ Authorization: Bearer {{authToken}}
 }
 
 ### List categories
-GET {{baseUrl}}/categories?user_id={{userId}}&limit=10
+GET {{baseUrl}}/categories?userId={{userId}}&limit=10
 Authorization: Bearer {{authToken}}
 
 ### Delete a category (replace REPLACE_WITH_CATEGORY_ID with actual category_id from response)

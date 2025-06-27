@@ -138,7 +138,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 	orderBy := "transaction_entry.created_at"
 	if filter.SortBy != "" {
 		switch filter.SortBy {
-		case "transacted_at":
+		case "transactedAt": // API uses camelCase, map to database field
 			if needsTransactionJoin {
 				orderBy = "transaction.transacted_at"
 			} else {
@@ -148,7 +148,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 			}
 		case "amount":
 			orderBy = "transaction_entry.amount"
-		case "created_at":
+		case "createdAt": // API uses camelCase, map to database field
 			orderBy = "transaction_entry.created_at"
 		}
 	}
