@@ -3,6 +3,10 @@ package config
 import (
 	"os"
 	"strconv"
+	"strings"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm/logger"
 )
 
 type AppConfig struct {
@@ -15,6 +19,9 @@ type AppConfig struct {
 	DBName     string
 	DBUser     string
 	DBPassword string
+
+	// Application Configuration
+	LogLevel string
 }
 
 func LoadConfig() AppConfig {
@@ -33,6 +40,9 @@ func LoadConfig() AppConfig {
 		DBName:     os.Getenv("DB_NAME"),
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
+
+		// Application Configuration
+		LogLevel: getEnv("LOG_LEVEL", "info"),
 	}
 }
 
@@ -41,4 +51,36 @@ func getEnv(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// GetLogrusLevel converts string log level to logrus.Level
+func GetLogrusLevel(level string) logrus.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return logrus.DebugLevel
+	case "info":
+		return logrus.InfoLevel
+	case "warn", "warning":
+		return logrus.WarnLevel
+	case "error":
+		return logrus.ErrorLevel
+	default:
+		return logrus.InfoLevel
+	}
+}
+
+// GetGormLogLevel converts string log level to gorm logger.LogLevel
+func GetGormLogLevel(level string) logger.LogLevel {
+	switch strings.ToLower(level) {
+	case "debug":
+		return logger.Info // GORM debug level shows all SQL queries
+	case "info":
+		return logger.Warn // GORM warn level shows errors and warnings but not slow queries
+	case "warn", "warning":
+		return logger.Error // GORM error level shows only errors
+	case "error":
+		return logger.Error
+	default:
+		return logger.Warn
+	}
 }

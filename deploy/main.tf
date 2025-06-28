@@ -115,6 +115,9 @@ module "ahorro_transactions_service" {
   db_username = local.transactions_db_username
   db_password = local.transactions_db_password
 
+  # Application Configuration
+  log_level = "info"
+
   # API Gateway Configuration
   api_name                    = local.full_api_name
   domain_name                 = local.domain_name

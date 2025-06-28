@@ -151,8 +151,19 @@ func retryConnect(dsn string, maxRetries int) (*gorm.DB, error) {
 	var lastErr error
 
 	for i := 0; i < maxRetries; i++ {
+		// Create custom logger with configurable log level and higher slow query threshold
+		customLogger := logger.New(
+			log.StandardLogger(), // Use logrus as the underlying logger
+			logger.Config{
+				SlowThreshold:             1 * time.Second,                      // Only log queries slower than 1 second
+				LogLevel:                  config.GetGormLogLevel(cfg.LogLevel), // Use configured log level
+				IgnoreRecordNotFoundError: true,                                 // Don't log "record not found" errors
+				Colorful:                  false,                                // Disable colors for production
+			},
+		)
+
 		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
+			Logger: customLogger,
 		})
 
 		if err == nil {

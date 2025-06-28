@@ -24,7 +24,8 @@ func init() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: true,
 	})
-	log.SetLevel(log.InfoLevel)
+	// Set default log level, will be overridden in main() after config is loaded
+	log.SetLevel(log.ErrorLevel)
 }
 
 // Lambda handler for API Gateway
@@ -68,12 +69,17 @@ func main() {
 	}
 
 	appCfg := config.LoadConfig()
+
+	// Set log level from configuration
+	log.SetLevel(config.GetLogrusLevel(appCfg.LogLevel))
+
 	log.WithFields(log.Fields{
-		"region":  appCfg.AWSRegion,
-		"profile": appCfg.AWSProfile,
-		"db_host": appCfg.DBHost,
-		"db_port": appCfg.DBPort,
-		"db_name": appCfg.DBName,
+		"region":    appCfg.AWSRegion,
+		"profile":   appCfg.AWSProfile,
+		"db_host":   appCfg.DBHost,
+		"db_port":   appCfg.DBPort,
+		"db_name":   appCfg.DBName,
+		"log_level": appCfg.LogLevel,
 	}).Info("Loaded config")
 
 	// Set database config for lazy initialization - DO NOT connect here

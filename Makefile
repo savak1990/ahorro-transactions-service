@@ -72,8 +72,9 @@ run: app-build-local get-db-config
 	DB_HOST=$(shell $(MAKE) -s get-db-endpoint) \
 	DB_PORT=$(shell $(MAKE) -s get-db-port) \
 	DB_NAME=$(shell $(MAKE) -s get-db-name) \
-	DB_USERNAME="$(DB_USERNAME)" \
-	DB_PASSWORD="$(DB_PASSWORD)" \
+	DB_USER=$(DB_USERNAME) \
+	DB_PASSWORD=$(DB_PASSWORD) \
+	LOG_LEVEL=$(LOG_LEVEL) \
 	./$(APP_BINARY)
 
 package: $(APP_LAMBDA_HANDLER_ZIP)

@@ -37,6 +37,9 @@ resource "aws_lambda_function" "app" {
       DB_USER     = var.db_username
       DB_PASSWORD = var.db_password
       DB_PORT     = "5432"
+
+      # Application configuration
+      LOG_LEVEL = var.log_level
     }
   }
 }

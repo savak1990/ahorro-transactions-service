@@ -101,7 +101,8 @@ func (h *CommonHandlerImpl) HandleHealth(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
-		if dbStatus == "maintenance" {
+		switch dbStatus {
+		case "maintenance":
 			w.WriteHeader(http.StatusServiceUnavailable)
 			response := map[string]interface{}{
 				"status":   "maintenance",
@@ -110,7 +111,7 @@ func (h *CommonHandlerImpl) HandleHealth(w http.ResponseWriter, r *http.Request)
 			}
 			json.NewEncoder(w).Encode(response)
 			return
-		} else if dbStatus == "unhealthy" {
+		case "unhealthy":
 			w.WriteHeader(http.StatusServiceUnavailable)
 			response := map[string]interface{}{
 				"status":   "unhealthy",
@@ -119,7 +120,7 @@ func (h *CommonHandlerImpl) HandleHealth(w http.ResponseWriter, r *http.Request)
 			}
 			json.NewEncoder(w).Encode(response)
 			return
-		} else if dbStatus == "warming_up" {
+		case "warming_up":
 			w.WriteHeader(http.StatusServiceUnavailable)
 			response := map[string]interface{}{
 				"status":   "warming_up",

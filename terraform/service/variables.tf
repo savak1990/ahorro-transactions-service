@@ -79,3 +79,13 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "log_level" {
+  description = "Log level for the application (debug, info, warn, error)"
+  type        = string
+  default     = "info"
+  validation {
+    condition     = contains(["debug", "info", "warn", "error"], var.log_level)
+    error_message = "Log level must be one of: debug, info, warn, error"
+  }
+}
