@@ -1740,6 +1740,7 @@ components:
           example: "Main Checking Account"
         balanceCurrency:
           type: string
+          pattern: "^[A-Z]{3}$"
           description: "Currency of the balance"
           example: "EUR"
         categoryName:
