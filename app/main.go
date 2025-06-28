@@ -86,9 +86,16 @@ func main() {
 
 	commonHandler := handler.NewCommonHandlerImpl(gormDB)
 
+	// Initialize validation middleware
+	validationMiddleware, err := handler.NewValidationMiddleware()
+	if err != nil {
+		log.WithError(err).Fatal("Failed to initialize validation middleware")
+	}
+
 	router := mux.NewRouter()
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(handler.EnsureAwsRegionHeader(appCfg.AWSRegion))
+	router.Use(validationMiddleware.ValidateRequest)
 
 	// Common APIs
 	router.HandleFunc("/health", commonHandler.HandleHealth).Methods("GET")
