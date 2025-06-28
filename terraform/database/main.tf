@@ -14,9 +14,10 @@ resource "aws_rds_cluster" "aurora" {
     max_capacity = var.max_capacity
   }
 
-  db_subnet_group_name   = aws_db_subnet_group.aurora_subnet_group.name
-  vpc_security_group_ids = [aws_security_group.aurora_sg.id]
-  skip_final_snapshot    = true
+  db_subnet_group_name        = aws_db_subnet_group.aurora_subnet_group.name
+  vpc_security_group_ids      = [aws_security_group.aurora_sg.id]
+  skip_final_snapshot         = true
+  allow_major_version_upgrade = true # Required for major version upgrades (15.x -> 16.x)
 
   # Optionally, you can use the secret_arn for password rotation
   # master_user_secret { secret_arn = var.db_secret_arn }

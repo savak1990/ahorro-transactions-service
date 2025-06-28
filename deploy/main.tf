@@ -83,7 +83,7 @@ module "transactions_db" {
 
   cluster_identifier = "${local.base_name}-db-cluster"
   db_name            = local.db_name
-  engine_version     = "15.3"
+  engine_version     = "16.1"
   master_username    = local.transactions_db_username
   master_password    = local.transactions_db_password
   min_capacity       = 0.5

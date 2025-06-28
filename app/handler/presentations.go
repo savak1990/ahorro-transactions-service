@@ -54,3 +54,16 @@ func isDatabaseError(err error) bool {
 		strings.Contains(errStr, "gorm") ||
 		strings.Contains(errStr, "postgres")
 }
+
+// isDatabaseTimeoutError checks if the error is specifically a connection timeout
+func isDatabaseTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errStr := strings.ToLower(err.Error())
+	return strings.Contains(errStr, "timeout") ||
+		strings.Contains(errStr, "connection refused") ||
+		strings.Contains(errStr, "no such host") ||
+		strings.Contains(errStr, "i/o timeout") ||
+		strings.Contains(errStr, "context deadline exceeded")
+}

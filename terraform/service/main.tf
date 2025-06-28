@@ -22,7 +22,7 @@ resource "aws_lambda_function" "app" {
   s3_key            = var.app_s3_artifact_zip_key
   s3_object_version = data.aws_s3_object.lambda_zip.version_id
   source_code_hash  = data.aws_s3_object.lambda_zip.etag
-  timeout           = 15
+  timeout           = 60 # Increased to handle Aurora cold starts
 
   vpc_config {
     subnet_ids         = var.lambda_subnet_ids

@@ -28,13 +28,13 @@ variable "master_password" {
 variable "min_capacity" {
   description = "Minimum Aurora Serverless v2 capacity (ACUs)."
   type        = number
-  default     = 0.5
+  default     = 0
 }
 
 variable "max_capacity" {
   description = "Maximum Aurora Serverless v2 capacity (ACUs)."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "instance_count" {

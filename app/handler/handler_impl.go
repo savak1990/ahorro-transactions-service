@@ -43,7 +43,9 @@ func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) 
 	created, err := h.Service.CreateTransaction(r.Context(), *transaction)
 	if err != nil {
 		logrus.WithError(err).Error("CreateTransaction failed")
-		if isDatabaseError(err) {
+		if isDatabaseTimeoutError(err) {
+			WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is warming up, please retry in a few seconds")
+		} else if isDatabaseError(err) {
 			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeDbError, err.Error())
 		} else {
 			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeInternalServer, err.Error())

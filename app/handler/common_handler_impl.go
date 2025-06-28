@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -19,16 +21,27 @@ func NewCommonHandlerImpl(db *gorm.DB) *CommonHandlerImpl {
 }
 
 func (h *CommonHandlerImpl) HandleHealth(w http.ResponseWriter, r *http.Request) {
-	// Test database connection
+	// Test database connection with timeout context
 	dbStatus := "healthy"
+
 	if h.db != nil {
 		sqlDB, err := h.db.DB()
 		if err != nil {
 			log.WithError(err).Error("Failed to get SQL DB from GORM")
 			dbStatus = "unhealthy"
-		} else if err := sqlDB.Ping(); err != nil {
-			log.WithError(err).Error("Database health check failed")
-			dbStatus = "unhealthy"
+		} else {
+			// Use a shorter timeout for health checks to detect cold starts
+			ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+			defer cancel()
+
+			if err := sqlDB.PingContext(ctx); err != nil {
+				log.WithError(err).Warn("Database health check failed (possibly cold start)")
+				if isDatabaseTimeoutError(err) {
+					dbStatus = "warming_up"
+				} else {
+					dbStatus = "unhealthy"
+				}
+			}
 		}
 
 		if dbStatus == "unhealthy" {
@@ -37,6 +50,15 @@ func (h *CommonHandlerImpl) HandleHealth(w http.ResponseWriter, r *http.Request)
 				"status":   "unhealthy",
 				"database": "disconnected",
 				"error":    "Database connection failed",
+			}
+			json.NewEncoder(w).Encode(response)
+			return
+		} else if dbStatus == "warming_up" {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			response := map[string]interface{}{
+				"status":   "warming_up",
+				"database": "cold_start",
+				"message":  "Database is starting up, please retry in 10-30 seconds",
 			}
 			json.NewEncoder(w).Encode(response)
 			return

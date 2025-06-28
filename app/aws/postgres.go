@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/savak1990/transactions-service/app/config"
 	"github.com/savak1990/transactions-service/app/models"
@@ -19,31 +20,15 @@ var (
 
 func GetGormDB(cfg config.AppConfig) *gorm.DB {
 	gormDBOnce.Do(func() {
-		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require TimeZone=UTC",
+		// Enhanced DSN with connection timeouts for Aurora Serverless v2
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require TimeZone=UTC connect_timeout=30 statement_timeout=30000",
 			cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
 
 		var err error
-		gormDB, err = gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: logger.Default.LogMode(logger.Info),
-		})
+		gormDB, err = retryConnect(dsn, 5) // Retry up to 5 times for cold starts
 		if err != nil {
 			log.WithError(err).Fatal("Failed to connect to PostgreSQL database with GORM")
 		}
-
-		// Get underlying SQL DB for connection testing
-		sqlDB, err := gormDB.DB()
-		if err != nil {
-			log.WithError(err).Fatal("Failed to get underlying SQL DB")
-		}
-
-		// Test the connection
-		if err = sqlDB.Ping(); err != nil {
-			log.WithError(err).Fatal("Failed to ping PostgreSQL database")
-		}
-
-		// Configure connection pool
-		sqlDB.SetMaxIdleConns(10)
-		sqlDB.SetMaxOpenConns(100)
 
 		log.WithFields(log.Fields{
 			"host":   cfg.DBHost,
@@ -61,6 +46,52 @@ func GetGormDB(cfg config.AppConfig) *gorm.DB {
 		log.Fatal("GORM DB is not initialized")
 	}
 	return gormDB
+}
+
+// retryConnect attempts to establish database connection with retries for cold starts
+func retryConnect(dsn string, maxRetries int) (*gorm.DB, error) {
+	var lastErr error
+
+	for i := 0; i < maxRetries; i++ {
+		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+			Logger: logger.Default.LogMode(logger.Info),
+		})
+
+		if err == nil {
+			// Test the connection
+			sqlDB, sqlErr := db.DB()
+			if sqlErr == nil {
+				pingErr := sqlDB.Ping()
+				if pingErr == nil {
+					// Configure connection pool for Aurora Serverless v2
+					sqlDB.SetMaxIdleConns(2)                  // Reduced for serverless
+					sqlDB.SetMaxOpenConns(10)                 // Reduced for serverless
+					sqlDB.SetConnMaxLifetime(5 * time.Minute) // Shorter for serverless
+					sqlDB.SetConnMaxIdleTime(1 * time.Minute) // Shorter for serverless
+					return db, nil
+				}
+				lastErr = pingErr
+			} else {
+				lastErr = sqlErr
+			}
+		} else {
+			lastErr = err
+		}
+
+		// If this isn't the last attempt, wait before retrying
+		if i < maxRetries-1 {
+			waitTime := time.Duration(i+1) * 10 * time.Second // 10s, 20s, 30s...
+			log.WithFields(log.Fields{
+				"attempt":      i + 1,
+				"max_attempts": maxRetries,
+				"wait_time":    waitTime,
+				"error":        lastErr,
+			}).Warn("Database connection failed, retrying...")
+			time.Sleep(waitTime)
+		}
+	}
+
+	return nil, fmt.Errorf("failed to connect after %d attempts, last error: %w", maxRetries, lastErr)
 }
 
 // autoMigrate runs GORM auto-migration for all models
