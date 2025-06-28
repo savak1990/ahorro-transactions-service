@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/savak1990/transactions-service/app/aws"
+	"github.com/savak1990/transactions-service/app/config"
 	"github.com/savak1990/transactions-service/app/models"
 	"gorm.io/gorm"
 )
 
 // PostgreSQLRepository implements Repository interface using PostgreSQL
 type PostgreSQLRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.AppConfig // Store config for lazy initialization
 }
 
 // NewPostgreSQLRepository creates a new PostgreSQL repository
@@ -20,17 +23,42 @@ func NewPostgreSQLRepository(db *gorm.DB) *PostgreSQLRepository {
 	}
 }
 
+// NewPostgreSQLRepositoryWithConfig creates a new PostgreSQL repository with lazy DB initialization
+func NewPostgreSQLRepositoryWithConfig(cfg config.AppConfig) *PostgreSQLRepository {
+	return &PostgreSQLRepository{
+		config: &cfg,
+	}
+}
+
+// getDB returns the database connection, initializing it if necessary
+func (r *PostgreSQLRepository) getDB() *gorm.DB {
+	if r.db != nil {
+		return r.db
+	}
+
+	if r.config != nil {
+		// Lazy initialization - this will trigger connection and panic if failed
+		// We want this panic to bubble up to the maintenance middleware
+		r.db = aws.GetGormDB(*r.config)
+		return r.db
+	}
+
+	panic(fmt.Errorf("PostgreSQL repository not properly initialized"))
+}
+
 // CreateTransaction creates a new transaction in the database
 func (r *PostgreSQLRepository) CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
 
+	db := r.getDB()
+
 	// Create the transaction in the database with its transaction entries
-	if err := r.db.WithContext(ctx).Create(&tx).Error; err != nil {
+	if err := db.WithContext(ctx).Create(&tx).Error; err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
 	}
 
 	// Reload the transaction with all relationships
 	var createdTx models.Transaction
-	if err := r.db.WithContext(ctx).
+	if err := db.WithContext(ctx).
 		Preload("Merchant").
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
@@ -45,8 +73,10 @@ func (r *PostgreSQLRepository) CreateTransaction(ctx context.Context, tx models.
 // GetTransaction retrieves a single transaction by ID
 func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error) {
 
+	db := r.getDB()
+
 	var tx models.Transaction
-	if err := r.db.WithContext(ctx).
+	if err := db.WithContext(ctx).
 		Preload("Merchant").
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
@@ -64,7 +94,9 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 // UpdateTransaction updates an existing transaction
 func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
 
-	if err := r.db.WithContext(ctx).Save(tx).Error; err != nil {
+	db := r.getDB()
+
+	if err := db.WithContext(ctx).Save(tx).Error; err != nil {
 		return nil, fmt.Errorf("failed to update transaction: %w", err)
 	}
 
@@ -73,7 +105,8 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 
 // DeleteTransaction soft deletes a transaction
 func (r *PostgreSQLRepository) DeleteTransaction(ctx context.Context, transactionID string) error {
-	if err := r.db.WithContext(ctx).Where("id = ?", transactionID).Delete(&models.Transaction{}).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", transactionID).Delete(&models.Transaction{}).Error; err != nil {
 		return fmt.Errorf("failed to delete transaction: %w", err)
 	}
 	return nil
@@ -90,7 +123,9 @@ func (r *PostgreSQLRepository) ListTransactions(ctx context.Context, filter mode
 func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
 	var entries []models.TransactionEntry
 
-	query := r.db.WithContext(ctx).
+	db := r.getDB()
+
+	query := db.WithContext(ctx).
 		Preload("Transaction").
 		Preload("Transaction.Merchant").
 		Preload("Transaction.Balance").
@@ -187,8 +222,9 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 
 // CreateCategory creates a new category in the database
 func (r *PostgreSQLRepository) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
+	db := r.getDB()
 	// Create the category in the database
-	if err := r.db.WithContext(ctx).Create(&category).Error; err != nil {
+	if err := db.WithContext(ctx).Create(&category).Error; err != nil {
 		return nil, fmt.Errorf("failed to create category: %w", err)
 	}
 	return &category, nil
@@ -197,7 +233,8 @@ func (r *PostgreSQLRepository) CreateCategory(ctx context.Context, category mode
 // ListCategories retrieves all categories
 func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.ListCategoriesInput) ([]models.Category, string, error) {
 	var categories []models.Category
-	query := r.db.WithContext(ctx)
+	db := r.getDB()
+	query := db.WithContext(ctx)
 
 	// Apply limit
 	if input.Limit > 0 {
@@ -218,7 +255,8 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 // GetCategory retrieves a category by ID
 func (r *PostgreSQLRepository) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
 	var category models.Category
-	if err := r.db.WithContext(ctx).Where("id = ?", categoryID).First(&category).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", categoryID).First(&category).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("category not found: %s", categoryID)
 		}
@@ -229,7 +267,8 @@ func (r *PostgreSQLRepository) GetCategory(ctx context.Context, categoryID strin
 
 // UpdateCategory updates an existing category
 func (r *PostgreSQLRepository) UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
-	if err := r.db.WithContext(ctx).Save(&category).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Save(&category).Error; err != nil {
 		return nil, fmt.Errorf("failed to update category: %w", err)
 	}
 	return &category, nil
@@ -237,7 +276,8 @@ func (r *PostgreSQLRepository) UpdateCategory(ctx context.Context, category mode
 
 // DeleteCategory deletes a category by ID
 func (r *PostgreSQLRepository) DeleteCategory(ctx context.Context, categoryID string) error {
-	if err := r.db.WithContext(ctx).Where("id = ?", categoryID).Delete(&models.Category{}).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", categoryID).Delete(&models.Category{}).Error; err != nil {
 		return fmt.Errorf("failed to delete category: %w", err)
 	}
 	return nil
@@ -245,8 +285,9 @@ func (r *PostgreSQLRepository) DeleteCategory(ctx context.Context, categoryID st
 
 // CreateBalance creates a new balance in the database
 func (r *PostgreSQLRepository) CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
+	db := r.getDB()
 	// Create the balance in the database
-	if err := r.db.WithContext(ctx).Create(&balance).Error; err != nil {
+	if err := db.WithContext(ctx).Create(&balance).Error; err != nil {
 		return nil, fmt.Errorf("failed to create balance: %w", err)
 	}
 	return &balance, nil
@@ -255,7 +296,8 @@ func (r *PostgreSQLRepository) CreateBalance(ctx context.Context, balance models
 // ListBalances retrieves all balances
 func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.ListBalancesFilter) ([]models.Balance, error) {
 	var balances []models.Balance
-	query := r.db.WithContext(ctx)
+	db := r.getDB()
+	query := db.WithContext(ctx)
 
 	// Apply filters
 	if filter.UserID != "" {
@@ -294,7 +336,8 @@ func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.L
 // GetBalance retrieves a balance by ID
 func (r *PostgreSQLRepository) GetBalance(ctx context.Context, balanceID string) (*models.Balance, error) {
 	var balance models.Balance
-	if err := r.db.WithContext(ctx).Where("id = ?", balanceID).First(&balance).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", balanceID).First(&balance).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("balance not found: %s", balanceID)
 		}
@@ -305,7 +348,8 @@ func (r *PostgreSQLRepository) GetBalance(ctx context.Context, balanceID string)
 
 // UpdateBalance updates an existing balance
 func (r *PostgreSQLRepository) UpdateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
-	if err := r.db.WithContext(ctx).Save(&balance).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Save(&balance).Error; err != nil {
 		return nil, fmt.Errorf("failed to update balance: %w", err)
 	}
 	return &balance, nil
@@ -313,7 +357,8 @@ func (r *PostgreSQLRepository) UpdateBalance(ctx context.Context, balance models
 
 // DeleteBalance deletes a balance by ID
 func (r *PostgreSQLRepository) DeleteBalance(ctx context.Context, balanceID string) error {
-	if err := r.db.WithContext(ctx).Where("id = ?", balanceID).Delete(&models.Balance{}).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", balanceID).Delete(&models.Balance{}).Error; err != nil {
 		return fmt.Errorf("failed to delete balance: %w", err)
 	}
 	return nil
@@ -321,7 +366,8 @@ func (r *PostgreSQLRepository) DeleteBalance(ctx context.Context, balanceID stri
 
 // CreateMerchant creates a new merchant in the database
 func (r *PostgreSQLRepository) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
-	if err := r.db.WithContext(ctx).Create(&merchant).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Create(&merchant).Error; err != nil {
 		return nil, fmt.Errorf("failed to create merchant: %w", err)
 	}
 	return &merchant, nil
@@ -330,7 +376,8 @@ func (r *PostgreSQLRepository) CreateMerchant(ctx context.Context, merchant mode
 // ListMerchants retrieves merchants based on the filter
 func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
 	var merchants []models.Merchant
-	query := r.db.WithContext(ctx)
+	db := r.getDB()
+	query := db.WithContext(ctx)
 
 	// Apply filters
 	if filter.Name != "" {
@@ -379,7 +426,8 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 // GetMerchant retrieves a merchant by ID
 func (r *PostgreSQLRepository) GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error) {
 	var merchant models.Merchant
-	if err := r.db.WithContext(ctx).Where("id = ?", merchantId).First(&merchant).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", merchantId).First(&merchant).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("merchant not found: %s", merchantId)
 		}
@@ -390,7 +438,8 @@ func (r *PostgreSQLRepository) GetMerchant(ctx context.Context, merchantId strin
 
 // UpdateMerchant updates an existing merchant
 func (r *PostgreSQLRepository) UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
-	if err := r.db.WithContext(ctx).Save(&merchant).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Save(&merchant).Error; err != nil {
 		return nil, fmt.Errorf("failed to update merchant: %w", err)
 	}
 	return &merchant, nil
@@ -398,7 +447,8 @@ func (r *PostgreSQLRepository) UpdateMerchant(ctx context.Context, merchant mode
 
 // DeleteMerchant soft deletes a merchant by ID
 func (r *PostgreSQLRepository) DeleteMerchant(ctx context.Context, merchantId string) error {
-	if err := r.db.WithContext(ctx).Where("id = ?", merchantId).Delete(&models.Merchant{}).Error; err != nil {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", merchantId).Delete(&models.Merchant{}).Error; err != nil {
 		return fmt.Errorf("failed to delete merchant: %w", err)
 	}
 	return nil

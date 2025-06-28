@@ -6,6 +6,7 @@ const (
 	ErrorCodeNotFound       = "NotFound"
 	ErrorCodeBadResponse    = "BadResponse"
 	ErrorCodeDbError        = "DatabaseError"
+	ErrorCodeDbTimeout      = "DatabaseTimeout"
 )
 
 // ListCategoriesInput defines the input options for listing categories.

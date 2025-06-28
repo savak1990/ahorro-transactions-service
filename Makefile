@@ -28,7 +28,7 @@ APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom drop-tables generate-schema
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier
 
 # Schema generation target
 $(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
@@ -184,24 +184,14 @@ get-my-ip:
 	@IP=$$(curl -4 -s ifconfig.me || curl -s ipv4.icanhazip.com || dig +short myip.opendns.com @resolver1.opendns.com); \
 	echo "IPv4: $$IP (use $$IP/32 for CIDR)"
 
-connect-db:
-	@echo "Connecting to PostgreSQL database..."
-	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
-	@echo "Port: $(shell $(MAKE) -s get-db-port)"
-	@echo "Database: $(shell $(MAKE) -s get-db-name)"
-	@echo "Username: $(DB_USERNAME)"
-	@echo ""
-	docker run -it --pull=missing postgres:15-alpine psql \
-		"postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require"
-
 seed:
 	@echo "Seeding PostgreSQL database with sample data..."
 	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
 	@echo "Database: $(shell $(MAKE) -s get-db-name)"
 	@echo "Username: $(DB_USERNAME)"
 	@echo ""
-	@if [ ! -f "seed/seed_data.sql" ]; then \
-		echo "Error: seed/seed_data.sql not found!"; \
+	@if [ ! -f "sql/seed_data.sql" ]; then \
+		echo "Error: sql/seed_data.sql not found!"; \
 		exit 1; \
 	fi
 	@echo "Running seed script..."
@@ -212,7 +202,7 @@ seed:
 		--port=$(shell $(MAKE) -s get-db-port) \
 		--username=$(DB_USERNAME) \
 		--dbname=$(shell $(MAKE) -s get-db-name) \
-		--file=seed/seed_data.sql
+		--file=sql/seed_data.sql
 	@echo "Database seeding completed!"
 
 drop-tables:
@@ -248,3 +238,58 @@ pull-postgres:
 
 clean:
 	rm -rf ./build ./app/schema/openapi.yml
+
+# Database operations
+db-get-identifier:
+	@cd deploy && terraform output -raw db_identifier
+
+db-connect:
+	@echo "Connecting to PostgreSQL database..."
+	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
+	@echo "Port: $(shell $(MAKE) -s get-db-port)"
+	@echo "Database: $(shell $(MAKE) -s get-db-name)"
+	@echo "Username: $(DB_USERNAME)"
+	@echo ""
+	docker run -it --pull=missing postgres:15-alpine psql \
+		"postgres://$(DB_USERNAME):$(DB_PASSWORD)@$(shell $(MAKE) -s get-db-endpoint):$(shell $(MAKE) -s get-db-port)/$(shell $(MAKE) -s get-db-name)?sslmode=require"
+
+db-status:
+	@echo "Checking database status..."
+	@DB_ID=$(shell $(MAKE) -s db-get-identifier); \
+	STATUS=$$(aws rds describe-db-instances --db-instance-identifier "$$DB_ID" --query 'DBInstances[0].DBInstanceStatus' --output text --region $(AWS_REGION)); \
+	echo "Database Status: $$STATUS"
+
+db-start:
+	@echo "Starting database instance..."
+	@DB_ID=$(shell $(MAKE) -s db-get-identifier); \
+	echo "Starting RDS instance: $$DB_ID"; \
+	aws rds start-db-instance --db-instance-identifier "$$DB_ID" --region $(AWS_REGION); \
+	echo "Database start initiated. Use 'make db-status' to check progress."
+
+db-stop:
+	@echo "Stopping database instance to save costs..."
+	@DB_ID=$(shell $(MAKE) -s db-get-identifier); \
+	echo "Stopping RDS instance: $$DB_ID"; \
+	aws rds stop-db-instance --db-instance-identifier "$$DB_ID" --region $(AWS_REGION); \
+	echo "Database stop initiated. This will save costs while stopped."
+
+db-wait-available:
+	@echo "Waiting for database to become available..."
+	@DB_ID=$(shell $(MAKE) -s db-get-identifier); \
+	echo "Monitoring RDS instance: $$DB_ID"; \
+	aws rds wait db-instance-available --db-instance-identifier "$$DB_ID" --region $(AWS_REGION); \
+	echo "Database is now available!"
+
+db-wait-stopped:
+	@echo "Waiting for database to stop completely..."
+	@DB_ID=$(shell $(MAKE) -s db-get-identifier); \
+	echo "Monitoring RDS instance: $$DB_ID"; \
+	aws rds wait db-instance-stopped --db-instance-identifier "$$DB_ID" --region $(AWS_REGION); \
+	echo "Database is now stopped!"
+
+# Combined commands for convenience
+db-quick-start: db-start db-wait-available
+	@echo "Database is ready for use!"
+
+db-quick-stop: db-stop db-wait-stopped
+	@echo "Database is now stopped and saving costs!"
