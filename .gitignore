@@ -1,5 +1,6 @@
-# Binaries
-/app/test-dynamodb-app
+# Schema files
+/app/schema/*.yml
+/app/schema/*.yaml
 
 # OS files
 .DS_Store

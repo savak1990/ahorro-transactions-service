@@ -10,6 +10,7 @@ FULL_NAME=$(APP_NAME)-$(SERVICE_NAME)-$(INSTANCE_NAME)
 SECRET_NAME=$(APP_NAME)-app-secrets
 DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
+DOMAIN_NAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.domain_name')
 
 # Main app arguments
 APP_DIR=app
@@ -23,14 +24,29 @@ APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom drop-tables
+# Schema generation
+SCHEMA_TEMPLATE=schema/output/openapi.yml.tml
+SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
+
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom drop-tables generate-schema
+
+# Schema generation target
+$(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
+	@echo "Generating OpenAPI schema from template..."
+	@mkdir -p $(dir $(SCHEMA_OUTPUT))
+	@sed -e 's/$${INSTANCE_NAME}/$(INSTANCE_NAME)/g' \
+	     -e 's/$${DOMAIN_NAME}/$(DOMAIN_NAME)/g' \
+	     $(SCHEMA_TEMPLATE) > $(SCHEMA_OUTPUT)
+	@echo "OpenAPI schema generated: $(SCHEMA_OUTPUT)"
+
+generate-schema: $(SCHEMA_OUTPUT)
 
 # Build and package main app
-$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(shell find $(APP_DIR) -type f -name '*.yml')
+$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT)
 	@mkdir -p $(APP_BUILD_DIR)
 	cd $(APP_DIR) && GOOS=linux GOARCH=amd64 go build -o ../$(APP_LAMBDA_BINARY) main.go
 
-$(APP_BINARY): $(APP_DIR)/main.go $(shell find $(APP_DIR) -type f -name '*.yml')
+$(APP_BINARY): $(APP_DIR)/main.go $(SCHEMA_OUTPUT)
 	@mkdir -p $(APP_BUILD_DIR)
 	cd $(APP_DIR) && go build -o ../$(APP_BINARY) main.go
 
@@ -231,4 +247,4 @@ pull-postgres:
 # Clean up build artifacts and virtual environments
 
 clean:
-	rm -rf ./build
+	rm -rf ./build ./app/schema/openapi.yml
