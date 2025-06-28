@@ -69,3 +69,14 @@ type CategoryDto struct {
 	CategoryID string  `json:"categoryId"`
 	ImageUrl   *string `json:"imageUrl,omitempty"`
 }
+
+// Merchant represents a merchant for API responses.
+type MerchantDto struct {
+	MerchantID  string `json:"merchantId"`
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	ImageUrl    string `json:"imageUrl,omitempty"`
+	CreatedAt   string `json:"createdAt"`
+	UpdatedAt   string `json:"updatedAt"`
+	DeletedAt   string `json:"deletedAt,omitempty"`
+}

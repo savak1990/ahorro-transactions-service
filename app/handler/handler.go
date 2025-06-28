@@ -20,4 +20,10 @@ type Handler interface {
 	CreateCategory(http.ResponseWriter, *http.Request)
 	ListCategories(http.ResponseWriter, *http.Request)
 	DeleteCategory(http.ResponseWriter, *http.Request)
+
+	CreateMerchant(http.ResponseWriter, *http.Request)
+	ListMerchants(http.ResponseWriter, *http.Request)
+	GetMerchant(http.ResponseWriter, *http.Request)
+	UpdateMerchant(http.ResponseWriter, *http.Request)
+	DeleteMerchant(http.ResponseWriter, *http.Request)
 }

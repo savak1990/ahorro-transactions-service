@@ -155,6 +155,8 @@ module "apigateway" {
     "ANY /balances/{balance_id}",
     "ANY /categories",
     "ANY /categories/{category_id}",
+    "ANY /merchants",
+    "ANY /merchants/{merchant_id}",
   ]
   cognito_unauth_paths = [
     "GET /info",

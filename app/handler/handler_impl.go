@@ -366,6 +366,155 @@ func (h *HandlerImpl) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Merchant handlers
+func (h *HandlerImpl) CreateMerchant(w http.ResponseWriter, r *http.Request) {
+	var merchantDto models.MerchantDto
+	if err := json.NewDecoder(r.Body).Decode(&merchantDto); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Convert DTO to DAO model
+	merchant, err := models.FromAPIMerchant(merchantDto)
+	if err != nil {
+		http.Error(w, "Invalid merchant data: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	created, err := h.Service.CreateMerchant(r.Context(), *merchant)
+	if err != nil {
+		logrus.WithError(err).Error("CreateMerchant failed")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPIMerchant(created)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) ListMerchants(w http.ResponseWriter, r *http.Request) {
+	filter := models.ListMerchantsFilter{
+		Name:   r.URL.Query().Get("name"),
+		SortBy: r.URL.Query().Get("sortBy"),
+		Order:  r.URL.Query().Get("order"),
+	}
+	if count := r.URL.Query().Get("limit"); count != "" {
+		if n, err := parseInt(count); err == nil {
+			filter.Count = n
+		}
+	}
+	filter.StartKey = r.URL.Query().Get("startKey")
+
+	results, nextToken, err := h.Service.ListMerchants(r.Context(), filter)
+	if err != nil {
+		logrus.WithError(err).Error("ListMerchants failed")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert to DTOs for response
+	merchantDtos := make([]models.MerchantDto, len(results))
+	for i, merchant := range results {
+		merchantDtos[i] = models.ToAPIMerchant(&merchant)
+	}
+
+	response := map[string]interface{}{
+		"merchants": merchantDtos,
+	}
+	if nextToken != "" {
+		response["nextToken"] = nextToken
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (h *HandlerImpl) GetMerchant(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	merchantID := vars["merchant_id"]
+	if merchantID == "" {
+		http.Error(w, "Missing merchant_id", http.StatusBadRequest)
+		return
+	}
+
+	merchant, err := h.Service.GetMerchant(r.Context(), merchantID)
+	if err != nil {
+		logrus.WithError(err).Error("GetMerchant failed")
+		if err.Error() == fmt.Sprintf("merchant not found: %s", merchantID) {
+			http.Error(w, "Merchant not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if merchant == nil {
+		http.Error(w, "Merchant not found", http.StatusNotFound)
+		return
+	}
+
+	// Convert to DTO for response
+	responseDto := models.ToAPIMerchant(merchant)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) UpdateMerchant(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	merchantID := vars["merchant_id"]
+	var merchantDto models.MerchantDto
+	if err := json.NewDecoder(r.Body).Decode(&merchantDto); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Parse merchant ID and set it in DTO
+	id, err := uuid.Parse(merchantID)
+	if err != nil {
+		http.Error(w, "Invalid merchant ID format", http.StatusBadRequest)
+		return
+	}
+	merchantDto.MerchantID = id.String()
+
+	// Convert DTO to DAO model
+	merchant, err := models.FromAPIMerchant(merchantDto)
+	if err != nil {
+		http.Error(w, "Invalid merchant data: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	updated, err := h.Service.UpdateMerchant(r.Context(), *merchant)
+	if err != nil {
+		logrus.WithError(err).Error("UpdateMerchant failed")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPIMerchant(updated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) DeleteMerchant(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	merchantID := vars["merchant_id"]
+	if merchantID == "" {
+		http.Error(w, "Missing merchant_id", http.StatusBadRequest)
+		return
+	}
+	err := h.Service.DeleteMerchant(r.Context(), merchantID)
+	if err != nil {
+		logrus.WithError(err).Error("DeleteMerchant failed")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // parseInt is a helper for parsing integers from query params
 func parseInt(s string) (int, error) {
 	return strconv.Atoi(strings.TrimSpace(s))

@@ -114,5 +114,42 @@ func (svc *MockService) DeleteCategory(ctx context.Context, categoryID string) e
 	return args.Error(0)
 }
 
+func (svc *MockService) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	args := svc.Called(ctx, merchant)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
+func (svc *MockService) GetMerchant(ctx context.Context, merchantID string) (*models.Merchant, error) {
+	args := svc.Called(ctx, merchantID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
+func (svc *MockService) UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	args := svc.Called(ctx, merchant)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
+func (svc *MockService) DeleteMerchant(ctx context.Context, merchantID string) error {
+	args := svc.Called(ctx, merchantID)
+	return args.Error(0)
+}
+
+func (svc *MockService) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+	args := svc.Called(ctx, filter)
+	if args.Get(0) == nil {
+		return nil, "", args.Error(2)
+	}
+	return args.Get(0).([]models.Merchant), args.String(1), args.Error(2)
+}
+
 // Ensure MockService implements Service
 var _ Service = (*MockService)(nil)

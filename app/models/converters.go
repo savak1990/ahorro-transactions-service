@@ -372,3 +372,56 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		TransactedAt:       transactedAt,
 	}
 }
+
+// ToAPIMerchant converts Merchant (DAO) to MerchantDto (API model)
+func ToAPIMerchant(m *Merchant) MerchantDto {
+	if m == nil {
+		return MerchantDto{}
+	}
+
+	desc := ""
+	if m.Description != nil {
+		desc = *m.Description
+	}
+
+	imageUrl := ""
+	if m.ImageUrl != nil {
+		imageUrl = *m.ImageUrl
+	}
+
+	return MerchantDto{
+		MerchantID:  m.ID.String(),
+		Name:        m.Name,
+		Description: desc,
+		ImageUrl:    imageUrl,
+		CreatedAt:   m.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:   formatTimePtr(m.DeletedAt),
+	}
+}
+
+// FromAPIMerchant converts MerchantDto (API model) to Merchant (DAO)
+func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
+	// Parse UUID
+	id, err := parseUUID(m.MerchantID)
+	if err != nil {
+		id = uuid.New() // Generate new ID if not provided
+	}
+
+	var desc *string
+	if m.Description != "" {
+		desc = &m.Description
+	}
+
+	var imageUrl *string
+	if m.ImageUrl != "" {
+		imageUrl = &m.ImageUrl
+	}
+
+	return &Merchant{
+		ID:          id,
+		Name:        m.Name,
+		Description: desc,
+		ImageUrl:    imageUrl,
+	}, nil
+}

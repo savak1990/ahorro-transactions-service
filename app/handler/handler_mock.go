@@ -54,5 +54,20 @@ func (h *HandlerMock) ListCategories(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerMock) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
+func (h *HandlerMock) CreateMerchant(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) ListMerchants(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) GetMerchant(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) UpdateMerchant(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) DeleteMerchant(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
 
 var _ Handler = (*HandlerMock)(nil)

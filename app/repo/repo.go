@@ -27,4 +27,11 @@ type Repository interface {
 	GetBalance(ctx context.Context, balanceId string) (*models.Balance, error)
 	UpdateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error)
 	DeleteBalance(ctx context.Context, balanceId string) error
+
+	// Merchant methods
+	CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error)
+	ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error)
+	GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error)
+	UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error)
+	DeleteMerchant(ctx context.Context, merchantId string) error
 }

@@ -142,6 +142,50 @@ func (m *MockRepository) DeleteBalance(ctx context.Context, userID string) error
 	return args.Error(0)
 }
 
+// Merchant methods
+
+func (m *MockRepository) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	args := m.Called(ctx, merchant)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
+func (m *MockRepository) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+	args := m.Called(ctx, filter)
+	var merchants []models.Merchant
+	if v := args.Get(0); v != nil {
+		merchants = v.([]models.Merchant)
+	}
+	var nextToken string
+	if v := args.Get(1); v != nil {
+		nextToken = v.(string)
+	}
+	return merchants, nextToken, args.Error(2)
+}
+
+func (m *MockRepository) GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error) {
+	args := m.Called(ctx, merchantId)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
+func (m *MockRepository) UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	args := m.Called(ctx, merchant)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
+func (m *MockRepository) DeleteMerchant(ctx context.Context, merchantId string) error {
+	args := m.Called(ctx, merchantId)
+	return args.Error(0)
+}
+
 // Helper methods for testing
 
 // ExpectCreateTransaction sets up an expectation for CreateTransaction method

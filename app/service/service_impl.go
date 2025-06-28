@@ -77,6 +77,28 @@ func (s *ServiceImpl) DeleteCategory(ctx context.Context, categoryID string) err
 	return s.repo.DeleteCategory(ctx, categoryID)
 }
 
+func (s *ServiceImpl) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	merchant.ID = uuid.New()
+	return s.repo.CreateMerchant(ctx, merchant)
+}
+
+func (s *ServiceImpl) GetMerchant(ctx context.Context, merchantID string) (*models.Merchant, error) {
+	return s.repo.GetMerchant(ctx, merchantID)
+}
+
+func (s *ServiceImpl) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+	return s.repo.ListMerchants(ctx, filter)
+}
+
+func (s *ServiceImpl) UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	merchant.UpdatedAt = time.Now().UTC()
+	return s.repo.UpdateMerchant(ctx, merchant)
+}
+
+func (s *ServiceImpl) DeleteMerchant(ctx context.Context, merchantID string) error {
+	return s.repo.DeleteMerchant(ctx, merchantID)
+}
+
 func (s *ServiceImpl) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
 	return s.repo.ListTransactionEntries(ctx, filter)
 }

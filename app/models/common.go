@@ -38,3 +38,12 @@ type ListBalancesFilter struct {
 	Count     int
 	StartKey  string
 }
+
+// ListMerchantsFilter defines the filter and pagination options for list of merchants
+type ListMerchantsFilter struct {
+	Name     string
+	SortBy   string
+	Order    string
+	Count    int
+	StartKey string
+}

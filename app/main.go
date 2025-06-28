@@ -120,6 +120,13 @@ func main() {
 	router.HandleFunc("/categories", serviceHandler.ListCategories).Methods("GET")
 	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE")
 
+	// Merchants APIs
+	router.HandleFunc("/merchants", serviceHandler.CreateMerchant).Methods("POST")
+	router.HandleFunc("/merchants", serviceHandler.ListMerchants).Methods("GET")
+	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.GetMerchant).Methods("GET")
+	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.UpdateMerchant).Methods("PUT")
+	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.DeleteMerchant).Methods("DELETE")
+
 	// Lambda/API Gateway integration: use the muxadapter if running in Lambda
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" || os.Getenv("_LAMBDA_SERVER_PORT") != "" {
 		adapter := gorillamux.New(router)

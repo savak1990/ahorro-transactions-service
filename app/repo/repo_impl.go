@@ -299,5 +299,90 @@ func (r *PostgreSQLRepository) DeleteBalance(ctx context.Context, balanceID stri
 	return nil
 }
 
+// CreateMerchant creates a new merchant in the database
+func (r *PostgreSQLRepository) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	if err := r.db.WithContext(ctx).Create(&merchant).Error; err != nil {
+		return nil, fmt.Errorf("failed to create merchant: %w", err)
+	}
+	return &merchant, nil
+}
+
+// ListMerchants retrieves merchants based on the filter
+func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+	var merchants []models.Merchant
+	query := r.db.WithContext(ctx)
+
+	// Apply filters
+	if filter.Name != "" {
+		query = query.Where("name ILIKE ?", "%"+filter.Name+"%")
+	}
+
+	// Apply ordering
+	orderBy := "created_at"
+	if filter.SortBy != "" {
+		orderBy = filter.SortBy
+	}
+	order := "ASC"
+	if filter.Order != "" && (filter.Order == "DESC" || filter.Order == "desc") {
+		order = "DESC"
+	}
+	query = query.Order(fmt.Sprintf("%s %s", orderBy, order))
+
+	// Apply limit for pagination
+	limit := 50 // default limit
+	if filter.Count > 0 && filter.Count <= 100 {
+		limit = filter.Count
+	}
+	query = query.Limit(limit + 1) // Get one extra to check if there are more records
+
+	// Handle cursor-based pagination
+	if filter.StartKey != "" {
+		query = query.Where("id > ?", filter.StartKey)
+	}
+
+	if err := query.Find(&merchants).Error; err != nil {
+		return nil, "", fmt.Errorf("failed to list merchants: %w", err)
+	}
+
+	// Handle pagination
+	var nextToken string
+	if len(merchants) > limit {
+		merchants = merchants[:limit]
+		if len(merchants) > 0 {
+			nextToken = merchants[len(merchants)-1].ID.String()
+		}
+	}
+
+	return merchants, nextToken, nil
+}
+
+// GetMerchant retrieves a merchant by ID
+func (r *PostgreSQLRepository) GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error) {
+	var merchant models.Merchant
+	if err := r.db.WithContext(ctx).Where("id = ?", merchantId).First(&merchant).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("merchant not found: %s", merchantId)
+		}
+		return nil, fmt.Errorf("failed to get merchant: %w", err)
+	}
+	return &merchant, nil
+}
+
+// UpdateMerchant updates an existing merchant
+func (r *PostgreSQLRepository) UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	if err := r.db.WithContext(ctx).Save(&merchant).Error; err != nil {
+		return nil, fmt.Errorf("failed to update merchant: %w", err)
+	}
+	return &merchant, nil
+}
+
+// DeleteMerchant soft deletes a merchant by ID
+func (r *PostgreSQLRepository) DeleteMerchant(ctx context.Context, merchantId string) error {
+	if err := r.db.WithContext(ctx).Where("id = ?", merchantId).Delete(&models.Merchant{}).Error; err != nil {
+		return fmt.Errorf("failed to delete merchant: %w", err)
+	}
+	return nil
+}
+
 // Ensure MockRepository implements Repository interface
 var _ Repository = (*PostgreSQLRepository)(nil)

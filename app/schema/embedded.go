@@ -82,7 +82,7 @@ type SchemaInfo struct {
 func GetSchemaInfo() SchemaInfo {
 	return SchemaInfo{
 		Format:  "yaml",
-		Version: "3.1.0", // This should match your OpenAPI version
+		Version: "3.0.3",
 		Size:    len(OpenAPISchema),
 	}
 }

@@ -24,4 +24,10 @@ type Service interface {
 	CreateCategory(ctx context.Context, category m.Category) (*m.Category, error)
 	ListCategories(ctx context.Context, filter m.ListCategoriesInput) ([]m.Category, error)
 	DeleteCategory(ctx context.Context, categoryID string) error
+
+	CreateMerchant(ctx context.Context, merchant m.Merchant) (*m.Merchant, error)
+	GetMerchant(ctx context.Context, merchantID string) (*m.Merchant, error)
+	UpdateMerchant(ctx context.Context, merchant m.Merchant) (*m.Merchant, error)
+	DeleteMerchant(ctx context.Context, merchantID string) error
+	ListMerchants(ctx context.Context, filter m.ListMerchantsFilter) ([]m.Merchant, string, error)
 }

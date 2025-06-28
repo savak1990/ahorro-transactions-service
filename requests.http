@@ -1,5 +1,5 @@
-@baseUrl=localhost:8080
-@authToken=<PLACE TOKEN HERE>
+@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
+@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6Ijk4NDZjZjM4LWZhYTYtNDMzYS1iNjdmLTRjNTI4ODgwODUwNyIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6IjE3NTNmYzg1LWE4NTktNGVlNy1iNDkxLWMwZGUyNmI5MjgxNiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMTA1MDExLCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTEwODYxMSwiaWF0IjoxNzUxMTA1MDExLCJqdGkiOiIzMzEzNTQ1NC1jZDgxLTRmNTMtYjA1Yi04MmEwYjllM2Y4MmYiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.octYxXPVFBVwV_OCQifkg-qlzHzBUPCJJoVvUqINGgyPgFYh2hnxz6bCaiXFf3GbPXHgn9aFeJalS1Ke1OwcERS7Ouu32FUOOSu4zzury2cBuSNG7l2ZH5gmgLJCVH_ItzRF4hPckQ4U5WxMsG_mq7xiisChLPIHHlW-_i12LJ4vHHxm-jRSALm9eScfWNvezCOEvhSNUvVKXmqLacH6oXd6NY1AeIOIfQfTJDItofs9bXCqAYsUerpLgB0uwMSGQN_MO4tZp-zoNOz1QIpSbB0mp2gUeMhu_vy82z1OjpMsH-sx8eVe4lv4h69M7PRjFbuPSku3DXlVGw_dgBHdUg
 
 @userId=02c514a4-2021-708d-efff-ea6cd5e4eac9
 @groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
@@ -270,3 +270,45 @@ Authorization: Bearer {{authToken}}
 
 ### List categories for user1
 GET {{baseUrl}}/categories/user1
+
+### ============================================================
+### MERCHANT ENDPOINTS
+### ============================================================
+
+### Create a new merchant
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Mercadona",
+    "description": "Spanish supermarket chain",
+    "imageUrl": "https://example.com/mercadona-logo.png"
+}
+
+### List all merchants
+GET {{baseUrl}}/merchants
+Authorization: Bearer {{authToken}}
+
+### List merchants with name filter
+GET {{baseUrl}}/merchants?name=Mercadona&limit=10
+Authorization: Bearer {{authToken}}
+
+### Get a specific merchant
+GET {{baseUrl}}/merchants/REPLACE_WITH_MERCHANT_ID
+Authorization: Bearer {{authToken}}
+
+### Update a merchant
+PUT {{baseUrl}}/merchants/REPLACE_WITH_MERCHANT_ID
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Mercadona Updated",
+    "description": "Updated Spanish supermarket chain description",
+    "imageUrl": "https://example.com/mercadona-new-logo.png"
+}
+
+### Delete a merchant
+DELETE {{baseUrl}}/merchants/REPLACE_WITH_MERCHANT_ID
+Authorization: Bearer {{authToken}}
