@@ -38,6 +38,7 @@ func (r *PostgreSQLRepository) getDB() *gorm.DB {
 
 	if r.config != nil {
 		// Lazy initialization - this will trigger connection and panic if failed
+		// We want this panic to bubble up to the maintenance middleware
 		r.db = aws.GetGormDB(*r.config)
 		return r.db
 	}

@@ -190,8 +190,8 @@ seed:
 	@echo "Database: $(shell $(MAKE) -s get-db-name)"
 	@echo "Username: $(DB_USERNAME)"
 	@echo ""
-	@if [ ! -f "seed/seed_data.sql" ]; then \
-		echo "Error: seed/seed_data.sql not found!"; \
+	@if [ ! -f "sql/seed_data.sql" ]; then \
+		echo "Error: sql/seed_data.sql not found!"; \
 		exit 1; \
 	fi
 	@echo "Running seed script..."
@@ -202,7 +202,7 @@ seed:
 		--port=$(shell $(MAKE) -s get-db-port) \
 		--username=$(DB_USERNAME) \
 		--dbname=$(shell $(MAKE) -s get-db-name) \
-		--file=seed/seed_data.sql
+		--file=sql/seed_data.sql
 	@echo "Database seeding completed!"
 
 drop-tables:
