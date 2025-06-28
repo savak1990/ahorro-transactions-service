@@ -81,15 +81,18 @@ locals {
 module "transactions_db" {
   source = "../terraform/database"
 
-  cluster_identifier = "${local.base_name}-db-cluster"
-  db_name            = local.db_name
-  engine_version     = "16.1"
-  master_username    = local.transactions_db_username
-  master_password    = local.transactions_db_password
-  min_capacity       = 0.5
-  max_capacity       = 2
-  instance_count     = 1
-  instance_class     = "db.serverless"
+  db_identifier   = "${local.base_name}-db"
+  db_name         = local.db_name
+  engine_version  = "16.8" # Latest stable PostgreSQL
+  master_username = local.transactions_db_username
+  master_password = local.transactions_db_password
+
+  # Cost-optimized settings
+  instance_class        = "db.t3.micro" # Cheapest option
+  allocated_storage     = 20            # Minimum storage
+  max_allocated_storage = 50            # Small autoscaling limit
+
+  # Network configuration
   subnet_ids         = local.db_subnet_ids
   vpc_id             = local.vpc_id
   lambda_cidr_blocks = local.lambda_cidr_blocks

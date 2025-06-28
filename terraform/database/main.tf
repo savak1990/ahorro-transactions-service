@@ -1,46 +1,65 @@
-# Aurora Serverless v2 (PostgreSQL) Terraform module for Ahorro Transactions Service
+# Regular RDS PostgreSQL instance for Ahorro Transactions Service
+# Optimized for cost-effective testing
 
-resource "aws_rds_cluster" "aurora" {
-  cluster_identifier = var.cluster_identifier
-  engine             = "aurora-postgresql"
-  engine_mode        = "provisioned"
-  engine_version     = var.engine_version
-  database_name      = var.db_name
-  master_username    = var.master_username
-  master_password    = var.master_password
+resource "aws_db_instance" "postgres" {
+  identifier = var.db_identifier
 
-  serverlessv2_scaling_configuration {
-    min_capacity = var.min_capacity
-    max_capacity = var.max_capacity
+  # Database engine
+  engine         = "postgres"
+  engine_version = var.engine_version
+
+  # Instance configuration - using smallest available instance for cost optimization
+  instance_class        = var.instance_class
+  allocated_storage     = var.allocated_storage
+  max_allocated_storage = var.max_allocated_storage
+  storage_type          = "gp3" # General Purpose SSD (gp3) is more cost effective than gp2
+  storage_encrypted     = false # Disable encryption to reduce costs for testing
+
+  # Database configuration
+  db_name  = var.db_name
+  username = var.master_username
+  password = var.master_password
+  port     = 5432
+
+  # Network configuration
+  db_subnet_group_name   = aws_db_subnet_group.postgres_subnet_group.name
+  vpc_security_group_ids = [aws_security_group.postgres_sg.id]
+  publicly_accessible    = var.enable_public_access
+
+  # Backup and maintenance
+  backup_retention_period  = 1 # Minimum required (1 day) to reduce costs
+  backup_window            = "02:00-04:00"
+  delete_automated_backups = true
+  skip_final_snapshot      = true
+  deletion_protection      = false # Allow easy deletion for testing
+
+  # Performance and monitoring
+  performance_insights_enabled = false # Disable to reduce costs
+  monitoring_interval          = 0     # Disable enhanced monitoring
+
+  # Disable all database upgrades for stability
+  allow_major_version_upgrade = false
+  auto_minor_version_upgrade  = false
+
+  tags = {
+    Name        = var.db_identifier
+    Environment = "testing"
+    Purpose     = "cost-optimized"
   }
-
-  db_subnet_group_name        = aws_db_subnet_group.aurora_subnet_group.name
-  vpc_security_group_ids      = [aws_security_group.aurora_sg.id]
-  skip_final_snapshot         = true
-  allow_major_version_upgrade = true # Required for major version upgrades (15.x -> 16.x)
-
-  # Optionally, you can use the secret_arn for password rotation
-  # master_user_secret { secret_arn = var.db_secret_arn }
 }
 
-resource "aws_rds_cluster_instance" "aurora_instance" {
-  count               = var.instance_count
-  identifier          = "${var.cluster_identifier}-instance-${count.index + 1}"
-  cluster_identifier  = aws_rds_cluster.aurora.id
-  instance_class      = var.instance_class
-  engine              = aws_rds_cluster.aurora.engine
-  engine_version      = aws_rds_cluster.aurora.engine_version
-  publicly_accessible = var.enable_public_access
-}
-
-resource "aws_db_subnet_group" "aurora_subnet_group" {
-  name       = "${var.cluster_identifier}-subnet-group"
+resource "aws_db_subnet_group" "postgres_subnet_group" {
+  name       = "${var.db_identifier}-subnet-group"
   subnet_ids = var.subnet_ids
+
+  tags = {
+    Name = "${var.db_identifier}-subnet-group"
+  }
 }
 
-resource "aws_security_group" "aurora_sg" {
-  name        = "${var.cluster_identifier}-sg"
-  description = "Aurora access for Lambdas"
+resource "aws_security_group" "postgres_sg" {
+  name        = "${var.db_identifier}-sg"
+  description = "PostgreSQL RDS access for Lambdas"
   vpc_id      = var.vpc_id
 
   # Lambda access (always allowed)
@@ -72,7 +91,7 @@ resource "aws_security_group" "aurora_sg" {
   }
 
   tags = {
-    Name         = "${var.cluster_identifier}-sg"
+    Name         = "${var.db_identifier}-sg"
     PublicAccess = var.enable_public_access ? "enabled" : "disabled"
   }
 }

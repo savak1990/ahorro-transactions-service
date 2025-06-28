@@ -43,8 +43,10 @@ func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) 
 	created, err := h.Service.CreateTransaction(r.Context(), *transaction)
 	if err != nil {
 		logrus.WithError(err).Error("CreateTransaction failed")
-		if isDatabaseTimeoutError(err) {
-			WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is warming up, please retry in a few seconds")
+		if isDatabaseMaintenanceError(err) {
+			WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is undergoing maintenance, please retry in a few minutes")
+		} else if isDatabaseTimeoutError(err) {
+			WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is temporarily unavailable, please retry in a few moments")
 		} else if isDatabaseError(err) {
 			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeDbError, err.Error())
 		} else {
@@ -82,7 +84,15 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	entries, nextToken, err := h.Service.ListTransactionEntries(r.Context(), filter)
 	if err != nil {
 		logrus.WithError(err).Error("ListTransactionEntries failed")
-		WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeInternalServer, err.Error())
+		if isDatabaseMaintenanceError(err) {
+			WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is undergoing maintenance, please retry in a few minutes")
+		} else if isDatabaseTimeoutError(err) {
+			WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is temporarily unavailable, please retry in a few moments")
+		} else if isDatabaseError(err) {
+			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeDbError, err.Error())
+		} else {
+			WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeInternalServer, err.Error())
+		}
 		return
 	}
 

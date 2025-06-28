@@ -76,15 +76,16 @@ func main() {
 		"db_name": appCfg.DBName,
 	}).Info("Loaded config")
 
-	// Initialize GORM database connection
-	gormDB := aws.GetGormDB(appCfg)
+	// Set database config for lazy initialization - DO NOT connect here
+	aws.SetConfig(appCfg)
 
-	// Initialize PostgreSQL repositories
-	repo := repo.NewPostgreSQLRepository(gormDB)
+	// Initialize repositories and services with lazy DB connection
+	// These will only connect when first used
+	repo := repo.NewPostgreSQLRepositoryWithConfig(appCfg)
 	service := service.NewServiceImpl(repo)
 	serviceHandler := handler.NewHandlerImpl(service)
 
-	commonHandler := handler.NewCommonHandlerImpl(gormDB)
+	commonHandler := handler.NewCommonHandlerImplWithConfig(appCfg)
 
 	// Initialize validation middleware
 	validationMiddleware, err := handler.NewValidationMiddleware()
@@ -95,11 +96,13 @@ func main() {
 	router := mux.NewRouter()
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(handler.EnsureAwsRegionHeader(appCfg.AWSRegion))
+	router.Use(handler.DatabaseMaintenanceMiddleware) // Add maintenance error handling
 	router.Use(validationMiddleware.ValidateRequest)
 
 	// Common APIs
 	router.HandleFunc("/health", commonHandler.HandleHealth).Methods("GET")
 	router.HandleFunc("/info", commonHandler.HandleInfo).Methods("GET")
+	router.HandleFunc("/db-reset", commonHandler.HandleDbReset).Methods("POST") // For manual connection reset
 
 	// Schema APIs (serve embedded OpenAPI schema)
 	router.HandleFunc("/docs", schema.ServeSwaggerUIHandler()).Methods("GET", "OPTIONS")

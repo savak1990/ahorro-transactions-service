@@ -1,12 +1,12 @@
-variable "cluster_identifier" {
-  description = "The identifier for the Aurora cluster."
+variable "db_identifier" {
+  description = "The identifier for the RDS instance."
   type        = string
 }
 
 variable "engine_version" {
-  description = "Aurora PostgreSQL engine version."
+  description = "PostgreSQL engine version."
   type        = string
-  default     = "15.3"
+  default     = "16.8"
 }
 
 variable "db_name" {
@@ -25,28 +25,22 @@ variable "master_password" {
   sensitive   = true
 }
 
-variable "min_capacity" {
-  description = "Minimum Aurora Serverless v2 capacity (ACUs)."
-  type        = number
-  default     = 0
-}
-
-variable "max_capacity" {
-  description = "Maximum Aurora Serverless v2 capacity (ACUs)."
-  type        = number
-  default     = 1
-}
-
-variable "instance_count" {
-  description = "Number of RDS cluster instances."
-  type        = number
-  default     = 1
-}
-
 variable "instance_class" {
-  description = "Instance class for Aurora cluster instances."
+  description = "Instance class for RDS instance. db.t3.micro is the cheapest option."
   type        = string
-  default     = "db.serverless"
+  default     = "db.t3.micro"
+}
+
+variable "allocated_storage" {
+  description = "Initial allocated storage in GB."
+  type        = number
+  default     = 20 # Minimum for PostgreSQL
+}
+
+variable "max_allocated_storage" {
+  description = "Maximum allocated storage in GB for autoscaling."
+  type        = number
+  default     = 100
 }
 
 variable "subnet_ids" {
