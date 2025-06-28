@@ -25,7 +25,7 @@ APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 
 # Schema generation
-SCHEMA_TEMPLATE=schema/output/openapi.yml.tml
+SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
 .PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip connect-db seed pull-postgres deploy-public-custom drop-tables generate-schema
