@@ -12,6 +12,12 @@ DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAM
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
 DOMAIN_NAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.domain_name')
 
+# Cognito configuration (fetched from AWS Cognito by name)
+COGNITO_USER_POOL_NAME=ahorro-app-stable-user-pool
+COGNITO_USER_POOL_CLIENT_NAME=ahorro-app-stable-client
+COGNITO_USER_POOL_ID=$(shell aws cognito-idp list-user-pools --max-results 50 --region $(AWS_REGION) --query 'UserPools[?Name==`$(COGNITO_USER_POOL_NAME)`].Id' --output text)
+COGNITO_CLIENT_ID=$(shell aws cognito-idp list-user-pool-clients --user-pool-id $$(aws cognito-idp list-user-pools --max-results 50 --region $(AWS_REGION) --query 'UserPools[?Name==`$(COGNITO_USER_POOL_NAME)`].Id' --output text) --region $(AWS_REGION) --query 'UserPoolClients[?ClientName==`$(COGNITO_USER_POOL_CLIENT_NAME)`].ClientId' --output text)
+
 # Main app arguments
 APP_DIR=app
 APP_BUILD_DIR=./build/service-handler
@@ -28,7 +34,59 @@ APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config help
+
+# Default target
+all: build
+
+# Help target
+help:
+	@echo "Ahorro Transactions Service - Available Makefile targets:"
+	@echo ""
+	@echo "📦 Build & Package:"
+	@echo "  build                 - Build both local and Lambda binaries"
+	@echo "  app-build-local       - Build local binary"
+	@echo "  app-build-lambda      - Build Lambda binary"
+	@echo "  package               - Create Lambda deployment package"
+	@echo "  package-timestamp     - Create timestamped Lambda package"
+	@echo "  generate-schema       - Generate OpenAPI schema from template"
+	@echo ""
+	@echo "🧪 Testing & Running:"
+	@echo "  test                  - Run Go tests"
+	@echo "  run                   - Run service locally"
+	@echo "  clean                 - Clean build artifacts"
+	@echo ""
+	@echo "🚀 Deployment:"
+	@echo "  deploy                - Deploy infrastructure and service"
+	@echo "  undeploy              - Destroy infrastructure"
+	@echo "  plan                  - Show Terraform plan"
+	@echo "  upload                - Upload Lambda package to S3"
+	@echo "  upload-timestamp      - Upload timestamped package to S3"
+	@echo ""
+	@echo "🗄️  Database Operations:"
+	@echo "  db-connect            - Connect to PostgreSQL database"
+	@echo "  db-status             - Check database status"
+	@echo "  db-start              - Start database instance"
+	@echo "  db-stop               - Stop database instance (saves costs)"
+	@echo "  db-quick-start        - Start DB and wait until available"
+	@echo "  db-quick-stop         - Stop DB and wait until stopped"
+	@echo "  seed                  - Seed database with sample data"
+	@echo "  drop-tables           - Drop all tables (⚠️  DESTRUCTIVE)"
+	@echo ""
+	@echo "🔧 Configuration & Utilities:"
+	@echo "  show-db-config        - Show database configuration"
+	@echo "  show-api-url          - Show deployed API URL"
+	@echo "  get-my-ip             - Get your public IP address"
+	@echo "  pull-postgres         - Update PostgreSQL Docker image"
+	@echo ""
+	@echo "🔐 Authentication:"
+	@echo "  get-cognito-token     - Get Cognito IdToken for API access"
+	@echo "  show-cognito-config   - Show Cognito configuration"
+	@echo ""
+	@echo "💡 Examples:"
+	@echo "  make build && make deploy"
+	@echo "  make get-cognito-token"
+	@echo "  make db-quick-start && make seed"
 
 # Schema generation target
 $(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
@@ -178,6 +236,26 @@ show-db-config: get-db-config
 	@echo "Database Name: $(shell $(MAKE) -s get-db-name)"
 	@echo "Database Username: $(DB_USERNAME)"
 	@echo "Database Password: [HIDDEN]"
+
+# Cognito authentication helper
+get-cognito-token:
+	@read -p "Enter username: " USERNAME; \
+	read -s -p "Enter password: " PASSWORD; \
+	echo ""; \
+	aws cognito-idp initiate-auth \
+		--auth-flow USER_PASSWORD_AUTH \
+		--client-id $(COGNITO_CLIENT_ID) \
+		--auth-parameters USERNAME=$$USERNAME,PASSWORD=$$PASSWORD \
+		--region $(AWS_REGION) \
+		--query 'AuthenticationResult.IdToken' \
+		--output text 2>/dev/null || echo "Authentication failed"
+
+show-cognito-config:
+	@echo "Cognito Configuration:"
+	@echo "User Pool Name: $(COGNITO_USER_POOL_NAME)"
+	@echo "User Pool ID: $(COGNITO_USER_POOL_ID)"
+	@echo "Client Name: $(COGNITO_USER_POOL_CLIENT_NAME)"
+	@echo "Client ID: $(COGNITO_CLIENT_ID)"
 
 # Public database access helpers (SECURITY WARNING: Only for development!)
 get-my-ip:
