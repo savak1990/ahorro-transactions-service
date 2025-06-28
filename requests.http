@@ -5,6 +5,8 @@
 @groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
 @balanceId=847ac10b-58cc-4372-a567-0e02b2c3d479
 
+@invalidUserId=02c514a4-2021-708d-efff
+
 ### Info
 GET {{baseUrl}}/info
 
@@ -182,6 +184,11 @@ Authorization: Bearer {{authToken}}
 
 ### Get a specific transaction
 GET {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
+Authorization: Bearer {{authToken}}
+
+### Test with invalid userId
+GET {{baseUrl}}/transactions?userId={{invalidUserId}}&balanceId={{balanceId}}
+Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### Update a transaction
