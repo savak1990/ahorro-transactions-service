@@ -662,6 +662,81 @@ paths:
               application/json: '{}'
 
   /categories/{category_id}:
+    get:
+      summary: Get category by ID
+      description: Retrieves a specific category by its unique identifier
+      tags: [categories]
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: "Unique identifier for the category"
+          schema:
+            type: string
+            format: uuid
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+      responses:
+        '200':
+          description: Category retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    put:
+      summary: Update category
+      description: Updates an existing category
+      tags: [categories]
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          description: "Unique identifier for the category"
+          schema:
+            type: string
+            format: uuid
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+            example:
+              name: "Updated Groceries"
+              imageUrl: "https://example.com/updated-groceries-icon.png"
+      responses:
+        '200':
+          description: Category updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
     delete:
       summary: Delete category
       description: Soft deletes a category
@@ -1837,6 +1912,21 @@ components:
           maxLength: 100
           description: "Name of the category"
           example: "Restaurants"
+        imageUrl:
+          type: string
+          format: uri
+          description: "Optional URL of the category image"
+          example: "https://example.com/restaurant-icon.png"
+
+    UpdateCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "Name of the category"
+          example: "Updated Restaurants"
         imageUrl:
           type: string
           format: uri

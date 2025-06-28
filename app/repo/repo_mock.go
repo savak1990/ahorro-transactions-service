@@ -97,6 +97,22 @@ func (m *MockRepository) ListCategories(ctx context.Context, input models.ListCa
 	return categories, nextToken, args.Error(2)
 }
 
+func (m *MockRepository) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
+	args := m.Called(ctx, categoryID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Category), args.Error(1)
+}
+
+func (m *MockRepository) UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
+	args := m.Called(ctx, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Category), args.Error(1)
+}
+
 func (m *MockRepository) DeleteCategory(ctx context.Context, categoryID string) error {
 	args := m.Called(ctx, categoryID)
 	return args.Error(0)

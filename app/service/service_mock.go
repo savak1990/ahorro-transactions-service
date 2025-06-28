@@ -109,6 +109,22 @@ func (svc *MockService) ListCategories(ctx context.Context, filter models.ListCa
 	return args.Get(0).([]models.Category), args.Error(1)
 }
 
+func (svc *MockService) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
+	args := svc.Called(ctx, categoryID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Category), args.Error(1)
+}
+
+func (svc *MockService) UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
+	args := svc.Called(ctx, category)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Category), args.Error(1)
+}
+
 func (svc *MockService) DeleteCategory(ctx context.Context, categoryID string) error {
 	args := svc.Called(ctx, categoryID)
 	return args.Error(0)

@@ -118,6 +118,8 @@ func main() {
 	// Categories APIs
 	router.HandleFunc("/categories", serviceHandler.CreateCategory).Methods("POST")
 	router.HandleFunc("/categories", serviceHandler.ListCategories).Methods("GET")
+	router.HandleFunc("/categories/{category_id}", serviceHandler.GetCategory).Methods("GET")
+	router.HandleFunc("/categories/{category_id}", serviceHandler.UpdateCategory).Methods("PUT")
 	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE")
 
 	// Merchants APIs

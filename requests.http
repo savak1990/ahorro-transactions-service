@@ -264,6 +264,20 @@ Authorization: Bearer {{authToken}}
 GET {{baseUrl}}/categories?userId={{userId}}&limit=10
 Authorization: Bearer {{authToken}}
 
+### Get a specific category
+GET {{baseUrl}}/categories/REPLACE_WITH_CATEGORY_ID
+Authorization: Bearer {{authToken}}
+
+### Update a category
+PUT {{baseUrl}}/categories/REPLACE_WITH_CATEGORY_ID
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Updated Restaurants",
+    "imageUrl": "https://example.com/updated-restaurant-icon.png"
+}
+
 ### Delete a category (replace REPLACE_WITH_CATEGORY_ID with actual category_id from response)
 DELETE {{baseUrl}}/categories/REPLACE_WITH_CATEGORY_ID
 Authorization: Bearer {{authToken}}

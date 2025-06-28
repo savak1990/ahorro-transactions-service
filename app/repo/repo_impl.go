@@ -215,6 +215,26 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	return categories, "", nil
 }
 
+// GetCategory retrieves a category by ID
+func (r *PostgreSQLRepository) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
+	var category models.Category
+	if err := r.db.WithContext(ctx).Where("id = ?", categoryID).First(&category).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("category not found: %s", categoryID)
+		}
+		return nil, fmt.Errorf("failed to get category: %w", err)
+	}
+	return &category, nil
+}
+
+// UpdateCategory updates an existing category
+func (r *PostgreSQLRepository) UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
+	if err := r.db.WithContext(ctx).Save(&category).Error; err != nil {
+		return nil, fmt.Errorf("failed to update category: %w", err)
+	}
+	return &category, nil
+}
+
 // DeleteCategory deletes a category by ID
 func (r *PostgreSQLRepository) DeleteCategory(ctx context.Context, categoryID string) error {
 	if err := r.db.WithContext(ctx).Where("id = ?", categoryID).Delete(&models.Category{}).Error; err != nil {

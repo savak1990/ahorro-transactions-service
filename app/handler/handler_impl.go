@@ -350,6 +350,73 @@ func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *HandlerImpl) GetCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	categoryID := vars["category_id"]
+	if categoryID == "" {
+		http.Error(w, "Missing category_id", http.StatusBadRequest)
+		return
+	}
+
+	category, err := h.Service.GetCategory(r.Context(), categoryID)
+	if err != nil {
+		logrus.WithError(err).Error("GetCategory failed")
+		if err.Error() == fmt.Sprintf("category not found: %s", categoryID) {
+			http.Error(w, "Category not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	if category == nil {
+		http.Error(w, "Category not found", http.StatusNotFound)
+		return
+	}
+
+	// Convert to DTO for response
+	responseDto := models.ToAPICategory(category)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	categoryID := vars["category_id"]
+	var categoryDto models.CategoryDto
+	if err := json.NewDecoder(r.Body).Decode(&categoryDto); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Parse category ID and set it in DTO
+	id, err := uuid.Parse(categoryID)
+	if err != nil {
+		http.Error(w, "Invalid category ID format", http.StatusBadRequest)
+		return
+	}
+	categoryDto.CategoryID = id.String()
+
+	// Convert DTO to DAO model
+	category, err := models.FromAPICategory(categoryDto)
+	if err != nil {
+		http.Error(w, "Invalid category data: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	updated, err := h.Service.UpdateCategory(r.Context(), *category)
+	if err != nil {
+		logrus.WithError(err).Error("UpdateCategory failed")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPICategory(updated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
 func (h *HandlerImpl) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	categoryID := vars["category_id"]

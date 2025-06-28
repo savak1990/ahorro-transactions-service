@@ -19,6 +19,8 @@ type Repository interface {
 	// Category methods
 	CreateCategory(ctx context.Context, category models.Category) (*models.Category, error)
 	ListCategories(ctx context.Context, input models.ListCategoriesInput) ([]models.Category, string, error)
+	GetCategory(ctx context.Context, categoryID string) (*models.Category, error)
+	UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error)
 	DeleteCategory(ctx context.Context, categoryID string) error
 
 	// Balance methods

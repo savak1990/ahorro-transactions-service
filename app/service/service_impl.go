@@ -73,6 +73,15 @@ func (s *ServiceImpl) ListCategories(ctx context.Context, filter models.ListCate
 	return categories, err
 }
 
+func (s *ServiceImpl) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
+	return s.repo.GetCategory(ctx, categoryID)
+}
+
+func (s *ServiceImpl) UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
+	category.UpdatedAt = time.Now().UTC()
+	return s.repo.UpdateCategory(ctx, category)
+}
+
 func (s *ServiceImpl) DeleteCategory(ctx context.Context, categoryID string) error {
 	return s.repo.DeleteCategory(ctx, categoryID)
 }

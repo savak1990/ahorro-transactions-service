@@ -51,6 +51,12 @@ func (h *HandlerMock) CreateCategory(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerMock) ListCategories(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
+func (h *HandlerMock) GetCategory(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) UpdateCategory(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
 func (h *HandlerMock) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
