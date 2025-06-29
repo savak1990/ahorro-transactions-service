@@ -1,6 +1,7 @@
 output "api_url" {
   description = "The URL of the ahorro transactions service."
   value       = module.apigateway.api_gateway_url
+  sensitive   = true
 }
 
 output "api_gateway_id" {
