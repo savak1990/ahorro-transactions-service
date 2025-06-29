@@ -1,5 +1,5 @@
 output "api_url" {
-  value     = module.ahorro_transactions_service.service_url
+  value     = module.ahorro_transactions_service.api_url
   sensitive = true
 }
 

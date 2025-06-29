@@ -1,10 +1,5 @@
-output "service_url" {
-  description = "The URL of the ahorro transactions service."
-  value       = module.apigateway.api_gateway_url
-}
-
 output "api_url" {
-  description = "The URL of the transactions service API."
+  description = "The URL of the ahorro transactions service."
   value       = module.apigateway.api_gateway_url
 }
 
