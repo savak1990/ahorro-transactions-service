@@ -60,7 +60,7 @@ help:
 	@echo "📦 Build & Package:"
 	@echo "  build                 - Build both local and Lambda binaries"
 	@echo "  app-build-local       - Build local binary"
-	@echo "  app-build-lambda      - Build Lambda binary"
+	@echo "  app-build-lambda      - Build Lambda binary (using Docker)"
 	@echo "  package               - Create Lambda deployment package"
 	@echo "  package-timestamp     - Create timestamped Lambda package"
 	@echo "  generate-schema       - Generate OpenAPI schema from template"
@@ -117,8 +117,17 @@ generate-schema: $(SCHEMA_OUTPUT)
 
 # Build and package main app
 $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT)
+	@echo "Building Lambda binary using Docker (ensures compatibility)..."
 	@mkdir -p $(APP_BUILD_DIR)
-	cd $(APP_DIR) && GOOS=linux GOARCH=amd64 go build -o ../$(APP_LAMBDA_BINARY) main.go
+	@docker run \
+		-v $(PWD)/$(APP_DIR):/src \
+		-v $(PWD)/$(APP_BUILD_DIR):/build \
+		-w /src \
+		golang:1.23-alpine \
+		sh -c "apk add --no-cache git ca-certificates && \
+		       CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+		       go build -ldflags='-s -w -extldflags=-static' -tags netgo -a \
+		       -o /build/bootstrap main.go"
 
 $(APP_BINARY): $(APP_DIR)/main.go $(SCHEMA_OUTPUT)
 	@mkdir -p $(APP_BUILD_DIR)
