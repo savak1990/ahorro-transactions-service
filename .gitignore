@@ -4,6 +4,7 @@
 
 # Build info
 /app/buildinfo/build-info.json
+.timestamp
 
 # OS files
 .DS_Store

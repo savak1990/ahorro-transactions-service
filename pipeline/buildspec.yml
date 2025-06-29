@@ -11,7 +11,9 @@ phases:
     commands:
       - echo Installing dependencies...
       - go version
+      - git --version
       - make --version
+      - ls -lah
   build:
     commands:
       - echo Building Go microservice...
