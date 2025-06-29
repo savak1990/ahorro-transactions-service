@@ -161,7 +161,7 @@ $(APP_LAMBDA_HANDLER_ZIP): $(APP_LAMBDA_BINARY)
 	cd $(APP_BUILD_DIR) && zip $(APP_LAMBDA_ZIP_NAME) bootstrap
 
 # Combined build and package targets
-build: $(APP_BINARY) $(APP_LAMBDA_BINARY)
+build: new-timestamp $(APP_BINARY) $(APP_LAMBDA_BINARY)
 
 app-build-local: $(APP_BINARY)
 
@@ -402,14 +402,18 @@ db-quick-stop: db-stop db-wait-stopped
 # Clean up build artifacts and virtual environments
 
 clean:
-	rm -rf ./build ./app/schema/openapi.yml ./app/buildinfo/build-info.json
+	rm -rf ./build ./app/schema/openapi.yml ./app/buildinfo/build-info.json .timestamp
 
 # At the top
 TIMESTAMP_FILE := .timestamp
+# Always generate a new timestamp when requested
+new-timestamp:
+	@date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE)
+
 TIMESTAMP := $(shell cat $(TIMESTAMP_FILE) 2>/dev/null || (date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE) && cat $(TIMESTAMP_FILE)))
 
 $(TIMESTAMP_FILE):
-    @date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE)
+	@date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE)
 
 # Make build-info depend on .timestamp
 $(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
