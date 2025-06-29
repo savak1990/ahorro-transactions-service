@@ -142,7 +142,7 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
 }
 
 module "apigateway" {
-  source                      = "../../../ahorro-shared/terraform/apigateway_http"
+  source                      = "github.com/savak1990/ahorro-shared//terraform/apigateway_http?ref=v0.0.1"
   api_name                    = var.api_name
   domain_name                 = var.domain_name
   zone_id                     = var.zone_id
