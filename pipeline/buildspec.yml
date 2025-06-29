@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    BUILD_PREFIX: "ahorro-ui/android"
+    BUILD_PREFIX: "ahorro-transactions-service"
 
 phases:
   install:

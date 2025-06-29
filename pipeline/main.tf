@@ -109,7 +109,7 @@ resource "aws_codebuild_project" "go_build" {
   source {
     type                = "GITHUB"
     location            = "https://github.com/${local.github_owner}/${local.github_repo}.git"
-    git_clone_depth     = 1
+    git_clone_depth     = 0
     buildspec           = "pipeline/buildspec.yml"
     report_build_status = true
 
