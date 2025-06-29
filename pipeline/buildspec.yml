@@ -19,6 +19,7 @@ phases:
   post_build:
     commands:
       - echo Post Build...
+      - make git-tag-release
 artifacts:
   files:
     - build/service-handler/transactions-lambda.zip
