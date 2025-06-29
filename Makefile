@@ -35,7 +35,8 @@ APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 
 # S3 paths for different deployment types
 BUILD_INFO_FILE=$(APP_DIR)/buildinfo/build-info.json
-TIMESTAMP=build-$(shell date +%y%m%d-%H%M)
+TIMESTAMP_FILE := .timestamp
+TIMESTAMP := $(shell cat $(TIMESTAMP_FILE) 2>/dev/null || (date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE) && cat $(TIMESTAMP_FILE)))
 APP_LAMBDA_S3_BASE=s3://ahorro-artifacts/transactions
 APP_LAMBDA_S3_PATH_LOCAL=$(APP_LAMBDA_S3_BASE)/$(INSTANCE_NAME)/$(APP_LAMBDA_ZIP_NAME)
 APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(TIMESTAMP)/$(APP_LAMBDA_ZIP_NAME)
@@ -117,7 +118,7 @@ $(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
 generate-schema: $(SCHEMA_OUTPUT)
 
 # Generate build info file with git and build metadata
-$(BUILD_INFO_FILE): FORCE
+$(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
 	@echo "Generating build info..."
 	@mkdir -p $(dir $(BUILD_INFO_FILE))
 	@GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
@@ -143,6 +144,7 @@ $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUT
 	@docker run \
 		-v $(PWD)/$(APP_DIR):/src \
 		-v $(PWD)/$(APP_BUILD_DIR):/build \
+		-v $(PWD)/.git:/src/.git \
 		-w /src \
 		golang:1.23-alpine \
 		sh -c "apk add --no-cache git ca-certificates && \
@@ -401,3 +403,25 @@ db-quick-stop: db-stop db-wait-stopped
 
 clean:
 	rm -rf ./build ./app/schema/openapi.yml ./app/buildinfo/build-info.json
+
+# At the top
+TIMESTAMP_FILE := .timestamp
+TIMESTAMP := $(shell cat $(TIMESTAMP_FILE) 2>/dev/null || (date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE) && cat $(TIMESTAMP_FILE)))
+
+$(TIMESTAMP_FILE):
+    @date +build-%y%m%d-%H%M > $(TIMESTAMP_FILE)
+
+# Make build-info depend on .timestamp
+$(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
+	@echo "Generating build info..."
+	@mkdir -p $(dir $(BUILD_INFO_FILE))
+	@GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
+	GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
+	GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	BUILD_TIME=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
+	BUILD_USER=$$(whoami); \
+	GO_VERSION=$$(go version | cut -d' ' -f3 2>/dev/null || echo "unknown"); \
+	printf '{\n  "version": "%s",\n  "gitBranch": "%s",\n  "gitCommit": "%s",\n  "gitShort": "%s",\n  "buildTime": "%s",\n  "buildUser": "%s",\n  "goVersion": "%s",\n  "serviceName": "%s"\n}' \
+		"$(TIMESTAMP)" "$$GIT_BRANCH" "$$GIT_COMMIT" "$$GIT_SHORT" "$$BUILD_TIME" "$$BUILD_USER" "$$GO_VERSION" "ahorro-transactions-service" \
+		> $(BUILD_INFO_FILE)
+	@echo "Build info generated: $(BUILD_INFO_FILE)"
