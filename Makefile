@@ -11,6 +11,7 @@ SECRET_NAME=$(APP_NAME)-app-secrets
 DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
 DOMAIN_NAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.domain_name')
+GITHUB_TOKEN=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.github_token')
 
 # Cognito configuration (fetched from AWS Cognito by name)
 COGNITO_USER_POOL_NAME=ahorro-app-stable-user-pool
@@ -117,17 +118,10 @@ $(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
 
 generate-schema: $(SCHEMA_OUTPUT)
 
-# Generate build info file with git and build metadata
-$(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
+generate-build-info:
 	@echo "Generating build info..."
 	@mkdir -p $(dir $(BUILD_INFO_FILE))
-	@if [ -n "$$GITHUB_TOKEN" ]; then \
-	  eval $(shell ./scripts/github-meta.sh savak1990 ahorro-transactions-service main $$GITHUB_TOKEN); \
-	else \
-	  GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
-	  GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
-	  GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
-	fi; \
+	@eval $(shell ./scripts/github-meta.sh savak1990 ahorro-transactions-service main $(GITHUB_TOKEN)); \
 	BUILD_TIME=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
 	BUILD_USER=$$(whoami); \
 	GO_VERSION=$$(go version | cut -d' ' -f3 2>/dev/null || echo "unknown"); \
@@ -136,13 +130,8 @@ $(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
 		> $(BUILD_INFO_FILE)
 	@echo "Build info generated: $(BUILD_INFO_FILE)"
 
-generate-build-info: $(BUILD_INFO_FILE)
-
-# Force target to always regenerate build info
-FORCE:
-
 # Build and package main app
-$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT) $(BUILD_INFO_FILE)
+$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT) generate-build-info
 	@echo "Building Lambda binary using Docker (ensures compatibility)..."
 	@mkdir -p $(APP_BUILD_DIR)
 	@docker run \
