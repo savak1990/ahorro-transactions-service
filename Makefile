@@ -35,7 +35,7 @@ APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 
 # S3 paths for different deployment types
 BUILD_INFO_FILE=$(APP_DIR)/buildinfo/build-info.json
-TIMESTAMP=$(shell date +%y%m%d-%H%M)
+TIMESTAMP=build-$(shell date +%y%m%d-%H%M)
 APP_LAMBDA_S3_BASE=s3://ahorro-artifacts/transactions
 APP_LAMBDA_S3_PATH_LOCAL=$(APP_LAMBDA_S3_BASE)/$(INSTANCE_NAME)/$(APP_LAMBDA_ZIP_NAME)
 APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(TIMESTAMP)/$(APP_LAMBDA_ZIP_NAME)
