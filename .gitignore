@@ -2,6 +2,9 @@
 /app/schema/*.yml
 /app/schema/*.yaml
 
+# Build info
+/app/buildinfo/build-info.json
+
 # OS files
 .DS_Store
 

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/savak1990/transactions-service/app/aws"
+	"github.com/savak1990/transactions-service/app/buildinfo"
 	"github.com/savak1990/transactions-service/app/config"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -157,11 +158,25 @@ func (h *CommonHandlerImpl) HandleHealth(w http.ResponseWriter, r *http.Request)
 func (h *CommonHandlerImpl) HandleInfo(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	info := map[string]string{
-		"version":  "1.0.0",
+
+	// Get build information
+	build := buildinfo.Get()
+
+	info := map[string]interface{}{
+		"service":  build.ServiceName,
+		"version":  build.Version,
 		"status":   "running",
 		"database": "postgresql",
+		"build": map[string]interface{}{
+			"gitBranch": build.GitBranch,
+			"gitCommit": build.GitCommit,
+			"gitShort":  build.GitShort,
+			"buildTime": build.BuildTime,
+			"buildUser": build.BuildUser,
+			"goVersion": build.GoVersion,
+		},
 	}
+
 	if err := json.NewEncoder(w).Encode(info); err != nil {
 		http.Error(w, "Failed to encode info response", http.StatusInternalServerError)
 	}

@@ -34,8 +34,8 @@ APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 
 # S3 paths for different deployment types
-TIMESTAMP_FILE=$(APP_BUILD_DIR)/build-timestamp
-TIMESTAMP=$(shell [ -f $(TIMESTAMP_FILE) ] && cat $(TIMESTAMP_FILE) || (mkdir -p $(APP_BUILD_DIR) && echo "build-$$(date +%y%m%d-%H%M)" | tee $(TIMESTAMP_FILE)))
+BUILD_INFO_FILE=$(APP_DIR)/buildinfo/build-info.json
+TIMESTAMP=$(shell date +%y%m%d-%H%M)
 APP_LAMBDA_S3_BASE=s3://ahorro-artifacts/transactions
 APP_LAMBDA_S3_PATH_LOCAL=$(APP_LAMBDA_S3_BASE)/$(INSTANCE_NAME)/$(APP_LAMBDA_ZIP_NAME)
 APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(TIMESTAMP)/$(APP_LAMBDA_ZIP_NAME)
@@ -48,7 +48,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag help
 
 # Default target
 all: build
@@ -64,6 +64,7 @@ help:
 	@echo "  package               - Create Lambda deployment package"
 	@echo "  package-timestamp     - Create timestamped Lambda package"
 	@echo "  generate-schema       - Generate OpenAPI schema from template"
+	@echo "  generate-build-info   - Generate build info with git metadata"
 	@echo ""
 	@echo "🧪 Testing & Running:"
 	@echo "  test                  - Run Go tests"
@@ -115,8 +116,28 @@ $(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
 
 generate-schema: $(SCHEMA_OUTPUT)
 
+# Generate build info file with git and build metadata
+$(BUILD_INFO_FILE): FORCE
+	@echo "Generating build info..."
+	@mkdir -p $(dir $(BUILD_INFO_FILE))
+	@GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
+	GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
+	GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	BUILD_TIME=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
+	BUILD_USER=$$(whoami); \
+	GO_VERSION=$$(go version | cut -d' ' -f3 2>/dev/null || echo "unknown"); \
+	printf '{\n  "version": "%s",\n  "gitBranch": "%s",\n  "gitCommit": "%s",\n  "gitShort": "%s",\n  "buildTime": "%s",\n  "buildUser": "%s",\n  "goVersion": "%s",\n  "serviceName": "%s"\n}' \
+		"$(TIMESTAMP)" "$$GIT_BRANCH" "$$GIT_COMMIT" "$$GIT_SHORT" "$$BUILD_TIME" "$$BUILD_USER" "$$GO_VERSION" "ahorro-transactions-service" \
+		> $(BUILD_INFO_FILE)
+	@echo "Build info generated: $(BUILD_INFO_FILE)"
+
+generate-build-info: $(BUILD_INFO_FILE)
+
+# Force target to always regenerate build info
+FORCE:
+
 # Build and package main app
-$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT)
+$(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT) $(BUILD_INFO_FILE)
 	@echo "Building Lambda binary using Docker (ensures compatibility)..."
 	@mkdir -p $(APP_BUILD_DIR)
 	@docker run \
@@ -129,7 +150,7 @@ $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUT
 		       go build -ldflags='-s -w -extldflags=-static' -tags netgo -a \
 		       -o /build/bootstrap main.go"
 
-$(APP_BINARY): $(APP_DIR)/main.go $(SCHEMA_OUTPUT)
+$(APP_BINARY): $(APP_DIR)/main.go $(SCHEMA_OUTPUT) $(BUILD_INFO_FILE)
 	@mkdir -p $(APP_BUILD_DIR)
 	cd $(APP_DIR) && go build -o ../$(APP_BINARY) main.go
 
@@ -321,11 +342,6 @@ pull-postgres:
 	docker pull postgres:15-alpine
 	@echo "PostgreSQL Docker image updated!"
 
-# Clean up build artifacts and virtual environments
-
-clean:
-	rm -rf ./build ./app/schema/openapi.yml
-
 # Database operations
 db-get-identifier:
 	@echo "$(DB_IDENTIFIER)"
@@ -380,3 +396,8 @@ db-quick-start: db-start db-wait-available
 
 db-quick-stop: db-stop db-wait-stopped
 	@echo "Database is now stopped and saving costs!"
+
+# Clean up build artifacts and virtual environments
+
+clean:
+	rm -rf ./build ./app/schema/openapi.yml ./app/buildinfo/build-info.json
