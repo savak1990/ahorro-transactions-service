@@ -195,6 +195,28 @@ resource "aws_iam_role_policy_attachment" "codebuild_logs_attach" {
   policy_arn = aws_iam_policy.codebuild_logs.arn
 }
 
+resource "aws_iam_policy" "codebuild_secrets_manager" {
+  name = "${local.project_name}-codebuild-secrets-manager"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ],
+        Resource = "arn:aws:secretsmanager:eu-west-1:*:secret:ahorro-app-secrets*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "codebuild_secrets_manager_attach" {
+  role       = aws_iam_role.codebuild_role.name
+  policy_arn = aws_iam_policy.codebuild_secrets_manager.arn
+}
+
 resource "aws_iam_role" "codepipeline_role" {
   name = "${local.project_name}-codepipeline-role"
   assume_role_policy = jsonencode({

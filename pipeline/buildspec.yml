@@ -21,4 +21,4 @@ phases:
       - echo Post Build...
 artifacts:
   files:
-    - build/service-handler/*/transactions-lambda.zip
+    - build/service-handler/transactions-lambda.zip
