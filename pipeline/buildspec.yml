@@ -15,11 +15,7 @@ phases:
   build:
     commands:
       - echo Building Go microservice...
-      - make upload-timestamp
-  post_build:
-    commands:
-      - echo Post Build...
-      - make git-tag
+      - make upload-and-tag
 artifacts:
   files:
     - build/service-handler/transactions-lambda.zip

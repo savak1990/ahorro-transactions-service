@@ -34,7 +34,8 @@ APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 
 # S3 paths for different deployment types
-TIMESTAMP=build-$(shell date +%y%m%d-%H%M)
+TIMESTAMP_FILE=$(APP_BUILD_DIR)/build-timestamp
+TIMESTAMP=$(shell [ -f $(TIMESTAMP_FILE) ] && cat $(TIMESTAMP_FILE) || (mkdir -p $(APP_BUILD_DIR) && echo "build-$$(date +%y%m%d-%H%M)" | tee $(TIMESTAMP_FILE)))
 APP_LAMBDA_S3_BASE=s3://ahorro-artifacts/transactions
 APP_LAMBDA_S3_PATH_LOCAL=$(APP_LAMBDA_S3_BASE)/$(INSTANCE_NAME)/$(APP_LAMBDA_ZIP_NAME)
 APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(TIMESTAMP)/$(APP_LAMBDA_ZIP_NAME)
@@ -47,7 +48,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag help
 
 # Default target
 all: build
@@ -75,6 +76,7 @@ help:
 	@echo "  plan                  - Show Terraform plan"
 	@echo "  upload                - Upload Lambda package to S3 (s3://ahorro-artifacts/transactions/\$INSTANCE_NAME/)"
 	@echo "  upload-timestamp      - Upload timestamped package to S3 (s3://ahorro-artifacts/transactions/\$TIMESTAMP/)"
+	@echo "  upload-and-tag        - Upload timestamped package AND create git tag (RECOMMENDED for CI/CD)"
 	@echo "  git-tag               - Create and push git tag with timestamp (\$TIMESTAMP)"
 	@echo ""
 	@echo "🗄️  Database Operations:"
@@ -157,6 +159,14 @@ upload: $(APP_LAMBDA_HANDLER_ZIP)
 upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP)
 	@echo "Uploading timestamped Lambda package to: $(APP_LAMBDA_S3_PATH_TIMESTAMP)"
 	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH_TIMESTAMP)
+
+upload-and-tag: $(APP_LAMBDA_HANDLER_ZIP)
+	@echo "=== Deploying with timestamp: $(TIMESTAMP) ==="
+	@echo "Uploading timestamped Lambda package to: $(APP_LAMBDA_S3_PATH_TIMESTAMP)"
+	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH_TIMESTAMP)
+	@echo "Creating Git tag: $(GITHUB_TAG_NAME)"
+	@./scripts/git-tag.sh "$(GITHUB_TAG_NAME)" "$(GITHUB_REPO)" "$(AWS_REGION)" "$(SECRET_NAME)"
+	@echo "=== Deployment completed successfully! ==="
 
 git-tag:
 	@echo "Creating Git tag: $(GITHUB_TAG_NAME)"
