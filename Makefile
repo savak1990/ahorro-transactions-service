@@ -18,17 +18,27 @@ COGNITO_USER_POOL_CLIENT_NAME=ahorro-app-stable-client
 COGNITO_USER_POOL_ID=$(shell aws cognito-idp list-user-pools --max-results 50 --region $(AWS_REGION) --query 'UserPools[?Name==`$(COGNITO_USER_POOL_NAME)`].Id' --output text)
 COGNITO_CLIENT_ID=$(shell aws cognito-idp list-user-pool-clients --user-pool-id $$(aws cognito-idp list-user-pools --max-results 50 --region $(AWS_REGION) --query 'UserPools[?Name==`$(COGNITO_USER_POOL_NAME)`].Id' --output text) --region $(AWS_REGION) --query 'UserPoolClients[?ClientName==`$(COGNITO_USER_POOL_CLIENT_NAME)`].ClientId' --output text)
 
+# Database configuration
+DB_IDENTIFIER = $(APP_NAME)-$(SERVICE_NAME)-stable-db
+DB_NAME = $(APP_NAME)_$(SERVICE_NAME)_stable_db
+DB_ENDPOINT = $(shell aws rds describe-db-instances --db-instance-identifier $(DB_IDENTIFIER) --query 'DBInstances[0].Endpoint.Address' --output text --region $(AWS_REGION) 2>/dev/null || echo "")
+DB_PORT = $(shell aws rds describe-db-instances --db-instance-identifier $(DB_IDENTIFIER) --query 'DBInstances[0].Endpoint.Port' --output text --region $(AWS_REGION) 2>/dev/null || echo "5432")
+
 # Main app arguments
 APP_DIR=app
 APP_BUILD_DIR=./build/service-handler
 APP_LAMBDA_ZIP_BASE_NAME=$(SERVICE_NAME)-lambda
 APP_LAMBDA_ZIP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME).zip
-APP_LAMBDA_ZIP_TIMESTAMP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME)-$(shell date +%y%m%d-%H%M).zip
+APP_LAMBDA_ZIP_TIMESTAMP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME).zip
 APP_LAMBDA_HANDLER_ZIP=$(APP_BUILD_DIR)/$(APP_LAMBDA_ZIP_NAME)
 APP_LAMBDA_HANDLER_ZIP_TIMESTAMP=$(APP_BUILD_DIR)/$(APP_LAMBDA_ZIP_TIMESTAMP_NAME)
 APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
-APP_LAMBDA_S3_PATH=s3://ahorro-artifacts/transactions
+
+# S3 paths for different deployment types
+APP_LAMBDA_S3_BASE=s3://ahorro-artifacts/transactions
+APP_LAMBDA_S3_PATH_LOCAL=$(APP_LAMBDA_S3_BASE)/$(INSTANCE_NAME)/$(APP_LAMBDA_ZIP_NAME)
+APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(shell date +%y%m%d-%H%M)/$(APP_LAMBDA_ZIP_NAME)
 
 # Schema generation
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
@@ -60,8 +70,8 @@ help:
 	@echo "  deploy                - Deploy infrastructure and service"
 	@echo "  undeploy              - Destroy infrastructure"
 	@echo "  plan                  - Show Terraform plan"
-	@echo "  upload                - Upload Lambda package to S3"
-	@echo "  upload-timestamp      - Upload timestamped package to S3"
+	@echo "  upload                - Upload Lambda package to S3 (s3://ahorro-artifacts/transactions/\$INSTANCE_NAME/)"
+	@echo "  upload-timestamp      - Upload timestamped package to S3 (s3://ahorro-artifacts/transactions/\$TIMESTAMP/)"
 	@echo ""
 	@echo "🗄️  Database Operations:"
 	@echo "  db-connect            - Connect to PostgreSQL database"
@@ -140,11 +150,13 @@ package: $(APP_LAMBDA_HANDLER_ZIP)
 package-timestamp: $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP)
 
 upload: $(APP_LAMBDA_HANDLER_ZIP)
-	aws s3 rm $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_NAME) --quiet || true
-	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_NAME)
+	@echo "Uploading Lambda package to: $(APP_LAMBDA_S3_PATH_LOCAL)"
+	aws s3 rm $(APP_LAMBDA_S3_PATH_LOCAL) --quiet || true
+	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH_LOCAL)
 
 upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP)
-	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP) $(APP_LAMBDA_S3_PATH)/$(APP_LAMBDA_ZIP_TIMESTAMP_NAME)
+	@echo "Uploading timestamped Lambda package to: $(APP_LAMBDA_S3_PATH_TIMESTAMP)"
+	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP) $(APP_LAMBDA_S3_PATH_TIMESTAMP)
 
 # Terraform deployment helpers
 
@@ -165,48 +177,17 @@ refresh:
 		-var="env=$(INSTANCE_NAME)"
 
 # Use this only for development purposes
-deploy-public:
-	@echo "WARNING: Enabling public database access for development!"
-	@IP=$$(curl -4 -s ifconfig.me || curl -s ipv4.icanhazip.com || dig +short myip.opendns.com @resolver1.opendns.com); \
-	echo "Your IPv4: $$IP"; \
-	echo "Using CIDR block: $$IP/32"; \
+deploy:
+	@echo "Deploying the service with $(DB_IDENTIFIER)..."
 	cd deploy && \
+	terraform init && \
 	terraform apply -auto-approve \
 		-var="app_name=$(APP_NAME)" \
 		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="enable_db_public_access=true" \
-		-var="my_ip_cidr=$$IP/32"
-
-deploy-public-custom:
-	@echo "WARNING: Enabling public database access for development!"
-	@IP=$$(curl -4 -s ifconfig.me || curl -s ipv4.icanhazip.com || dig +short myip.opendns.com @resolver1.opendns.com); \
-	echo "Your current IPv4: $$IP"; \
-	echo -n "Enter CIDR block (e.g., $$IP/32 or 0.0.0.0/0): "; \
-	read CIDR_BLOCK; \
-	if [ -z "$$CIDR_BLOCK" ]; then \
-		echo "Error: CIDR block cannot be empty"; \
-		exit 1; \
-	fi; \
-	echo "Using CIDR block: $$CIDR_BLOCK"; \
-	cd deploy && \
-	terraform apply -auto-approve \
-		-var="app_name=$(APP_NAME)" \
-		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="enable_db_public_access=true" \
-		-var="my_ip_cidr=$$CIDR_BLOCK"
-
-deploy-private:
-	@echo "Disabling public database access..."
-	cd deploy && \
-	terraform apply -auto-approve \
-		-var="app_name=$(APP_NAME)" \
-		-var="service_name=$(SERVICE_NAME)" \
-		-var="env=$(INSTANCE_NAME)" \
-		-var="enable_db_public_access=false"
+		-var="env=$(INSTANCE_NAME)"
 
 undeploy:
+	@echo "Undeploying the service with $(DB_IDENTIFIER)..."
 	cd deploy && \
 	terraform init && \
 	terraform destroy -auto-approve \
@@ -219,16 +200,20 @@ show-api-url:
 
 # Database configuration helpers
 get-db-config:
-	@echo "Fetching database configuration from Terraform..."
+	@echo "Fetching database configuration from AWS RDS..."
+	@if [ -z "$(DB_ENDPOINT)" ]; then \
+		echo "Error: Unable to get database endpoint. Check if DB instance '$(DB_IDENTIFIER)' exists."; \
+		exit 1; \
+	fi
 
 get-db-endpoint:
-	@cd deploy && terraform output -raw db_endpoint
+	@echo "$(DB_ENDPOINT)"
 
 get-db-port:
-	@cd deploy && terraform output -raw db_port
+	@echo "$(DB_PORT)"
 
 get-db-name:
-	@cd deploy && terraform output -raw db_name
+	@echo "$(DB_NAME)"
 
 show-db-config: get-db-config
 	@echo "Database Endpoint: $(shell $(MAKE) -s get-db-endpoint)"
@@ -320,7 +305,7 @@ clean:
 
 # Database operations
 db-get-identifier:
-	@cd deploy && terraform output -raw db_identifier
+	@echo "$(DB_IDENTIFIER)"
 
 db-connect:
 	@echo "Connecting to PostgreSQL database..."

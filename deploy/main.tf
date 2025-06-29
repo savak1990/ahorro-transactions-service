@@ -41,6 +41,17 @@ data "terraform_remote_state" "cognito" {
   }
 }
 
+data "terraform_remote_state" "db" {
+  backend = "s3"
+  config = {
+    bucket         = "ahorro-app-state"
+    key            = "stable/transactions-service/db/terraform.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "ahorro-app-state-lock"
+    encrypt        = true
+  }
+}
+
 data "aws_vpc" "default" {
   default = true
 }
@@ -52,54 +63,20 @@ data "aws_subnets" "default" {
   }
 }
 
-# Get CIDR blocks of the subnets where Lambda will run
-data "aws_subnet" "lambda_subnets" {
-  for_each = toset(data.aws_subnets.default.ids)
-  id       = each.value
-}
-
 locals {
   base_name               = "${var.app_name}-${var.service_name}-${var.env}"
-  db_name                 = "${var.app_name}_${var.service_name}_${var.env}_db"
-  db_cluster_name         = "${local.db_name}-cluster"
   app_lambda_name         = "${local.base_name}-app-lambda"
   app_s3_bucket_name      = "ahorro-artifacts"
-  app_s3_artifact_zip_key = "transactions/transactions-lambda.zip"
+  app_s3_artifact_zip_key = "transactions/${var.env}/transactions-lambda.zip"
   full_api_name           = "api-${local.base_name}"
 
   db_subnet_ids = data.aws_subnets.default.ids
   vpc_id        = data.aws_vpc.default.id
-  # Extract CIDR blocks from Lambda subnets
-  lambda_cidr_blocks = [for subnet in data.aws_subnet.lambda_subnets : subnet.cidr_block]
 
   secret_name              = "${var.app_name}-app-secrets"
   domain_name              = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["domain_name"]
   transactions_db_username = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["transactions_db_username"]
   transactions_db_password = jsondecode(data.aws_secretsmanager_secret_version.ahorro_app.secret_string)["transactions_db_password"]
-}
-
-module "transactions_db" {
-  source = "../terraform/database"
-
-  db_identifier   = "${local.base_name}-db"
-  db_name         = local.db_name
-  engine_version  = "16.8" # Latest stable PostgreSQL
-  master_username = local.transactions_db_username
-  master_password = local.transactions_db_password
-
-  # Cost-optimized settings
-  instance_class        = "db.t3.micro" # Cheapest option
-  allocated_storage     = 20            # Minimum storage
-  max_allocated_storage = 50            # Small autoscaling limit
-
-  # Network configuration
-  subnet_ids         = local.db_subnet_ids
-  vpc_id             = local.vpc_id
-  lambda_cidr_blocks = local.lambda_cidr_blocks
-
-  # Temporary public access configuration
-  enable_public_access       = var.enable_db_public_access
-  allowed_public_cidr_blocks = var.enable_db_public_access ? [var.my_ip_cidr] : []
 }
 
 module "ahorro_transactions_service" {
@@ -110,8 +87,8 @@ module "ahorro_transactions_service" {
   lambda_subnet_ids = local.db_subnet_ids
 
   # Aurora Database Configuration
-  db_endpoint = module.transactions_db.db_endpoint
-  db_name     = module.transactions_db.db_name
+  db_endpoint = data.terraform_remote_state.db.outputs.db_endpoint
+  db_name     = data.terraform_remote_state.db.outputs.db_name
   db_username = local.transactions_db_username
   db_password = local.transactions_db_password
 
@@ -128,8 +105,6 @@ module "ahorro_transactions_service" {
   zone_id                     = data.aws_route53_zone.public.zone_id
   cognito_user_pool_id        = data.terraform_remote_state.cognito.outputs.user_pool_id
   cognito_user_pool_client_id = data.terraform_remote_state.cognito.outputs.user_pool_client_id
-
-  depends_on = [module.transactions_db]
 }
 
 terraform {

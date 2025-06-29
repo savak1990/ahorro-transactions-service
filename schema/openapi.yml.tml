@@ -20,6 +20,8 @@ servers:
     description: "Local development server"
   - url: https://api-ahorro-transactions-${INSTANCE_NAME}.${DOMAIN_NAME}:443
     description: "User deployment server"
+  - url: https://api-ahorro-transactions-stable.${DOMAIN_NAME}:443
+    description: "Stable deployment server"
 
 security:
   - bearerAuth: []
