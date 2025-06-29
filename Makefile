@@ -121,9 +121,13 @@ generate-schema: $(SCHEMA_OUTPUT)
 $(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
 	@echo "Generating build info..."
 	@mkdir -p $(dir $(BUILD_INFO_FILE))
-	@GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
-	GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
-	GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	@if [ -n "$$GITHUB_TOKEN" ]; then \
+	  eval $(shell ./scripts/github-meta.sh savak1990 ahorro-transactions-service main $$GITHUB_TOKEN); \
+	else \
+	  GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
+	  GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
+	  GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	fi; \
 	BUILD_TIME=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
 	BUILD_USER=$$(whoami); \
 	GO_VERSION=$$(go version | cut -d' ' -f3 2>/dev/null || echo "unknown"); \
@@ -419,9 +423,13 @@ $(TIMESTAMP_FILE):
 $(BUILD_INFO_FILE): $(TIMESTAMP_FILE)
 	@echo "Generating build info..."
 	@mkdir -p $(dir $(BUILD_INFO_FILE))
-	@GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
-	GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
-	GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	@if [ -n "$$GITHUB_TOKEN" ]; then \
+	  eval $(shell ./scripts/github-meta.sh savak1990 ahorro-transactions-service main $$GITHUB_TOKEN); \
+	else \
+	  GIT_BRANCH=$$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown"); \
+	  GIT_COMMIT=$$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
+	  GIT_SHORT=$$(git rev-parse --short HEAD 2>/dev/null || echo "unknown"); \
+	fi; \
 	BUILD_TIME=$$(date -u +"%Y-%m-%dT%H:%M:%SZ"); \
 	BUILD_USER=$$(whoami); \
 	GO_VERSION=$$(go version | cut -d' ' -f3 2>/dev/null || echo "unknown"); \
