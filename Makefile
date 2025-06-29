@@ -11,7 +11,6 @@ SECRET_NAME=$(APP_NAME)-app-secrets
 DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
 DOMAIN_NAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.domain_name')
-GITHUB_TOKEN=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.github_token')
 
 # Cognito configuration (fetched from AWS Cognito by name)
 COGNITO_USER_POOL_NAME=ahorro-app-stable-user-pool
@@ -48,7 +47,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag-release help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag help
 
 # Default target
 all: build
@@ -76,7 +75,7 @@ help:
 	@echo "  plan                  - Show Terraform plan"
 	@echo "  upload                - Upload Lambda package to S3 (s3://ahorro-artifacts/transactions/\$INSTANCE_NAME/)"
 	@echo "  upload-timestamp      - Upload timestamped package to S3 (s3://ahorro-artifacts/transactions/\$TIMESTAMP/)"
-	@echo "  git-tag-release       - Create and push git tag with timestamp (\$TIMESTAMP)"
+	@echo "  git-tag               - Create and push git tag with timestamp (\$TIMESTAMP)"
 	@echo ""
 	@echo "🗄️  Database Operations:"
 	@echo "  db-connect            - Connect to PostgreSQL database"
@@ -159,19 +158,9 @@ upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP)
 	@echo "Uploading timestamped Lambda package to: $(APP_LAMBDA_S3_PATH_TIMESTAMP)"
 	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH_TIMESTAMP)
 
-git-tag-release:
-	@echo "Creating and pushing git tag: $(GITHUB_TAG_NAME)"
-	@if [ -z "$(GITHUB_TOKEN)" ]; then \
-		echo "Error: GitHub token not found in secrets manager"; \
-		exit 1; \
-	fi
-	@echo "Current timestamp: $(TIMESTAMP)"
-	@echo "Tag name: $(GITHUB_TAG_NAME)"
-	@echo "Repository: $(GITHUB_REPO)"
-	git tag -a $(GITHUB_TAG_NAME) -m "Release $(GITHUB_TAG_NAME) - Automated build and deployment"
-	@echo "Pushing tag to GitHub repository..."
-	git push https://$(GITHUB_TOKEN)@github.com/savak1990/$(GITHUB_REPO).git $(GITHUB_TAG_NAME)
-	@echo "Git tag $(GITHUB_TAG_NAME) created and pushed successfully!"
+git-tag:
+	@echo "Creating Git tag: $(GITHUB_TAG_NAME)"
+	@./scripts/git-tag.sh "$(GITHUB_TAG_NAME)" "$(GITHUB_REPO)" "$(AWS_REGION)" "$(SECRET_NAME)"
 
 # Terraform deployment helpers
 
