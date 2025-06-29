@@ -11,6 +11,7 @@ SECRET_NAME=$(APP_NAME)-app-secrets
 DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_username')
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
 DOMAIN_NAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.domain_name')
+GITHUB_TOKEN=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.github_token')
 
 # Cognito configuration (fetched from AWS Cognito by name)
 COGNITO_USER_POOL_NAME=ahorro-app-stable-user-pool
@@ -29,22 +30,25 @@ APP_DIR=app
 APP_BUILD_DIR=./build/service-handler
 APP_LAMBDA_ZIP_BASE_NAME=$(SERVICE_NAME)-lambda
 APP_LAMBDA_ZIP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME).zip
-APP_LAMBDA_ZIP_TIMESTAMP_NAME=$(APP_LAMBDA_ZIP_BASE_NAME).zip
 APP_LAMBDA_HANDLER_ZIP=$(APP_BUILD_DIR)/$(APP_LAMBDA_ZIP_NAME)
-APP_LAMBDA_HANDLER_ZIP_TIMESTAMP=$(APP_BUILD_DIR)/$(APP_LAMBDA_ZIP_TIMESTAMP_NAME)
 APP_LAMBDA_BINARY=$(APP_BUILD_DIR)/bootstrap
 APP_BINARY=$(APP_BUILD_DIR)/transactions_service
 
 # S3 paths for different deployment types
+TIMESTAMP=build-$(shell date +%y%m%d-%H%M)
 APP_LAMBDA_S3_BASE=s3://ahorro-artifacts/transactions
 APP_LAMBDA_S3_PATH_LOCAL=$(APP_LAMBDA_S3_BASE)/$(INSTANCE_NAME)/$(APP_LAMBDA_ZIP_NAME)
-APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(shell date +%y%m%d-%H%M)/$(APP_LAMBDA_ZIP_NAME)
+APP_LAMBDA_S3_PATH_TIMESTAMP=$(APP_LAMBDA_S3_BASE)/$(TIMESTAMP)/$(APP_LAMBDA_ZIP_NAME)
+
+# GitHub repository configuration
+GITHUB_REPO=ahorro-transactions-service
+GITHUB_TAG_NAME=$(TIMESTAMP)
 
 # Schema generation
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag-release help
 
 # Default target
 all: build
@@ -72,6 +76,7 @@ help:
 	@echo "  plan                  - Show Terraform plan"
 	@echo "  upload                - Upload Lambda package to S3 (s3://ahorro-artifacts/transactions/\$INSTANCE_NAME/)"
 	@echo "  upload-timestamp      - Upload timestamped package to S3 (s3://ahorro-artifacts/transactions/\$TIMESTAMP/)"
+	@echo "  git-tag-release       - Create and push git tag with timestamp (\$TIMESTAMP)"
 	@echo ""
 	@echo "🗄️  Database Operations:"
 	@echo "  db-connect            - Connect to PostgreSQL database"
@@ -122,10 +127,6 @@ $(APP_LAMBDA_HANDLER_ZIP): $(APP_LAMBDA_BINARY)
 	@mkdir -p $(APP_BUILD_DIR)
 	cd $(APP_BUILD_DIR) && zip $(APP_LAMBDA_ZIP_NAME) bootstrap
 
-$(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP): $(APP_LAMBDA_BINARY)
-	@mkdir -p $(APP_BUILD_DIR)
-	cd $(APP_BUILD_DIR) && zip $(APP_LAMBDA_ZIP_TIMESTAMP_NAME) bootstrap
-
 # Combined build and package targets
 build: $(APP_BINARY) $(APP_LAMBDA_BINARY)
 
@@ -147,16 +148,30 @@ run: app-build-local get-db-config
 
 package: $(APP_LAMBDA_HANDLER_ZIP)
 
-package-timestamp: $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP)
+package-timestamp: $(APP_LAMBDA_HANDLER_ZIP)
 
 upload: $(APP_LAMBDA_HANDLER_ZIP)
 	@echo "Uploading Lambda package to: $(APP_LAMBDA_S3_PATH_LOCAL)"
 	aws s3 rm $(APP_LAMBDA_S3_PATH_LOCAL) --quiet || true
 	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH_LOCAL)
 
-upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP)
+upload-timestamp: $(APP_LAMBDA_HANDLER_ZIP)
 	@echo "Uploading timestamped Lambda package to: $(APP_LAMBDA_S3_PATH_TIMESTAMP)"
-	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP_TIMESTAMP) $(APP_LAMBDA_S3_PATH_TIMESTAMP)
+	aws s3 cp $(APP_LAMBDA_HANDLER_ZIP) $(APP_LAMBDA_S3_PATH_TIMESTAMP)
+
+git-tag-release:
+	@echo "Creating and pushing git tag: $(GITHUB_TAG_NAME)"
+	@if [ -z "$(GITHUB_TOKEN)" ]; then \
+		echo "Error: GitHub token not found in secrets manager"; \
+		exit 1; \
+	fi
+	@echo "Current timestamp: $(TIMESTAMP)"
+	@echo "Tag name: $(GITHUB_TAG_NAME)"
+	@echo "Repository: $(GITHUB_REPO)"
+	git tag -a $(GITHUB_TAG_NAME) -m "Release $(GITHUB_TAG_NAME) - Automated build and deployment"
+	@echo "Pushing tag to GitHub repository..."
+	git push https://$(GITHUB_TOKEN)@github.com/savak1990/$(GITHUB_REPO).git $(GITHUB_TAG_NAME)
+	@echo "Git tag $(GITHUB_TAG_NAME) created and pushed successfully!"
 
 # Terraform deployment helpers
 
