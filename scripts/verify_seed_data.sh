@@ -4,13 +4,6 @@
 
 set -e
 
-# Colors for output
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
-
 # Database connection parameters (can be overridden by environment variables)
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5432}"
@@ -18,9 +11,9 @@ DB_NAME="${DB_NAME:-postgres}"
 DB_USER="${DB_USER:-postgres}"
 DB_PASSWORD="${DB_PASSWORD:-password}"
 
-echo -e "${BLUE}🔍 Verifying Seed Data${NC}"
-echo -e "${BLUE}Host: $DB_HOST:$DB_PORT${NC}"
-echo -e "${BLUE}Database: $DB_NAME${NC}"
+echo "Verifying Seed Data"
+echo "Host: $DB_HOST:$DB_PORT"
+echo "Database: $DB_NAME"
 echo ""
 
 # Function to run query and check results
@@ -29,22 +22,22 @@ verify_table() {
     local expected_min="$2"
     local display_name="$3"
     
-    echo -e "${BLUE}Checking $display_name...${NC}"
+    echo "Checking $display_name..."
     
     local count=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM $table_name;" | tr -d ' ')
     
     if [ "$count" -ge "$expected_min" ]; then
-        echo -e "${GREEN}✓ $display_name: $count records (expected ≥ $expected_min)${NC}"
+        echo "OK $display_name: $count records (expected >= $expected_min)"
         return 0
     else
-        echo -e "${RED}✗ $display_name: $count records (expected ≥ $expected_min)${NC}"
+        echo "FAIL $display_name: $count records (expected >= $expected_min)"
         return 1
     fi
 }
 
 # Function to check data relationships
 verify_relationships() {
-    echo -e "${BLUE}Verifying data relationships...${NC}"
+    echo "Verifying data relationships..."
     
     # Check categories have valid category_group_id references
     local orphaned_categories=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
@@ -57,9 +50,9 @@ verify_relationships() {
         );" | tr -d ' ')
     
     if [ "$orphaned_categories" -eq 0 ]; then
-        echo -e "${GREEN}✓ All categories have valid group references${NC}"
+        echo "OK All categories have valid group references"
     else
-        echo -e "${YELLOW}⚠ Found $orphaned_categories categories with invalid group references${NC}"
+        echo "WARNING Found $orphaned_categories categories with invalid group references"
     fi
     
     # Check transactions have valid balance references
@@ -71,9 +64,9 @@ verify_relationships() {
         );" | tr -d ' ')
     
     if [ "$orphaned_transactions" -eq 0 ]; then
-        echo -e "${GREEN}✓ All transactions have valid balance references${NC}"
+        echo "OK All transactions have valid balance references"
     else
-        echo -e "${RED}✗ Found $orphaned_transactions transactions with invalid balance references${NC}"
+        echo "FAIL Found $orphaned_transactions transactions with invalid balance references"
     fi
     
     # Check transaction entries have valid transaction references
@@ -85,15 +78,15 @@ verify_relationships() {
         );" | tr -d ' ')
     
     if [ "$orphaned_entries" -eq 0 ]; then
-        echo -e "${GREEN}✓ All transaction entries have valid transaction references${NC}"
+        echo "OK All transaction entries have valid transaction references"
     else
-        echo -e "${RED}✗ Found $orphaned_entries transaction entries with invalid transaction references${NC}"
+        echo "FAIL Found $orphaned_entries transaction entries with invalid transaction references"
     fi
 }
 
 # Function to check data quality
 verify_data_quality() {
-    echo -e "${BLUE}Verifying data quality...${NC}"
+    echo "Verifying data quality..."
     
     # Check for transactions with different currencies in same transaction
     local currency_mismatches=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
@@ -105,9 +98,9 @@ verify_data_quality() {
         HAVING COUNT(DISTINCT b.currency) > 1;" | tr -d ' ')
     
     if [ -z "$currency_mismatches" ] || [ "$currency_mismatches" -eq 0 ]; then
-        echo -e "${GREEN}✓ No currency mismatches found${NC}"
+        echo "OK No currency mismatches found"
     else
-        echo -e "${YELLOW}⚠ Found $currency_mismatches transactions with currency mismatches${NC}"
+        echo "WARNING Found $currency_mismatches transactions with currency mismatches"
     fi
     
     # Check for transactions without entries
@@ -119,9 +112,9 @@ verify_data_quality() {
         );" | tr -d ' ')
     
     if [ "$empty_transactions" -eq 0 ]; then
-        echo -e "${GREEN}✓ All transactions have entries${NC}"
+        echo "OK All transactions have entries"
     else
-        echo -e "${YELLOW}⚠ Found $empty_transactions transactions without entries${NC}"
+        echo "WARNING Found $empty_transactions transactions without entries"
     fi
 }
 
@@ -146,10 +139,10 @@ echo ""
 
 # Final summary
 if [ $error_count -eq 0 ]; then
-    echo -e "${GREEN}🎉 All seed data verification checks passed!${NC}"
+    echo "SUCCESS All seed data verification checks passed!"
     exit 0
 else
-    echo -e "${RED}❌ Found $error_count issues with seed data${NC}"
-    echo -e "${YELLOW}💡 Consider re-running the seed process: make seed${NC}"
+    echo "FAIL Found $error_count issues with seed data"
+    echo "TIP Consider re-running the seed process: make seed"
     exit 1
 fi
