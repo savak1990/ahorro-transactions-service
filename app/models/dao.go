@@ -68,7 +68,7 @@ type CategoryGroup struct {
 
 // TableName specifies the table name for GORM
 func (CategoryGroup) TableName() string {
-	return "category"
+	return "category_group"
 }
 
 // Category represents a category in the PostgreSQL database

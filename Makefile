@@ -50,7 +50,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag help
 
 # Default target
 all: build
@@ -89,7 +89,8 @@ help:
 	@echo "  db-stop               - Stop database instance (saves costs)"
 	@echo "  db-quick-start        - Start DB and wait until available"
 	@echo "  db-quick-stop         - Stop DB and wait until stopped"
-	@echo "  seed                  - Seed database with sample data"
+	@echo "  seed                  - Seed database with modular sample data (category_groups → categories → merchants → balances → transactions → transaction_entries)"
+	@echo "  verify-seed           - Verify seed data integrity and relationships"
 	@echo "  drop-tables           - Drop all tables (⚠️  DESTRUCTIVE)"
 	@echo ""
 	@echo "🔧 Configuration & Utilities:"
@@ -293,20 +294,43 @@ seed:
 	@echo "Database: $(shell $(MAKE) -s get-db-name)"
 	@echo "Username: $(DB_USERNAME)"
 	@echo ""
-	@if [ ! -f "sql/seed_data.sql" ]; then \
-		echo "Error: sql/seed_data.sql not found!"; \
+	@if [ ! -f "scripts/seed_database.sh" ]; then \
+		echo "Error: scripts/seed_database.sh not found!"; \
 		exit 1; \
 	fi
-	@echo "Running seed script..."
+	@echo "Running modular seed scripts..."
 	docker run --pull=missing -v "$(PWD):/app" -w /app \
-		-e PGPASSWORD="$(DB_PASSWORD)" \
-		postgres:15-alpine psql \
-		--host=$(shell $(MAKE) -s get-db-endpoint) \
-		--port=$(shell $(MAKE) -s get-db-port) \
-		--username=$(DB_USERNAME) \
-		--dbname=$(shell $(MAKE) -s get-db-name) \
-		--file=sql/seed_data.sql
+		-e DB_HOST=$(shell $(MAKE) -s get-db-endpoint) \
+		-e DB_PORT=$(shell $(MAKE) -s get-db-port) \
+		-e DB_USER=$(DB_USERNAME) \
+		-e DB_PASSWORD=$(DB_PASSWORD) \
+		-e DB_NAME=$(shell $(MAKE) -s get-db-name) \
+		--entrypoint=/bin/bash \
+		postgres:15-alpine \
+		/app/scripts/seed_database.sh
 	@echo "Database seeding completed!"
+
+verify-seed:
+	@echo "Verifying seeded data in PostgreSQL database..."
+	@echo "Host: $(shell $(MAKE) -s get-db-endpoint)"
+	@echo "Database: $(shell $(MAKE) -s get-db-name)"
+	@echo "Username: $(DB_USERNAME)"
+	@echo ""
+	@if [ ! -f "scripts/verify_seed_data.sh" ]; then \
+		echo "Error: scripts/verify_seed_data.sh not found!"; \
+		exit 1; \
+	fi
+	@echo "Running seed data verification..."
+	docker run --pull=missing -v "$(PWD):/app" -w /app \
+		-e DB_HOST=$(shell $(MAKE) -s get-db-endpoint) \
+		-e DB_PORT=$(shell $(MAKE) -s get-db-port) \
+		-e DB_USER=$(DB_USERNAME) \
+		-e DB_PASSWORD=$(DB_PASSWORD) \
+		-e DB_NAME=$(shell $(MAKE) -s get-db-name) \
+		--entrypoint=/bin/bash \
+		postgres:15-alpine \
+		/app/scripts/verify_seed_data.sh
+	@echo "Seed data verification completed!"
 
 drop-tables:
 	@echo "WARNING: This will DROP ALL TABLES in the database!"
