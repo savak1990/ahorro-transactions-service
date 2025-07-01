@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/savak1990/transactions-service/app/models"
 	repo "github.com/savak1990/transactions-service/app/repo"
 )
@@ -20,7 +19,7 @@ func NewServiceImpl(repo repo.Repository) *ServiceImpl {
 }
 
 func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
-	tx.ID = uuid.New()
+	tx.ID = models.NewTransactionID()
 	return s.repo.CreateTransaction(ctx, tx)
 }
 
@@ -42,7 +41,7 @@ func (s *ServiceImpl) DeleteTransaction(ctx context.Context, transactionID strin
 }
 
 func (s *ServiceImpl) CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
-	balance.ID = uuid.New()
+	balance.ID = models.NewBalanceID()
 	return s.repo.CreateBalance(ctx, balance)
 }
 
@@ -68,7 +67,7 @@ func (s *ServiceImpl) DeleteBalancesByUserId(ctx context.Context, userId string)
 }
 
 func (s *ServiceImpl) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
-	category.ID = uuid.New()
+	category.ID = models.NewCategoryID()
 	return s.repo.CreateCategory(ctx, category)
 }
 
@@ -94,7 +93,7 @@ func (s *ServiceImpl) DeleteCategoriesByUserId(ctx context.Context, userId strin
 }
 
 func (s *ServiceImpl) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
-	merchant.ID = uuid.New()
+	merchant.ID = models.NewMerchantID()
 	return s.repo.CreateMerchant(ctx, merchant)
 }
 
@@ -126,7 +125,7 @@ func (s *ServiceImpl) ListTransactionEntries(ctx context.Context, filter models.
 // CategoryGroup service methods
 
 func (s *ServiceImpl) CreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
-	categoryGroup.ID = uuid.New()
+	categoryGroup.ID = models.NewCategoryGroupID()
 	return s.repo.CreateCategoryGroup(ctx, categoryGroup)
 }
 

@@ -50,7 +50,7 @@ func FromAPICategoryGroup(dto CategoryGroupDto) (*CategoryGroup, error) {
 			return nil, fmt.Errorf("invalid category group ID format: %w", err)
 		}
 	} else {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewCategoryGroupID() // Generate new ID if not provided
 	}
 
 	return &CategoryGroup{
@@ -140,7 +140,7 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	// Parse UUIDs
 	id, err := parseUUID(t.TransactionID)
 	if err != nil {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewTransactionID() // Generate new ID with prefix if not provided
 	}
 
 	userID, err := parseUUID(t.UserID)
@@ -217,7 +217,7 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 	// Parse UUIDs
 	id, err := parseUUID(b.BalanceID)
 	if err != nil {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewBalanceID() // Generate new ID if not provided
 	}
 
 	userID, err := parseUUID(b.UserID)
@@ -263,7 +263,7 @@ func FromAPICategory(c CategoryDto) (*Category, error) {
 			return nil, fmt.Errorf("invalid category ID format: %w", err)
 		}
 	} else {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewCategoryID() // Generate new ID if not provided
 	}
 
 	return &Category{
@@ -314,7 +314,7 @@ func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID u
 			return nil, fmt.Errorf("invalid transaction entry ID format: %w", err)
 		}
 	} else {
-		id = uuid.New()
+		id = NewTransactionEntryID()
 	}
 
 	// Parse category ID if provided
@@ -470,7 +470,7 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 	// Parse UUID
 	id, err := parseUUID(m.MerchantID)
 	if err != nil {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewMerchantID() // Generate new ID if not provided
 	}
 
 	// Parse GroupID

@@ -2,18 +2,18 @@
 
 INSERT INTO merchant (id, group_id, user_id, name, description, rank, created_at, updated_at) VALUES
     -- Spanish Supermarkets & Retail
-    ('11ac4b20-1234-5678-9abc-def012345678', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Mercadona', 'Spanish supermarket chain', 1, NOW(), NOW()),
-    ('22bc5c30-2345-6789-abcd-ef0123456789', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'El Corte Inglés', 'Spanish department store chain', 2, NOW(), NOW()),
-    ('33cd6d40-3456-789a-bcde-f01234567890', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Carrefour', 'French multinational retail corporation', 3, NOW(), NOW()),
-    ('44de7e50-4567-89ab-cdef-012345678901', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Lidl', 'German discount supermarket chain', 4, NOW(), NOW()),
-    ('55ef8f60-5678-9abc-def0-123456789012', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Zara', 'Spanish fashion retailer', 5, NOW(), NOW()),
-    ('66f09070-6789-abcd-ef01-234567890123', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'MediaMarkt', 'German electronics retailer', 6, NOW(), NOW()),
+    ('4e001234-1234-5678-9abc-def012345678', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Mercadona', 'Spanish supermarket chain', 1, NOW(), NOW()),
+    ('4e002345-2345-6789-abcd-ef0123456789', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'El Corte Inglés', 'Spanish department store chain', 2, NOW(), NOW()),
+    ('4e003456-3456-789a-bcde-f01234567890', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Carrefour', 'French multinational retail corporation', 3, NOW(), NOW()),
+    ('4e004567-4567-89ab-cdef-012345678901', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Lidl', 'German discount supermarket chain', 4, NOW(), NOW()),
+    ('4e005678-5678-9abc-def0-123456789012', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Zara', 'Spanish fashion retailer', 5, NOW(), NOW()),
+    ('4e006789-6789-abcd-ef01-234567890123', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'MediaMarkt', 'German electronics retailer', 6, NOW(), NOW()),
     
     -- Restaurants & Food
-    ('77a1a180-789a-bcde-f012-345678901234', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Starbucks', 'American coffeehouse chain', 7, NOW(), NOW()),
-    ('88b2b290-89ab-cdef-0123-456789012345', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'McDonald''s', 'American fast food restaurant chain', 8, NOW(), NOW()),
-    ('99c3c3a0-9abc-def0-1234-567890123456', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Telepizza', 'Spanish pizza delivery chain', 9, NOW(), NOW()),
-    ('aad4d4b0-abcd-ef01-2345-678901234567', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Domino''s Pizza', 'American pizza restaurant chain', 10, NOW(), NOW()),
+    ('4e007890-789a-bcde-f012-345678901234', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Starbucks', 'American coffeehouse chain', 7, NOW(), NOW()),
+    ('4e008901-89ab-cdef-0123-456789012345', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'McDonald''s', 'American fast food restaurant chain', 8, NOW(), NOW()),
+    ('4e009012-9abc-def0-1234-567890123456', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Telepizza', 'Spanish pizza delivery chain', 9, NOW(), NOW()),
+    ('4e00a123-abcd-ef01-2345-678901234567', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Domino''s Pizza', 'American pizza restaurant chain', 10, NOW(), NOW()),
     ('bbe5e5c0-bcde-f012-3456-789012345678', '88aa1100-0011-2233-4455-667788990011', '99bb2200-0011-2233-4455-667788990011', 'Burger King', 'American fast food restaurant chain', 11, NOW(), NOW()),
     
     -- Transportation
