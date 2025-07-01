@@ -9,7 +9,7 @@ info:
     - Creating and managing financial transactions with multiple entries
     - Managing user balances/accounts
     - Managing transaction categories
-    - Retrieving transaction history with filtering and pagination
+    - Retrieving transaction history with filtering
   contact:
     name: "Ahorro Development Team"
   license:
@@ -126,14 +126,20 @@ paths:
             type: string
             enum: [expense, income, movement]
           example: "expense"
-        - name: category
+        - name: categoryId
           in: query
-          description: "Filter by category name"
+          description: "Filter by category ID"
           schema:
             type: string
-            minLength: 1
-            maxLength: 100
-          example: "Groceries"
+            format: uuid
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+        - name: merchantId
+          in: query
+          description: "Filter by merchant ID"
+          schema:
+            type: string
+            format: uuid
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
         - name: sortedBy
           in: query
           description: "Field to sort by"
@@ -159,12 +165,6 @@ paths:
             maximum: 100
             default: 50
           example: 20
-        - name: startKey
-          in: query
-          description: "Pagination cursor from previous response"
-          schema:
-            type: string
-          example: "eyJpZCI6IjEyMzQ1In0="
       responses:
         '200':
           description: List of transaction entries retrieved successfully
@@ -617,12 +617,6 @@ paths:
             maximum: 100
             default: 50
           example: 20
-        - name: startKey
-          in: query
-          description: "Pagination cursor from previous response"
-          schema:
-            type: string
-          example: "eyJpZCI6IjEyMzQ1In0="
       responses:
         '200':
           description: List of categories retrieved successfully
@@ -853,12 +847,6 @@ paths:
             maximum: 100
             default: 50
           example: 20
-        - name: startKey
-          in: query
-          description: "Pagination cursor from previous response"
-          schema:
-            type: string
-          example: "eyJpZCI6IjEyMzQ1In0="
       responses:
         '200':
           description: List of merchants retrieved successfully
@@ -1692,10 +1680,6 @@ components:
           description: "List of flattened transaction entries with all related data"
           items:
             $ref: '#/components/schemas/TransactionEntryDto'
-        nextToken:
-          type: string
-          description: "Pagination token for next page (if available)"
-          example: "eyJpZCI6IjEyMzQ1In0="
 
     TransactionEntryDto:
       type: object
@@ -2048,10 +2032,6 @@ components:
           description: "List of merchants"
           items:
             $ref: '#/components/schemas/MerchantResponse'
-        nextToken:
-          type: string
-          description: "Pagination token for next page (if available)"
-          example: "eyJpZCI6IjEyMzQ1In0="
 
 x-amazon-apigateway-request-validators:
   validate-all:

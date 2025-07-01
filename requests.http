@@ -1,5 +1,6 @@
-@baseUrl=localhost:8080
-@authToken=<PASTE TOKEN HERE>
+#@baseUrl=http://localhost:8080
+@baseUrl=https://api-ahorro-transactions-stable.vkdev1.com
+@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6IjRiYTQ3ZWViLTU0OWEtNGYxYy04ZTc2LTlhYTc0ODlmZDM3YyIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6IjA0NGVhMDIyLTQ1MTUtNDFkMy1hM2E0LWFmMjEwMzBiYjAwNyIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMjg3MjE3LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTI5MDgxNywiaWF0IjoxNzUxMjg3MjE3LCJqdGkiOiI5MmM0NWQ1My1kMGUwLTQzNGYtODA1Yy05ZTZhNmZhNDhiMzUiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.G1wYhMSETEsnGqO6x_09K4XS5YGwSzPo9uEx6hyHAvBHTzESsxOadpZr_qHCiuXeJo8TMdmNwmfpaRE4YCj-eyGz99wFOOYdDGj5U-IDEEIgKx4VMvxv_potX1X7VKMfpW_BzpAC6OmQrDguyezqmYKvB2LNER8Kyd74pD8nY58o63OBFmYGwlAXqmBwjy9TNhKQiYtZCOP09DC0PTewcAMMUB15TD7F_f44qbeYj47e2nlHPTxEJob65LJSvH5uMgeJuicEKp9O77xSPHDRQ9I69OGg1yT7ymih5gtANTQezNYY9Qrv2Ev4Gv15JUL0TeQpI39_6XP-MxdS3SH1ow
 
 @userId=02c514a4-2021-708d-efff-ea6cd5e4eac9
 @groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
@@ -157,8 +158,18 @@ GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&type=expe
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
-### List transaction entries by category
-GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&category=Groceries
+### List transaction entries by category ID
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries by merchant ID
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&merchantId=d47ac10b-58cc-4372-a567-0e02b2c3d480
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries with category and merchant filters
+GET {{baseUrl}}/transactions?userId={{userId}}&balanceId={{balanceId}}&categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479&merchantId=d47ac10b-58cc-4372-a567-0e02b2c3d480
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 

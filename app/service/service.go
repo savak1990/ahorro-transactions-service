@@ -12,14 +12,14 @@ type Service interface {
 	GetTransaction(ctx context.Context, transactionID string) (*m.Transaction, error)
 	UpdateTransaction(ctx context.Context, tx m.Transaction) (*m.Transaction, error)
 	DeleteTransaction(ctx context.Context, transactionID string) error
-	ListTransactions(ctx context.Context, filter m.ListTransactionsFilter) ([]m.Transaction, string, error)
-	ListTransactionEntries(ctx context.Context, filter m.ListTransactionsFilter) ([]m.TransactionEntry, string, error)
+	ListTransactions(ctx context.Context, filter m.ListTransactionsInput) ([]m.Transaction, error)
+	ListTransactionEntries(ctx context.Context, filter m.ListTransactionsInput) ([]m.TransactionEntry, error)
 
 	CreateBalance(ctx context.Context, balance m.Balance) (*m.Balance, error)
 	GetBalance(ctx context.Context, balanceID string) (*m.Balance, error)
 	UpdateBalance(ctx context.Context, balance m.Balance) (*m.Balance, error)
 	DeleteBalance(ctx context.Context, balanceID string) error
-	ListBalances(ctx context.Context, filter m.ListBalancesFilter) ([]m.Balance, error)
+	ListBalances(ctx context.Context, filter m.ListBalancesInput) ([]m.Balance, error)
 
 	CreateCategory(ctx context.Context, category m.Category) (*m.Category, error)
 	ListCategories(ctx context.Context, filter m.ListCategoriesInput) ([]m.Category, error)
@@ -31,5 +31,5 @@ type Service interface {
 	GetMerchant(ctx context.Context, merchantID string) (*m.Merchant, error)
 	UpdateMerchant(ctx context.Context, merchant m.Merchant) (*m.Merchant, error)
 	DeleteMerchant(ctx context.Context, merchantID string) error
-	ListMerchants(ctx context.Context, filter m.ListMerchantsFilter) ([]m.Merchant, string, error)
+	ListMerchants(ctx context.Context, filter m.ListMerchantsInput) ([]m.Merchant, error)
 }

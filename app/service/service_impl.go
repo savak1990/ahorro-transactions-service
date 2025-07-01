@@ -28,7 +28,7 @@ func (s *ServiceImpl) GetTransaction(ctx context.Context, transactionID string) 
 	return s.repo.GetTransaction(ctx, transactionID)
 }
 
-func (s *ServiceImpl) ListTransactions(ctx context.Context, filter models.ListTransactionsFilter) ([]models.Transaction, string, error) {
+func (s *ServiceImpl) ListTransactions(ctx context.Context, filter models.ListTransactionsInput) ([]models.Transaction, error) {
 	return s.repo.ListTransactions(ctx, filter)
 }
 
@@ -50,7 +50,7 @@ func (s *ServiceImpl) GetBalance(ctx context.Context, balanceID string) (*models
 	return s.repo.GetBalance(ctx, balanceID)
 }
 
-func (s *ServiceImpl) ListBalances(ctx context.Context, filter models.ListBalancesFilter) ([]models.Balance, error) {
+func (s *ServiceImpl) ListBalances(ctx context.Context, filter models.ListBalancesInput) ([]models.Balance, error) {
 	return s.repo.ListBalances(ctx, filter)
 }
 
@@ -69,8 +69,7 @@ func (s *ServiceImpl) CreateCategory(ctx context.Context, category models.Catego
 }
 
 func (s *ServiceImpl) ListCategories(ctx context.Context, filter models.ListCategoriesInput) ([]models.Category, error) {
-	categories, _, err := s.repo.ListCategories(ctx, filter)
-	return categories, err
+	return s.repo.ListCategories(ctx, filter)
 }
 
 func (s *ServiceImpl) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
@@ -95,7 +94,7 @@ func (s *ServiceImpl) GetMerchant(ctx context.Context, merchantID string) (*mode
 	return s.repo.GetMerchant(ctx, merchantID)
 }
 
-func (s *ServiceImpl) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+func (s *ServiceImpl) ListMerchants(ctx context.Context, filter models.ListMerchantsInput) ([]models.Merchant, error) {
 	return s.repo.ListMerchants(ctx, filter)
 }
 
@@ -108,7 +107,7 @@ func (s *ServiceImpl) DeleteMerchant(ctx context.Context, merchantID string) err
 	return s.repo.DeleteMerchant(ctx, merchantID)
 }
 
-func (s *ServiceImpl) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+func (s *ServiceImpl) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsInput) ([]models.TransactionEntry, error) {
 	return s.repo.ListTransactionEntries(ctx, filter)
 }
 

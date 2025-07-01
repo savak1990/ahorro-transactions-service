@@ -113,14 +113,14 @@ func (r *PostgreSQLRepository) DeleteTransaction(ctx context.Context, transactio
 }
 
 // ListTransactions retrieves transaction entries based on the filter
-func (r *PostgreSQLRepository) ListTransactions(ctx context.Context, filter models.ListTransactionsFilter) ([]models.Transaction, string, error) {
+func (r *PostgreSQLRepository) ListTransactions(ctx context.Context, filter models.ListTransactionsInput) ([]models.Transaction, error) {
 	// For now, return empty result since we need to change the return type to []models.TransactionEntry
 	// This will be updated when we change the interface
-	return []models.Transaction{}, "", nil
+	return []models.Transaction{}, nil
 }
 
 // ListTransactionEntries retrieves transaction entries with all related data based on the filter
-func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsInput) ([]models.TransactionEntry, error) {
 	var entries []models.TransactionEntry
 
 	db := r.getDB()
@@ -138,8 +138,13 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 	}
 
 	// Join category table if we need to filter by category
-	if filter.Category != "" {
+	if filter.CategoryId != "" {
 		query = query.Joins("JOIN category ON transaction_entry.category_id = category.id")
+	}
+
+	// Join merchant table if we need to filter by merchant
+	if filter.MerchantId != "" {
+		query = query.Joins("JOIN merchant ON transaction.merchant_id = merchant.id")
 	}
 
 	// Apply transaction-related filters
@@ -160,13 +165,13 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 	}
 
 	// Apply category filter
-	if filter.Category != "" {
-		query = query.Where("category.category_name = ?", filter.Category)
+	if filter.CategoryId != "" {
+		query = query.Where("transaction_entry.category_id = ?", filter.CategoryId)
 	}
 
-	// Handle cursor-based pagination
-	if filter.StartKey != "" {
-		query = query.Where("transaction_entry.id < ?", filter.StartKey)
+	// Apply merchant filter
+	if filter.MerchantId != "" {
+		query = query.Where("transaction.merchant_id = ?", filter.MerchantId)
 	}
 
 	// Apply sorting
@@ -200,24 +205,13 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 	if filter.Count > 0 && filter.Count <= 100 {
 		limit = filter.Count
 	}
-	query = query.Limit(limit + 1) // Get one extra to check if there are more records
+	query = query.Limit(limit)
 
 	if err := query.Find(&entries).Error; err != nil {
-		return nil, "", fmt.Errorf("failed to list transaction entries: %w", err)
+		return nil, fmt.Errorf("failed to list transaction entries: %w", err)
 	}
 
-	// Handle pagination
-	var nextToken string
-	if len(entries) > limit {
-		// Remove the extra record and set next token
-		entries = entries[:limit]
-		if len(entries) > 0 {
-			// Use the last entry's ID as the next token (cursor-based pagination)
-			nextToken = entries[len(entries)-1].ID.String()
-		}
-	}
-
-	return entries, nextToken, nil
+	return entries, nil
 }
 
 // CreateCategory creates a new category in the database
@@ -231,7 +225,7 @@ func (r *PostgreSQLRepository) CreateCategory(ctx context.Context, category mode
 }
 
 // ListCategories retrieves all categories
-func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.ListCategoriesInput) ([]models.Category, string, error) {
+func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.ListCategoriesInput) ([]models.Category, error) {
 	var categories []models.Category
 	db := r.getDB()
 	query := db.WithContext(ctx)
@@ -245,11 +239,10 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	// You can implement pagination later if needed
 
 	if err := query.Order("category_name ASC").Find(&categories).Error; err != nil {
-		return nil, "", fmt.Errorf("failed to list categories: %w", err)
+		return nil, fmt.Errorf("failed to list categories: %w", err)
 	}
 
-	// Return empty nextToken for now (no pagination implemented)
-	return categories, "", nil
+	return categories, nil
 }
 
 // GetCategory retrieves a category by ID
@@ -294,7 +287,7 @@ func (r *PostgreSQLRepository) CreateBalance(ctx context.Context, balance models
 }
 
 // ListBalances retrieves all balances
-func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.ListBalancesFilter) ([]models.Balance, error) {
+func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.ListBalancesInput) ([]models.Balance, error) {
 	var balances []models.Balance
 	db := r.getDB()
 	query := db.WithContext(ctx)
@@ -374,7 +367,7 @@ func (r *PostgreSQLRepository) CreateMerchant(ctx context.Context, merchant mode
 }
 
 // ListMerchants retrieves merchants based on the filter
-func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.ListMerchantsInput) ([]models.Merchant, error) {
 	var merchants []models.Merchant
 	db := r.getDB()
 	query := db.WithContext(ctx)
@@ -395,32 +388,18 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 	}
 	query = query.Order(fmt.Sprintf("%s %s", orderBy, order))
 
-	// Apply limit for pagination
+	// Apply limit
 	limit := 50 // default limit
 	if filter.Count > 0 && filter.Count <= 100 {
 		limit = filter.Count
 	}
-	query = query.Limit(limit + 1) // Get one extra to check if there are more records
-
-	// Handle cursor-based pagination
-	if filter.StartKey != "" {
-		query = query.Where("id > ?", filter.StartKey)
-	}
+	query = query.Limit(limit)
 
 	if err := query.Find(&merchants).Error; err != nil {
-		return nil, "", fmt.Errorf("failed to list merchants: %w", err)
+		return nil, fmt.Errorf("failed to list merchants: %w", err)
 	}
 
-	// Handle pagination
-	var nextToken string
-	if len(merchants) > limit {
-		merchants = merchants[:limit]
-		if len(merchants) > 0 {
-			nextToken = merchants[len(merchants)-1].ID.String()
-		}
-	}
-
-	return merchants, nextToken, nil
+	return merchants, nil
 }
 
 // GetMerchant retrieves a merchant by ID

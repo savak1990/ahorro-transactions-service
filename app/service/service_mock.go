@@ -40,20 +40,20 @@ func (svc *MockService) DeleteTransaction(ctx context.Context, transactionID str
 	return args.Error(0)
 }
 
-func (svc *MockService) ListTransactions(ctx context.Context, filter models.ListTransactionsFilter) ([]models.Transaction, string, error) {
+func (svc *MockService) ListTransactions(ctx context.Context, filter models.ListTransactionsInput) ([]models.Transaction, error) {
 	args := svc.Called(ctx, filter)
 	if args.Get(0) == nil {
-		return nil, "", args.Error(2)
+		return nil, args.Error(1)
 	}
-	return args.Get(0).([]models.Transaction), args.String(1), args.Error(2)
+	return args.Get(0).([]models.Transaction), args.Error(1)
 }
 
-func (svc *MockService) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsFilter) ([]models.TransactionEntry, string, error) {
+func (svc *MockService) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsInput) ([]models.TransactionEntry, error) {
 	args := svc.Called(ctx, filter)
 	if args.Get(0) == nil {
-		return nil, "", args.Error(2)
+		return nil, args.Error(1)
 	}
-	return args.Get(0).([]models.TransactionEntry), args.String(1), args.Error(2)
+	return args.Get(0).([]models.TransactionEntry), args.Error(1)
 }
 
 func (svc *MockService) CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
@@ -85,7 +85,7 @@ func (svc *MockService) DeleteBalance(ctx context.Context, balanceID string) err
 	return args.Error(0)
 }
 
-func (svc *MockService) ListBalances(ctx context.Context, filter models.ListBalancesFilter) ([]models.Balance, error) {
+func (svc *MockService) ListBalances(ctx context.Context, filter models.ListBalancesInput) ([]models.Balance, error) {
 	args := svc.Called(ctx, filter)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -159,12 +159,12 @@ func (svc *MockService) DeleteMerchant(ctx context.Context, merchantID string) e
 	return args.Error(0)
 }
 
-func (svc *MockService) ListMerchants(ctx context.Context, filter models.ListMerchantsFilter) ([]models.Merchant, string, error) {
+func (svc *MockService) ListMerchants(ctx context.Context, filter models.ListMerchantsInput) ([]models.Merchant, error) {
 	args := svc.Called(ctx, filter)
 	if args.Get(0) == nil {
-		return nil, "", args.Error(2)
+		return nil, args.Error(1)
 	}
-	return args.Get(0).([]models.Merchant), args.String(1), args.Error(2)
+	return args.Get(0).([]models.Merchant), args.Error(1)
 }
 
 // Ensure MockService implements Service

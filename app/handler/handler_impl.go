@@ -2,14 +2,12 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/savak1990/transactions-service/app/aws"
 	"github.com/savak1990/transactions-service/app/models"
 	"github.com/savak1990/transactions-service/app/service"
 	"github.com/sirupsen/logrus"
@@ -56,14 +54,15 @@ func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) 
 
 // GET /transactions
 func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
-	filter := models.ListTransactionsFilter{
-		UserID:    r.URL.Query().Get("userId"),
-		GroupID:   r.URL.Query().Get("groupId"),
-		BalanceID: r.URL.Query().Get("balanceId"), // Now from query parameter
-		Type:      r.URL.Query().Get("type"),
-		Category:  r.URL.Query().Get("category"),
-		SortBy:    r.URL.Query().Get("sortedBy"),
-		Order:     r.URL.Query().Get("order"),
+	filter := models.ListTransactionsInput{
+		UserID:     r.URL.Query().Get("userId"),
+		GroupID:    r.URL.Query().Get("groupId"),
+		BalanceID:  r.URL.Query().Get("balanceId"), // Now from query parameter
+		Type:       r.URL.Query().Get("type"),
+		CategoryId: r.URL.Query().Get("categoryId"),
+		MerchantId: r.URL.Query().Get("merchantId"),
+		SortBy:     r.URL.Query().Get("sortedBy"),
+		Order:      r.URL.Query().Get("order"),
 	}
 	if count := r.URL.Query().Get("count"); count != "" {
 		// parse count as int
@@ -71,9 +70,8 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 			filter.Count = n
 		}
 	}
-	filter.StartKey = r.URL.Query().Get("startKey")
 
-	entries, nextToken, err := h.Service.ListTransactionEntries(r.Context(), filter)
+	entries, err := h.Service.ListTransactionEntries(r.Context(), filter)
 	if err != nil {
 		h.handleServiceError(w, err, "ListTransactionEntries")
 		return
@@ -85,7 +83,8 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 		entryDtos[i] = models.ToAPITransactionEntry(&entry)
 	}
 
-	WriteJSONListResponse(w, entryDtos, nextToken)
+	// Use paginated response structure (without actual pagination for now)
+	WriteJSONListResponse(w, entryDtos, "")
 }
 
 // GET /transactions/{transaction_id}
@@ -183,7 +182,7 @@ func (h *HandlerImpl) CreateBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
-	filter := models.ListBalancesFilter{
+	filter := models.ListBalancesInput{
 		UserID:  r.URL.Query().Get("userId"),
 		GroupID: r.URL.Query().Get("groupId"),
 	}
@@ -199,10 +198,8 @@ func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
 		balanceDtos[i] = models.ToAPIBalance(&balance)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"balances": balanceDtos,
-	})
+	// Use paginated response structure (without actual pagination for now)
+	WriteJSONListResponse(w, balanceDtos, "")
 }
 
 func (h *HandlerImpl) GetBalance(w http.ResponseWriter, r *http.Request) {
@@ -323,7 +320,6 @@ func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 			filter.Limit = n
 		}
 	}
-	filter.StartKey = r.URL.Query().Get("startKey")
 	results, err := h.Service.ListCategories(r.Context(), filter)
 	if err != nil {
 		h.handleServiceError(w, err, "ListCategories")
@@ -336,10 +332,8 @@ func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 		categoryDtos[i] = models.ToAPICategory(&category)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"categories": categoryDtos,
-	})
+	// Use paginated response structure (without actual pagination for now)
+	WriteJSONListResponse(w, categoryDtos, "")
 }
 
 func (h *HandlerImpl) GetCategory(w http.ResponseWriter, r *http.Request) {
@@ -452,7 +446,7 @@ func (h *HandlerImpl) CreateMerchant(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerImpl) ListMerchants(w http.ResponseWriter, r *http.Request) {
-	filter := models.ListMerchantsFilter{
+	filter := models.ListMerchantsInput{
 		Name:   r.URL.Query().Get("name"),
 		SortBy: r.URL.Query().Get("sortBy"),
 		Order:  r.URL.Query().Get("order"),
@@ -462,9 +456,8 @@ func (h *HandlerImpl) ListMerchants(w http.ResponseWriter, r *http.Request) {
 			filter.Count = n
 		}
 	}
-	filter.StartKey = r.URL.Query().Get("startKey")
 
-	results, nextToken, err := h.Service.ListMerchants(r.Context(), filter)
+	results, err := h.Service.ListMerchants(r.Context(), filter)
 	if err != nil {
 		h.handleServiceError(w, err, "ListMerchants")
 		return
@@ -476,15 +469,8 @@ func (h *HandlerImpl) ListMerchants(w http.ResponseWriter, r *http.Request) {
 		merchantDtos[i] = models.ToAPIMerchant(&merchant)
 	}
 
-	response := map[string]interface{}{
-		"merchants": merchantDtos,
-	}
-	if nextToken != "" {
-		response["nextToken"] = nextToken
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	// Use paginated response structure (without actual pagination for now)
+	WriteJSONListResponse(w, merchantDtos, "")
 }
 
 func (h *HandlerImpl) GetMerchant(w http.ResponseWriter, r *http.Request) {
@@ -573,91 +559,4 @@ func parseInt(s string) (int, error) {
 	return strconv.Atoi(strings.TrimSpace(s))
 }
 
-// isDatabaseConnectionError checks if an error is a database connection error
-func isDatabaseConnectionError(err error) bool {
-	if err == nil {
-		return false
-	}
-
-	errStr := strings.ToLower(err.Error())
-	return strings.Contains(errStr, "connection refused") ||
-		strings.Contains(errStr, "dial tcp") ||
-		strings.Contains(errStr, "failed to connect") ||
-		strings.Contains(errStr, "database connection failed") ||
-		strings.Contains(errStr, "no such host") ||
-		strings.Contains(errStr, "i/o timeout") ||
-		strings.Contains(errStr, "context deadline exceeded") ||
-		strings.Contains(errStr, "server closed the connection") ||
-		strings.Contains(errStr, "timeout") ||
-		strings.Contains(errStr, "network is unreachable") ||
-		strings.Contains(errStr, "connection reset by peer")
-}
-
-// handleDatabaseOperation wraps database operations to ensure connection errors are properly panicked
-func handleDatabaseOperation(operation func() error) {
-	err := operation()
-	if err != nil && isDatabaseConnectionError(err) {
-		// Convert database connection errors to proper panics for middleware
-		panic(&aws.DatabaseConnectionError{
-			Message: "Database connection failed during operation",
-			Cause:   err,
-		})
-	}
-	if err != nil {
-		// Re-throw other errors normally
-		panic(err)
-	}
-}
-
 var _ Handler = (*HandlerImpl)(nil)
-
-// handleServiceError is a centralized error handler for service layer errors
-// It checks for database connection errors and converts them to proper panics for middleware
-// Returns true if the error was handled (response was written), false if caller should continue
-func (h *HandlerImpl) handleServiceError(w http.ResponseWriter, err error, operation string) bool {
-	if err == nil {
-		return false
-	}
-
-	logrus.WithError(err).Errorf("%s failed", operation)
-
-	// Check if this is a database connection error - if so, convert to proper panic
-	if isDatabaseConnectionError(err) {
-		// Convert the regular error back to a DatabaseConnectionError panic
-		// so the maintenance middleware can catch it
-		panic(&aws.DatabaseConnectionError{
-			Message: fmt.Sprintf("Database connection failed during %s", operation),
-			Cause:   err,
-		})
-	}
-
-	// Handle other common error types
-	if isDatabaseMaintenanceError(err) {
-		WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is undergoing maintenance, please retry in a few minutes")
-		return true
-	}
-
-	if isDatabaseTimeoutError(err) {
-		WriteJSONError(w, http.StatusServiceUnavailable, models.ErrorCodeDbTimeout, "Database is temporarily unavailable, please retry in a few moments")
-		return true
-	}
-
-	if isDatabaseError(err) {
-		WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeDbError, err.Error())
-		return true
-	}
-
-	// Default to internal server error
-	WriteJSONError(w, http.StatusInternalServerError, models.ErrorCodeInternalServer, err.Error())
-	return true
-}
-
-// handleNotFoundError handles "not found" errors with a specific pattern
-func (h *HandlerImpl) handleNotFoundError(w http.ResponseWriter, err error, resourceType, resourceID string) bool {
-	expectedMessage := fmt.Sprintf("%s not found: %s", resourceType, resourceID)
-	if err.Error() == expectedMessage {
-		WriteJSONError(w, http.StatusNotFound, models.ErrorCodeNotFound, fmt.Sprintf("%s not found", strings.Title(resourceType)))
-		return true
-	}
-	return false
-}
