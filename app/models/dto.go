@@ -1,7 +1,5 @@
 package models
 
-import "github.com/shopspring/decimal"
-
 // CreateTransactionDto represents a financial transaction for creation via POST requests.
 type CreateTransactionDto struct {
 	TransactionID      string                      `json:"transactionId,omitempty"`
@@ -32,22 +30,25 @@ type CreateTransactionEntryDto struct {
 
 // TransactionDto represents a financial transaction for API responses.
 type TransactionEntryDto struct {
-	GroupID            string          `json:"groupId"`
-	UserID             string          `json:"userId"`
-	BalanceID          string          `json:"balanceId"`
-	TransactionID      string          `json:"transactionId"`
-	TransactionEntryID string          `json:"transactionEntryId"`
-	Type               string          `json:"type"`
-	Amount             decimal.Decimal `json:"amount"`
-	BalanceTitle       string          `json:"balanceTitle"`
-	BalanceCurrency    string          `json:"balanceCurrency"`
-	CategoryName       string          `json:"categoryName"`
-	CategoryImageUrl   string          `json:"categoryImageUrl,omitempty"`
-	MerchantName       string          `json:"merchantName,omitempty"`
-	MerchantImageUrl   string          `json:"merchantImageUrl,omitempty"`
-	OperationID        string          `json:"operationId,omitempty"`
-	ApprovedAt         string          `json:"approvedAt,omitempty"`
-	TransactedAt       string          `json:"transactedAt"`
+	GroupID               string  `json:"groupId"`
+	UserID                string  `json:"userId"`
+	BalanceID             string  `json:"balanceId"`
+	TransactionID         string  `json:"transactionId"`
+	TransactionEntryID    string  `json:"transactionEntryId"`
+	Type                  string  `json:"type"`
+	Amount                int     `json:"amount"`
+	BalanceTitle          string  `json:"balanceTitle"`
+	BalanceCurrency       string  `json:"balanceCurrency"`
+	CategoryName          string  `json:"categoryName"`
+	CategoryImageUrl      string  `json:"categoryImageUrl,omitempty"`
+	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
+	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
+	CategoryGroupID       string  `json:"categoryGroupId,omitempty"`
+	MerchantName          string  `json:"merchantName,omitempty"`
+	MerchantImageUrl      string  `json:"merchantImageUrl,omitempty"`
+	OperationID           string  `json:"operationId,omitempty"`
+	ApprovedAt            string  `json:"approvedAt,omitempty"`
+	TransactedAt          string  `json:"transactedAt"`
 }
 
 // Balance represents a user's balance/account for API responses.
@@ -58,21 +59,35 @@ type BalanceDto struct {
 	Currency    string `json:"currency"`
 	Title       string `json:"title"`
 	Description string `json:"description,omitempty"`
+	Rank        *int   `json:"rank,omitempty"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 	DeletedAt   string `json:"deletedAt,omitempty"`
 }
 
+// CategoryGroup represents a group of categories for API responses.
+type CategoryGroupDto struct {
+	CategoryGroupId string  `json:"categoryGroupId"`
+	Name            string  `json:"name"`
+	Description     string  `json:"description,omitempty"`
+	ImageUrl        *string `json:"imageUrl,omitempty"`
+	Rank            *int    `json:"rank,omitempty"`
+}
+
 // Category represents a user's category with a score for prioritization.
 type CategoryDto struct {
-	Name       string  `json:"name"`
-	CategoryID string  `json:"categoryId"`
-	ImageUrl   *string `json:"imageUrl,omitempty"`
+	CategoryID  string  `json:"categoryId"`
+	Name        string  `json:"name"`
+	Description string  `json:"description,omitempty"`
+	ImageUrl    *string `json:"imageUrl,omitempty"`
+	Rank        *int    `json:"rank,omitempty"`
 }
 
 // Merchant represents a merchant for API responses.
 type MerchantDto struct {
 	MerchantID  string `json:"merchantId"`
+	GroupID     string `json:"groupId,omitempty"`
+	UserID      string `json:"userId,omitempty"`
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	ImageUrl    string `json:"imageUrl,omitempty"`

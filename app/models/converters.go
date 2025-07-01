@@ -17,10 +17,48 @@ func ToAPICategory(c *Category) CategoryDto {
 	}
 
 	return CategoryDto{
-		Name:       c.CategoryName,
-		CategoryID: c.ID.String(),
-		ImageUrl:   c.ImageUrl,
+		CategoryID:  c.ID.String(),
+		Name:        c.Name,
+		Description: c.Description,
+		ImageUrl:    c.ImageUrl,
+		Rank:        c.Rank,
 	}
+}
+
+// ToAPICategoryGroup converts CategoryGroup (DAO) to CategoryGroupDto (API model)
+func ToAPICategoryGroup(cg *CategoryGroup) CategoryGroupDto {
+	if cg == nil {
+		return CategoryGroupDto{}
+	}
+
+	return CategoryGroupDto{
+		CategoryGroupId: cg.ID.String(),
+		Name:            cg.Name,
+		ImageUrl:        cg.ImageUrl,
+		Rank:            cg.Rank,
+	}
+}
+
+// FromAPICategoryGroup converts CategoryGroupDto (API model) to CategoryGroup (DAO)
+func FromAPICategoryGroup(dto CategoryGroupDto) (*CategoryGroup, error) {
+	// Parse CategoryGroupId if provided, otherwise generate new ID
+	var id uuid.UUID
+	var err error
+	if dto.CategoryGroupId != "" {
+		id, err = uuid.Parse(dto.CategoryGroupId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+	} else {
+		id = uuid.New() // Generate new ID if not provided
+	}
+
+	return &CategoryGroup{
+		ID:       id,
+		Name:     dto.Name,
+		ImageUrl: dto.ImageUrl,
+		Rank:     dto.Rank,
+	}, nil
 }
 
 // ToAPIBalance converts Balance (DAO) to BalanceDto (API model)
@@ -41,6 +79,7 @@ func ToAPIBalance(b *Balance) BalanceDto {
 		Currency:    b.Currency,
 		Title:       b.Title,
 		Description: desc,
+		Rank:        &b.Rank,
 		CreatedAt:   b.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   b.UpdatedAt.Format(time.RFC3339),
 		DeletedAt:   formatTimePtr(b.DeletedAt),
@@ -196,6 +235,11 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 		desc = &b.Description
 	}
 
+	rank := 0
+	if b.Rank != nil {
+		rank = *b.Rank
+	}
+
 	return &Balance{
 		ID:          id,
 		GroupID:     groupID,
@@ -203,6 +247,7 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 		Currency:    b.Currency,
 		Title:       b.Title,
 		Description: desc,
+		Rank:        rank,
 	}, nil
 }
 
@@ -222,9 +267,9 @@ func FromAPICategory(c CategoryDto) (*Category, error) {
 	}
 
 	return &Category{
-		ID:           id,
-		CategoryName: c.Name,
-		ImageUrl:     c.ImageUrl,
+		ID:       id,
+		Name:     c.Name,
+		ImageUrl: c.ImageUrl,
 	}, nil
 }
 
@@ -346,30 +391,47 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 	// Get category info
 	categoryName := ""
 	categoryImageUrl := ""
+	categoryGroupName := ""
+	categoryGroupImageUrl := ""
 	if te.Category != nil {
-		categoryName = te.Category.CategoryName
+		categoryName = te.Category.Name
 		if te.Category.ImageUrl != nil {
 			categoryImageUrl = *te.Category.ImageUrl
 		}
+		// Get category group name from the category's Group field
+		categoryGroupName = te.Category.Group
+		// Note: To get categoryGroupImageUrl, we would need to look up the CategoryGroup by name
+		// This would require an additional database query or preloaded relationship
+		// For now, we'll leave it empty and could enhance this later
+	}
+
+	// Convert decimal amount to integer cents for API response
+	amountCents := int64(0)
+	if !te.Amount.IsZero() {
+		// Multiply by 100 to convert to cents and round to int64
+		amountFloat, _ := te.Amount.Float64()
+		amountCents = int64(amountFloat * 100)
 	}
 
 	return TransactionEntryDto{
-		GroupID:            groupID,
-		UserID:             userID,
-		BalanceID:          balanceID,
-		TransactionID:      transactionID,
-		TransactionEntryID: te.ID.String(),
-		Type:               transactionType,
-		Amount:             te.Amount,
-		BalanceTitle:       balanceTitle,
-		BalanceCurrency:    balanceCurrency,
-		CategoryName:       categoryName,
-		CategoryImageUrl:   categoryImageUrl,
-		MerchantName:       merchantName,
-		MerchantImageUrl:   merchantImageUrl,
-		OperationID:        operationID,
-		ApprovedAt:         approvedAt,
-		TransactedAt:       transactedAt,
+		GroupID:               groupID,
+		UserID:                userID,
+		BalanceID:             balanceID,
+		TransactionID:         transactionID,
+		TransactionEntryID:    te.ID.String(),
+		Type:                  transactionType,
+		Amount:                int(amountCents),
+		BalanceTitle:          balanceTitle,
+		BalanceCurrency:       balanceCurrency,
+		CategoryName:          categoryName,
+		CategoryImageUrl:      categoryImageUrl,
+		CategoryGroupName:     categoryGroupName,
+		CategoryGroupImageUrl: &categoryGroupImageUrl,
+		MerchantName:          merchantName,
+		MerchantImageUrl:      merchantImageUrl,
+		OperationID:           operationID,
+		ApprovedAt:            approvedAt,
+		TransactedAt:          transactedAt,
 	}
 }
 
@@ -391,6 +453,8 @@ func ToAPIMerchant(m *Merchant) MerchantDto {
 
 	return MerchantDto{
 		MerchantID:  m.ID.String(),
+		GroupID:     m.GroupID.String(),
+		UserID:      m.UserID.String(),
 		Name:        m.Name,
 		Description: desc,
 		ImageUrl:    imageUrl,
@@ -408,6 +472,18 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 		id = uuid.New() // Generate new ID if not provided
 	}
 
+	// Parse GroupID
+	groupID, err := parseUUID(m.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID format: %w", err)
+	}
+
+	// Parse UserID
+	userID, err := parseUUID(m.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format: %w", err)
+	}
+
 	var desc *string
 	if m.Description != "" {
 		desc = &m.Description
@@ -420,6 +496,8 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 
 	return &Merchant{
 		ID:          id,
+		GroupID:     groupID,
+		UserID:      userID,
 		Name:        m.Name,
 		Description: desc,
 		ImageUrl:    imageUrl,

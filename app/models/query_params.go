@@ -1,9 +1,20 @@
 package models
 
+// ListCategoryGroupsInput defines the input for only category groups
+type ListCategoryGroupsInput struct {
+	Limit  int
+	SortBy string
+	Order  string
+}
+
 // ListCategoriesInput defines the input options for listing categories.
 type ListCategoriesInput struct {
-	UserID string
-	Limit  int
+	GroupID string
+	UserID  string
+	Limit   int
+	GroupBy string
+	SortBy  string
+	Order   string
 }
 
 // ListTransactionsInput defines the filter and pagination options for listing transactions.
@@ -16,7 +27,7 @@ type ListTransactionsInput struct {
 	MerchantId string
 	SortBy     string
 	Order      string
-	Count      int
+	Limit      int
 }
 
 // ListBalancesInput defines the filter and pagination options for list of balances
@@ -26,13 +37,16 @@ type ListBalancesInput struct {
 	BalanceID string
 	SortBy    string
 	Order     string
-	Count     int
+	Limit     int
 }
 
 // ListMerchantsInput defines the filter and pagination options for list of merchants
 type ListMerchantsInput struct {
-	Name   string
-	SortBy string
-	Order  string
-	Count  int
+	GroupID    string
+	UserID     string
+	MerchantID string
+	Name       string
+	SortBy     string
+	Order      string
+	Limit      int
 }

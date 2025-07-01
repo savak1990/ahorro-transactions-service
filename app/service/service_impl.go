@@ -63,6 +63,10 @@ func (s *ServiceImpl) DeleteBalance(ctx context.Context, balanceID string) error
 	return s.repo.DeleteBalance(ctx, balanceID)
 }
 
+func (s *ServiceImpl) DeleteBalancesByUserId(ctx context.Context, userId string) error {
+	return s.repo.DeleteBalancesByUserId(ctx, userId)
+}
+
 func (s *ServiceImpl) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
 	category.ID = uuid.New()
 	return s.repo.CreateCategory(ctx, category)
@@ -83,6 +87,10 @@ func (s *ServiceImpl) UpdateCategory(ctx context.Context, category models.Catego
 
 func (s *ServiceImpl) DeleteCategory(ctx context.Context, categoryID string) error {
 	return s.repo.DeleteCategory(ctx, categoryID)
+}
+
+func (s *ServiceImpl) DeleteCategoriesByUserId(ctx context.Context, userId string) error {
+	return s.repo.DeleteCategoriesByUserId(ctx, userId)
 }
 
 func (s *ServiceImpl) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
@@ -107,8 +115,36 @@ func (s *ServiceImpl) DeleteMerchant(ctx context.Context, merchantID string) err
 	return s.repo.DeleteMerchant(ctx, merchantID)
 }
 
+func (s *ServiceImpl) DeleteMerchantsByUserId(ctx context.Context, userId string) error {
+	return s.repo.DeleteMerchantsByUserId(ctx, userId)
+}
+
 func (s *ServiceImpl) ListTransactionEntries(ctx context.Context, filter models.ListTransactionsInput) ([]models.TransactionEntry, error) {
 	return s.repo.ListTransactionEntries(ctx, filter)
+}
+
+// CategoryGroup service methods
+
+func (s *ServiceImpl) CreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
+	categoryGroup.ID = uuid.New()
+	return s.repo.CreateCategoryGroup(ctx, categoryGroup)
+}
+
+func (s *ServiceImpl) ListCategoryGroups(ctx context.Context, filter models.ListCategoryGroupsInput) ([]models.CategoryGroup, error) {
+	return s.repo.ListCategoryGroups(ctx, filter)
+}
+
+func (s *ServiceImpl) GetCategoryGroup(ctx context.Context, categoryGroupID string) (*models.CategoryGroup, error) {
+	return s.repo.GetCategoryGroup(ctx, categoryGroupID)
+}
+
+func (s *ServiceImpl) UpdateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
+	categoryGroup.UpdatedAt = time.Now().UTC()
+	return s.repo.UpdateCategoryGroup(ctx, categoryGroup)
+}
+
+func (s *ServiceImpl) DeleteCategoryGroup(ctx context.Context, categoryGroupID string) error {
+	return s.repo.DeleteCategoryGroup(ctx, categoryGroupID)
 }
 
 // Ensure ServiceImpl implements Service

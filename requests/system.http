@@ -1,0 +1,24 @@
+# System and health check endpoints for ahorro-transactions-service
+
+@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
+
+### Info
+GET {{baseUrl}}/info
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Schema (Swagger UI Interface)
+GET {{baseUrl}}/schema
+
+### API Documentation (Alternative Swagger UI endpoint)
+GET {{baseUrl}}/docs
+
+### Schema Info
+GET {{baseUrl}}/schema/info
+
+### Schema Raw (YAML format)
+GET {{baseUrl}}/schema/raw
+
+### Schema JSON (JSON format)
+GET {{baseUrl}}/schema/json

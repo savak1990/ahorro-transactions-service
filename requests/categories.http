@@ -1,0 +1,161 @@
+# Category endpoints for ahorro-transactions-service
+
+#@baseUrl=http://localhost:8080
+@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
+
+# Authentication token - get this by running:
+# make get-cognito-token
+@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6ImIyYTM0ZDIyLWYxZWUtNDcwZC04NzJmLWVkYjllZGQyYzM0OSIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6ImU1YzA2MmMwLTYwNWUtNDU5Ny05ZGJmLTUyZWE2NDA0NmJiYiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMzkwNDg5LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTM5NDA4OSwiaWF0IjoxNzUxMzkwNDg5LCJqdGkiOiI1MmE5MWY3NS0yZDdjLTRlOWQtYmJkMi1hNmQ3MWUxMTY5NGMiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.0AvKlltzXWEdkRaYOn461Go-MLQ8MJZizwenKiaoYmGJ63KUmCYgyWXCyxjEDT5qg1xc1ShsSGUIVmfQPoDufIz8tGtZy4bxqSk01A4gUGLcjCe1-11qHa4RjS9oe7-ehRBfynGgjx5e3cIoj0nPtha4wV3ptow72RygtWhinvaojGIF2RqFlZ5Gr3tYxz4osXrwn6306mXLcanVLnsoigA_pHvGYtK2qvlwoz34e3yoZwH4Y0bkM8hvum93_MSDdu9Va0xYf-tKJ-X3Ly-NyC_KLTXaSGKpNaYmNAKEK7gWH1fzVI6RH4ifvrnpCGju-bYsVfOqs-9SNIL6ydO3Bw
+
+# Test data IDs
+@userId1=02c514a4-2021-708d-efff-ea6cd5e4eac9
+@userId2=12c514a4-2021-708d-efff-ea6cd5e4eac8
+@groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
+@categoryGroupId=4jnf5pcfr7gvo2vseif36bu6k
+
+@categoryId=28e2d53a-22e9-4c7e-9c06-0b91a9d091f4
+
+### Create a new category (part of a category group)
+POST {{baseUrl}}/categories
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId1}}",
+    "name": "Restaurants",
+    "description": "Dining out at restaurants",
+    "categoryGroupId": "{{categoryGroupId}}",
+    "imageUrl": "https://example.com/restaurant-icon.png",
+    "rank": 1000
+}
+
+### Create another category
+POST {{baseUrl}}/categories
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId1}}",
+    "name": "Cafe",
+    "description": "Dining out at Cafe",
+    "categoryGroupId": "{{categoryGroupId}}",
+    "imageUrl": "https://example.com/cafe-icon.png",
+    "rank": 500
+}
+
+### Create a third category
+POST {{baseUrl}}/categories
+Content-Type: application/json
+Authorization: Bearer {{authToken}} 
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId2}}",
+    "name": "Fast Food",
+    "description": "Fast food restaurants",
+    "categoryGroupId": "{{categoryGroupId}}",
+    "imageUrl": "https://example.com/fast-food-icon.png",
+    "rank": 300
+}
+
+### List top 10 categories for specific user. Limit is optional, no limit by default
+GET {{baseUrl}}/categories?userId={{userId1}}&limit=10
+Authorization: Bearer {{authToken}}
+
+### List categories by group ID and sort by rank (descending is default sort). Returns linear list of categories.
+GET {{baseUrl}}/categories?groupId={{groupId}}&sortBy=rank&order=DESC
+Authorization: Bearer {{authToken}}
+
+# Example response for linear categories:
+# [
+#    {
+#        "id": "c47ac10b-58cc-4372-a567-0e02b2c3d480",
+#        "name": "Restaurants",
+#        "description": "Dining out at restaurants",
+#        "imageUrl": "https://example.com/restaurant-icon.png",
+#        "rank": 1000
+#    },
+#    {
+#        "id": "c57ac10b-58cc-4372-a567-0e02b2c3d480",
+#        "name": "Cafe",
+#        "description": "Dining out at Cafe",
+#        "imageUrl": "https://example.com/restaurant-icon.png",
+#        "rank": 500
+#    }
+# ]
+
+### Grouped response and sort by rank (descending is default). If limit is specified, it applies to categoryGroup
+GET {{baseUrl}}/categories?userId={{userId1}}&sortBy=rank&groupBy=categoryGroup&limit=10
+Authorization: Bearer {{authToken}}
+
+# Example response for grouped categories:
+# [
+#     {
+#         "categoryGroupId": "REPLACE_WITH_CATEGORY_GROUP_ID",
+#         "name": "Food & Dining",
+#         "imageUrl": "https://example.com/food-icon.png",
+#         "rank": 500,
+#         "categories": [
+#             {
+#                 "id": "c47ac10b-58cc-4372-a567-0e02b2c3d480",
+#                 "name": "Restaurants",
+#                 "description": "Dining out at restaurants",
+#                 "imageUrl": "https://example.com/restaurant-icon.png",
+#                 "rank": 1000
+#             },
+#             {
+#                 "id": "c57ac10b-58cc-4372-a567-0e02b2c3d480",
+#                 "name": "Cafe",
+#                 "description": "Dining out at Cafe",
+#                 "imageUrl": "https://example.com/restaurant-icon.png",
+#                 "rank": 500
+#             }
+#         ]
+#     },
+#     {
+#         "categoryGroupId": "REPLACE_WITH_ANOTHER_CATEGORY_GROUP_ID",
+#         "name": "Shopping",
+#         "imageUrl": "https://example.com/shopping-icon.png",
+#         "rank": 400,
+#         "categories": [
+#             {
+#                 "id": "c47ac10b-58cc-4372-a567-0e02b2c3d481",
+#                 "name": "Fast Food",
+#                 "description": "Fast food restaurants",
+#                 "imageUrl": "https://example.com/fast-food-icon.png",
+#                 "rank": 300
+#             }
+#         ]
+#     }
+# ]
+
+### List categories by group ID and sort by updatedAt (ascending)
+GET {{baseUrl}}/categories?groupId={{groupId}}&sortBy=updatedAt&groupBy=categoryGroup&limit=10&order=ASC
+Authorization: Bearer {{authToken}}
+
+### Get a specific category
+GET {{baseUrl}}/categories/{{categoryGroupId}}
+Authorization: Bearer {{authToken}}
+
+### Update a category
+PUT {{baseUrl}}/categories/{{categoryGroupId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Updated Restaurants",
+    "description": "Updated dining out at restaurants",
+    "categoryGroupId": "REPLACE_WITH_CATEGORY_GROUP_ID",
+    "imageUrl": "https://example.com/updated-restaurant-icon.png",
+    "rank": 1100
+}
+
+### Delete a category (replace REPLACE_WITH_CATEGORY_ID with actual category_id from response)
+DELETE {{baseUrl}}/categories/{{categoryGroupId}}
+Authorization: Bearer {{authToken}}
+
+### Delete all categories for the user
+DELETE {{baseUrl}}/categories?userId={{userId1}}
+Authorization: Bearer {{authToken}}

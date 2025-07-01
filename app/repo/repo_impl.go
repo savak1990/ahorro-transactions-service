@@ -202,8 +202,8 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 
 	// Apply limit
 	limit := 50 // default limit
-	if filter.Count > 0 && filter.Count <= 100 {
-		limit = filter.Count
+	if filter.Limit > 0 && filter.Limit <= 100 {
+		limit = filter.Limit
 	}
 	query = query.Limit(limit)
 
@@ -276,6 +276,15 @@ func (r *PostgreSQLRepository) DeleteCategory(ctx context.Context, categoryID st
 	return nil
 }
 
+// DeleteCategoriesByUserId deletes all categories for a user ID
+func (r *PostgreSQLRepository) DeleteCategoriesByUserId(ctx context.Context, userId string) error {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("user_id = ?", userId).Delete(&models.Category{}).Error; err != nil {
+		return fmt.Errorf("failed to delete categories for user %s: %w", userId, err)
+	}
+	return nil
+}
+
 // CreateBalance creates a new balance in the database
 func (r *PostgreSQLRepository) CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
 	db := r.getDB()
@@ -307,16 +316,29 @@ func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.L
 	orderBy := "created_at ASC"
 	if filter.SortBy != "" {
 		direction := "ASC"
-		if filter.Order == "desc" {
+		if filter.Order == "desc" || filter.Order == "DESC" {
 			direction = "DESC"
 		}
-		orderBy = fmt.Sprintf("%s %s", filter.SortBy, direction)
+
+		// Validate sortBy field
+		validSortFields := map[string]string{
+			"rank":      "rank",
+			"createdAt": "created_at",
+			"updatedAt": "updated_at",
+			"title":     "title",
+		}
+
+		if dbField, valid := validSortFields[filter.SortBy]; valid {
+			orderBy = fmt.Sprintf("%s %s", dbField, direction)
+		} else {
+			orderBy = "created_at ASC"
+		}
 	}
 	query = query.Order(orderBy)
 
 	// Apply limit
-	if filter.Count > 0 {
-		query = query.Limit(filter.Count)
+	if filter.Limit > 0 {
+		query = query.Limit(filter.Limit)
 	}
 
 	if err := query.Find(&balances).Error; err != nil {
@@ -357,6 +379,15 @@ func (r *PostgreSQLRepository) DeleteBalance(ctx context.Context, balanceID stri
 	return nil
 }
 
+// DeleteBalancesByUserId deletes all balances for a user ID
+func (r *PostgreSQLRepository) DeleteBalancesByUserId(ctx context.Context, userId string) error {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("user_id = ?", userId).Delete(&models.Balance{}).Error; err != nil {
+		return fmt.Errorf("failed to delete balances for user %s: %w", userId, err)
+	}
+	return nil
+}
+
 // CreateMerchant creates a new merchant in the database
 func (r *PostgreSQLRepository) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
 	db := r.getDB()
@@ -390,8 +421,8 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 
 	// Apply limit
 	limit := 50 // default limit
-	if filter.Count > 0 && filter.Count <= 100 {
-		limit = filter.Count
+	if filter.Limit > 0 && filter.Limit <= 100 {
+		limit = filter.Limit
 	}
 	query = query.Limit(limit)
 
@@ -429,6 +460,88 @@ func (r *PostgreSQLRepository) DeleteMerchant(ctx context.Context, merchantId st
 	db := r.getDB()
 	if err := db.WithContext(ctx).Where("id = ?", merchantId).Delete(&models.Merchant{}).Error; err != nil {
 		return fmt.Errorf("failed to delete merchant: %w", err)
+	}
+	return nil
+}
+
+// DeleteMerchantsByUserId deletes all merchants for a user ID
+func (r *PostgreSQLRepository) DeleteMerchantsByUserId(ctx context.Context, userId string) error {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("user_id = ?", userId).Delete(&models.Merchant{}).Error; err != nil {
+		return fmt.Errorf("failed to delete merchants for user %s: %w", userId, err)
+	}
+	return nil
+}
+
+// CategoryGroup repository methods
+
+// CreateCategoryGroup creates a new category group in the database
+func (r *PostgreSQLRepository) CreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Create(&categoryGroup).Error; err != nil {
+		return nil, fmt.Errorf("failed to create category group: %w", err)
+	}
+	return &categoryGroup, nil
+}
+
+// ListCategoryGroups retrieves category groups based on the filter
+func (r *PostgreSQLRepository) ListCategoryGroups(ctx context.Context, filter models.ListCategoryGroupsInput) ([]models.CategoryGroup, error) {
+	var categoryGroups []models.CategoryGroup
+	db := r.getDB()
+	query := db.WithContext(ctx)
+
+	// Apply ordering
+	orderBy := "rank"
+	if filter.SortBy != "" {
+		orderBy = filter.SortBy
+	}
+	order := "DESC"
+	if filter.Order != "" && (filter.Order == "ASC" || filter.Order == "asc") {
+		order = "ASC"
+	}
+	query = query.Order(fmt.Sprintf("%s %s", orderBy, order))
+
+	// Apply limit
+	if filter.Limit > 0 && filter.Limit <= 100 {
+		query = query.Limit(filter.Limit)
+	}
+
+	if err := query.Find(&categoryGroups).Error; err != nil {
+		return nil, fmt.Errorf("failed to list category groups: %w", err)
+	}
+
+	return categoryGroups, nil
+}
+
+// GetCategoryGroup retrieves a category group by ID
+func (r *PostgreSQLRepository) GetCategoryGroup(ctx context.Context, categoryGroupID string) (*models.CategoryGroup, error) {
+	var categoryGroup models.CategoryGroup
+	db := r.getDB()
+
+	if err := db.WithContext(ctx).Where("id = ?", categoryGroupID).First(&categoryGroup).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("failed to get category group: %w", err)
+	}
+
+	return &categoryGroup, nil
+}
+
+// UpdateCategoryGroup updates an existing category group
+func (r *PostgreSQLRepository) UpdateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Save(&categoryGroup).Error; err != nil {
+		return nil, fmt.Errorf("failed to update category group: %w", err)
+	}
+	return &categoryGroup, nil
+}
+
+// DeleteCategoryGroup deletes a category group by ID
+func (r *PostgreSQLRepository) DeleteCategoryGroup(ctx context.Context, categoryGroupID string) error {
+	db := r.getDB()
+	if err := db.WithContext(ctx).Where("id = ?", categoryGroupID).Delete(&models.CategoryGroup{}).Error; err != nil {
+		return fmt.Errorf("failed to delete category group: %w", err)
 	}
 	return nil
 }

@@ -127,23 +127,33 @@ func main() {
 	// Balances APIs
 	router.HandleFunc("/balances", serviceHandler.CreateBalance).Methods("POST")
 	router.HandleFunc("/balances", serviceHandler.ListBalances).Methods("GET")
+	router.HandleFunc("/balances", serviceHandler.DeleteBalancesByUserId).Methods("DELETE") // Bulk delete by userId
 	router.HandleFunc("/balances/{balance_id}", serviceHandler.GetBalance).Methods("GET")
 	router.HandleFunc("/balances/{balance_id}", serviceHandler.UpdateBalance).Methods("PUT")
-	router.HandleFunc("/balances/{balance_id}", serviceHandler.DeleteBalance).Methods("DELETE")
+	router.HandleFunc("/balances/{balance_id}", serviceHandler.DeleteBalance).Methods("DELETE") // Single delete by ID
 
 	// Categories APIs
 	router.HandleFunc("/categories", serviceHandler.CreateCategory).Methods("POST")
 	router.HandleFunc("/categories", serviceHandler.ListCategories).Methods("GET")
+	router.HandleFunc("/categories", serviceHandler.DeleteCategoriesByUserId).Methods("DELETE") // Bulk delete by userId
 	router.HandleFunc("/categories/{category_id}", serviceHandler.GetCategory).Methods("GET")
 	router.HandleFunc("/categories/{category_id}", serviceHandler.UpdateCategory).Methods("PUT")
-	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE")
+	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE") // Single delete by ID
+
+	// Category Groups APIs
+	router.HandleFunc("/category-groups", serviceHandler.CreateCategoryGroup).Methods("POST")
+	router.HandleFunc("/category-groups", serviceHandler.ListCategoryGroups).Methods("GET")
+	router.HandleFunc("/category-groups/{category_group_id}", serviceHandler.GetCategoryGroup).Methods("GET")
+	router.HandleFunc("/category-groups/{category_group_id}", serviceHandler.UpdateCategoryGroup).Methods("PUT")
+	router.HandleFunc("/category-groups/{category_group_id}", serviceHandler.DeleteCategoryGroup).Methods("DELETE")
 
 	// Merchants APIs
 	router.HandleFunc("/merchants", serviceHandler.CreateMerchant).Methods("POST")
 	router.HandleFunc("/merchants", serviceHandler.ListMerchants).Methods("GET")
+	router.HandleFunc("/merchants", serviceHandler.DeleteMerchantsByUserId).Methods("DELETE") // Bulk delete by userId
 	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.GetMerchant).Methods("GET")
 	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.UpdateMerchant).Methods("PUT")
-	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.DeleteMerchant).Methods("DELETE")
+	router.HandleFunc("/merchants/{merchant_id}", serviceHandler.DeleteMerchant).Methods("DELETE") // Single delete by ID
 
 	// Lambda/API Gateway integration: use the muxadapter if running in Lambda
 	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" || os.Getenv("_LAMBDA_SERVER_PORT") != "" {

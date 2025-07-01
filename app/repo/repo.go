@@ -22,6 +22,14 @@ type Repository interface {
 	GetCategory(ctx context.Context, categoryID string) (*models.Category, error)
 	UpdateCategory(ctx context.Context, category models.Category) (*models.Category, error)
 	DeleteCategory(ctx context.Context, categoryID string) error
+	DeleteCategoriesByUserId(ctx context.Context, userId string) error
+
+	// CategoryGroup methods
+	CreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error)
+	ListCategoryGroups(ctx context.Context, filter models.ListCategoryGroupsInput) ([]models.CategoryGroup, error)
+	GetCategoryGroup(ctx context.Context, categoryGroupID string) (*models.CategoryGroup, error)
+	UpdateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error)
+	DeleteCategoryGroup(ctx context.Context, categoryGroupID string) error
 
 	// Balance methods
 	CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error)
@@ -29,6 +37,7 @@ type Repository interface {
 	GetBalance(ctx context.Context, balanceId string) (*models.Balance, error)
 	UpdateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error)
 	DeleteBalance(ctx context.Context, balanceId string) error
+	DeleteBalancesByUserId(ctx context.Context, userId string) error
 
 	// Merchant methods
 	CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error)
@@ -36,4 +45,5 @@ type Repository interface {
 	GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error)
 	UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error)
 	DeleteMerchant(ctx context.Context, merchantId string) error
+	DeleteMerchantsByUserId(ctx context.Context, userId string) error
 }

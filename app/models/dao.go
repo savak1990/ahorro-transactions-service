@@ -19,6 +19,7 @@ type Balance struct {
 	Currency    string     `gorm:"type:varchar(3);not null;default:'EUR'"` // ISO 4217 currency codes (3 chars)
 	Title       string     `gorm:"type:varchar(100);not null"`             // Limited to 100 characters
 	Description *string    `gorm:"type:varchar(500)"`                      // Optional description, limited to 500 characters
+	Rank        int        `gorm:"column:rank"`                            // Optional rank for ordering
 	CreatedAt   time.Time  `gorm:"default:now()"`
 	UpdatedAt   time.Time  `gorm:"default:now()"`
 	DeletedAt   *time.Time `gorm:"index"`
@@ -35,9 +36,12 @@ func (Balance) TableName() string {
 // Merchant represents a merchant in the system
 type Merchant struct {
 	ID          uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	GroupID     uuid.UUID  `gorm:"type:uuid;not null;index:idx_merchant_group_id"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null;index:idx_merchant_user_id"`
 	Name        string     `gorm:"not null"`
-	Description *string    `gorm:"type:varchar(500)"`
+	Description *string    `gorm:"type:varchar(255)"`
 	ImageUrl    *string    `gorm:"type:varchar(255)"`
+	Rank        int        `gorm:"column:rank"`
 	CreatedAt   time.Time  `gorm:"default:now()"`
 	UpdatedAt   time.Time  `gorm:"default:now()"`
 	DeletedAt   *time.Time `gorm:"index"`
@@ -51,16 +55,36 @@ func (Merchant) TableName() string {
 	return "merchant"
 }
 
+// Category group represents a group of categories
+type CategoryGroup struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Name      string     `gorm:"not null"`
+	Rank      *int       `gorm:"column:rank"`
+	ImageUrl  *string    `gorm:"column:image_url;type:varchar(255)"`
+	CreatedAt time.Time  `gorm:"default:now()"`
+	UpdatedAt time.Time  `gorm:"default:now()"`
+	DeletedAt *time.Time `gorm:"index"`
+}
+
+// TableName specifies the table name for GORM
+func (CategoryGroup) TableName() string {
+	return "category"
+}
+
 // Category represents a category in the PostgreSQL database
 type Category struct {
-	ID           uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	CategoryName string     `gorm:"not null"`
-	Group        *string    `gorm:"column:group"`
-	Rank         *int       `gorm:"column:rank"`
-	ImageUrl     *string    `gorm:"column:image_url;type:varchar(255)"`
-	CreatedAt    time.Time  `gorm:"default:now()"`
-	UpdatedAt    time.Time  `gorm:"default:now()"`
-	DeletedAt    *time.Time `gorm:"index"`
+	ID              uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserId          uuid.UUID  `gorm:"type:uuid;not null;index:idx_category_user_id"`
+	GroupId         uuid.UUID  `gorm:"type:uuid;not null;index:idx_category_group_id"`
+	CategoryGroupId string     `gorm:"not null;index:idx_category_group_id"`
+	Name            string     `gorm:"not null"`
+	Group           string     `gorm:"column:group;not null"` // Category group name from "group" column
+	Description     string     `gorm:"type:varchar(255)"`
+	Rank            *int       `gorm:"column:rank"`
+	ImageUrl        *string    `gorm:"column:image_url;type:varchar(255)"`
+	CreatedAt       time.Time  `gorm:"default:now()"`
+	UpdatedAt       time.Time  `gorm:"default:now()"`
+	DeletedAt       *time.Time `gorm:"index"`
 }
 
 // TableName specifies the table name for GORM

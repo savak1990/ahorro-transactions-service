@@ -106,6 +106,11 @@ func (m *MockRepository) DeleteCategory(ctx context.Context, categoryID string) 
 	return args.Error(0)
 }
 
+func (m *MockRepository) DeleteCategoriesByUserId(ctx context.Context, userId string) error {
+	args := m.Called(ctx, userId)
+	return args.Error(0)
+}
+
 // Balance methods
 
 func (m *MockRepository) CreateBalance(ctx context.Context, balance models.Balance) (*models.Balance, error) {
@@ -143,6 +148,11 @@ func (m *MockRepository) UpdateBalance(ctx context.Context, balance models.Balan
 
 func (m *MockRepository) DeleteBalance(ctx context.Context, userID string) error {
 	args := m.Called(ctx, userID)
+	return args.Error(0)
+}
+
+func (m *MockRepository) DeleteBalancesByUserId(ctx context.Context, userId string) error {
+	args := m.Called(ctx, userId)
 	return args.Error(0)
 }
 
@@ -186,6 +196,51 @@ func (m *MockRepository) DeleteMerchant(ctx context.Context, merchantId string) 
 	return args.Error(0)
 }
 
+func (m *MockRepository) DeleteMerchantsByUserId(ctx context.Context, userId string) error {
+	args := m.Called(ctx, userId)
+	return args.Error(0)
+}
+
+// CategoryGroup methods
+
+func (m *MockRepository) CreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
+	args := m.Called(ctx, categoryGroup)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CategoryGroup), args.Error(1)
+}
+
+func (m *MockRepository) ListCategoryGroups(ctx context.Context, filter models.ListCategoryGroupsInput) ([]models.CategoryGroup, error) {
+	args := m.Called(ctx, filter)
+	var categoryGroups []models.CategoryGroup
+	if v := args.Get(0); v != nil {
+		categoryGroups = v.([]models.CategoryGroup)
+	}
+	return categoryGroups, args.Error(1)
+}
+
+func (m *MockRepository) GetCategoryGroup(ctx context.Context, categoryGroupID string) (*models.CategoryGroup, error) {
+	args := m.Called(ctx, categoryGroupID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CategoryGroup), args.Error(1)
+}
+
+func (m *MockRepository) UpdateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
+	args := m.Called(ctx, categoryGroup)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.CategoryGroup), args.Error(1)
+}
+
+func (m *MockRepository) DeleteCategoryGroup(ctx context.Context, categoryGroupID string) error {
+	args := m.Called(ctx, categoryGroupID)
+	return args.Error(0)
+}
+
 // Helper methods for testing
 
 // ExpectCreateTransaction sets up an expectation for CreateTransaction method
@@ -226,6 +281,11 @@ func (m *MockRepository) ExpectListCategories(ctx context.Context, input models.
 // ExpectDeleteCategory sets up an expectation for DeleteCategory method
 func (m *MockRepository) ExpectDeleteCategory(ctx context.Context, categoryID string, err error) *mock.Call {
 	return m.On("DeleteCategory", ctx, categoryID).Return(err)
+}
+
+// ExpectDeleteCategoriesByUserId sets up an expectation for DeleteCategoriesByUserId method
+func (m *MockRepository) ExpectDeleteCategoriesByUserId(ctx context.Context, userId string, err error) *mock.Call {
+	return m.On("DeleteCategoriesByUserId", ctx, userId).Return(err)
 }
 
 // ExpectCreateBalance sets up an expectation for CreateBalance method
@@ -276,6 +336,38 @@ func (m *MockRepository) ExpectUpdateMerchant(ctx context.Context, merchant mode
 // ExpectDeleteMerchant sets up an expectation for DeleteMerchant method
 func (m *MockRepository) ExpectDeleteMerchant(ctx context.Context, merchantId string, err error) *mock.Call {
 	return m.On("DeleteMerchant", ctx, merchantId).Return(err)
+}
+
+// ExpectDeleteMerchantsByUserId sets up an expectation for DeleteMerchantsByUserId method
+func (m *MockRepository) ExpectDeleteMerchantsByUserId(ctx context.Context, userId string, err error) *mock.Call {
+	return m.On("DeleteMerchantsByUserId", ctx, userId).Return(err)
+}
+
+// CategoryGroup expectation methods
+
+// ExpectCreateCategoryGroup sets up an expectation for CreateCategoryGroup method
+func (m *MockRepository) ExpectCreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup, result *models.CategoryGroup, err error) *mock.Call {
+	return m.On("CreateCategoryGroup", ctx, categoryGroup).Return(result, err)
+}
+
+// ExpectListCategoryGroups sets up an expectation for ListCategoryGroups method
+func (m *MockRepository) ExpectListCategoryGroups(ctx context.Context, filter models.ListCategoryGroupsInput, result []models.CategoryGroup, err error) *mock.Call {
+	return m.On("ListCategoryGroups", ctx, filter).Return(result, err)
+}
+
+// ExpectGetCategoryGroup sets up an expectation for GetCategoryGroup method
+func (m *MockRepository) ExpectGetCategoryGroup(ctx context.Context, categoryGroupID string, result *models.CategoryGroup, err error) *mock.Call {
+	return m.On("GetCategoryGroup", ctx, categoryGroupID).Return(result, err)
+}
+
+// ExpectUpdateCategoryGroup sets up an expectation for UpdateCategoryGroup method
+func (m *MockRepository) ExpectUpdateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup, result *models.CategoryGroup, err error) *mock.Call {
+	return m.On("UpdateCategoryGroup", ctx, categoryGroup).Return(result, err)
+}
+
+// ExpectDeleteCategoryGroup sets up an expectation for DeleteCategoryGroup method
+func (m *MockRepository) ExpectDeleteCategoryGroup(ctx context.Context, categoryGroupID string, err error) *mock.Call {
+	return m.On("DeleteCategoryGroup", ctx, categoryGroupID).Return(err)
 }
 
 // Ensure MockRepository implements Repository interface

@@ -1,0 +1,89 @@
+# Category Group endpoints for ahorro-transactions-service
+
+#@baseUrl=http://localhost:8080
+@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
+
+# Authentication token - get this by running:
+# make get-cognito-token
+@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6ImIyYTM0ZDIyLWYxZWUtNDcwZC04NzJmLWVkYjllZGQyYzM0OSIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6ImU1YzA2MmMwLTYwNWUtNDU5Ny05ZGJmLTUyZWE2NDA0NmJiYiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMzkwNDg5LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTM5NDA4OSwiaWF0IjoxNzUxMzkwNDg5LCJqdGkiOiI1MmE5MWY3NS0yZDdjLTRlOWQtYmJkMi1hNmQ3MWUxMTY5NGMiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.0AvKlltzXWEdkRaYOn461Go-MLQ8MJZizwenKiaoYmGJ63KUmCYgyWXCyxjEDT5qg1xc1ShsSGUIVmfQPoDufIz8tGtZy4bxqSk01A4gUGLcjCe1-11qHa4RjS9oe7-ehRBfynGgjx5e3cIoj0nPtha4wV3ptow72RygtWhinvaojGIF2RqFlZ5Gr3tYxz4osXrwn6306mXLcanVLnsoigA_pHvGYtK2qvlwoz34e3yoZwH4Y0bkM8hvum93_MSDdu9Va0xYf-tKJ-X3Ly-NyC_KLTXaSGKpNaYmNAKEK7gWH1fzVI6RH4ifvrnpCGju-bYsVfOqs-9SNIL6ydO3Bw
+
+# Test data IDs
+@userId1=02c514a4-2021-708d-efff-ea6cd5e4eac9
+@userId2=12c514a4-2021-708d-efff-ea6cd5e4eac8
+@groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
+
+@categoryGroupId=4jnf5pcfr7gvo2vseif36bu6k
+
+@categoryId=28e2d53a-22e9-4c7e-9c06-0b91a9d091f4
+
+### Create a new category group
+POST {{baseUrl}}/category-groups
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Food & Dining",
+    "imageUrl": "https://example.com/food-icon.png",
+    "rank": 500
+}
+
+### Create another category group
+POST {{baseUrl}}/category-groups
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Travel & Leisure",
+    "imageUrl": "https://example.com/travel-icon.png",
+    "rank": 300
+}
+
+### Create a third category group
+POST {{baseUrl}}/category-groups
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Health & Fitness",
+    "imageUrl": "https://example.com/health-icon.png",
+    "rank": 400
+}
+
+### List all category groups sorted by rank from highest to lowest (highest is more popular)
+GET {{baseUrl}}/category-groups
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List category groups by rank from lowest to highest
+GET {{baseUrl}}/category-groups?sortBy=rank&order=ASC
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List category groups by rank from highest to lowest
+GET {{baseUrl}}/category-groups?sortBy=createdAt&order=DESC
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List top category groups by updatedAt field (limit 10)
+GET {{baseUrl}}/category-groups?sortBy=updatedAt&order=ASC&limit=10
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### Get a specific category group details
+GET {{baseUrl}}/category-groups/{{categoryGroupId}}
+Authorization: Bearer {{authToken}}
+
+### Update details of category group
+PUT {{baseUrl}}/category-groups/{{categoryGroupId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Updated Food & Dining",
+    "imageUrl": "https://example.com/updated-food-icon.png",
+    "rank": 600
+}
+
+### Delete a category group
+DELETE {{baseUrl}}/category-groups/{{categoryGroupId}}
+Authorization: Bearer {{authToken}}

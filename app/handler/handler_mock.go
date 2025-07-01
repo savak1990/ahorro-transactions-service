@@ -45,6 +45,9 @@ func (h *HandlerMock) UpdateBalance(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerMock) DeleteBalance(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
+func (h *HandlerMock) DeleteBalancesByUserId(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
 func (h *HandlerMock) CreateCategory(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
@@ -60,6 +63,24 @@ func (h *HandlerMock) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerMock) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
+func (h *HandlerMock) DeleteCategoriesByUserId(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) CreateCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) ListCategoryGroups(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) GetCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) UpdateCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) DeleteCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
 func (h *HandlerMock) CreateMerchant(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
@@ -73,6 +94,9 @@ func (h *HandlerMock) UpdateMerchant(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
 func (h *HandlerMock) DeleteMerchant(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
+func (h *HandlerMock) DeleteMerchantsByUserId(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
 

@@ -1,0 +1,156 @@
+package models
+
+import (
+	"testing"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+)
+
+func TestToAPITransactionEntry(t *testing.T) {
+	// Create test data
+	transactionID := uuid.New()
+	entryID := uuid.New()
+	categoryID := uuid.New()
+	groupID := uuid.New()
+	userID := uuid.New()
+	balanceID := uuid.New()
+	merchantID := uuid.New()
+
+	// Create a test amount of $45.50 (which should become 4550 cents)
+	amount := decimal.NewFromFloat(45.50)
+
+	// Create test category with group
+	category := &Category{
+		ID:          categoryID,
+		Name:        "Groceries",
+		Group:       "Food & Dining",
+		ImageUrl:    stringPtr("https://example.com/groceries.png"),
+		Description: "Food and grocery purchases",
+	}
+
+	// Create test merchant
+	merchant := &Merchant{
+		ID:       merchantID,
+		Name:     "Mercadona",
+		ImageUrl: stringPtr("https://example.com/mercadona.png"),
+	}
+
+	// Create test balance
+	balance := &Balance{
+		ID:       balanceID,
+		Title:    "Main Checking",
+		Currency: "EUR",
+	}
+
+	// Create test transaction
+	transaction := &Transaction{
+		ID:           transactionID,
+		GroupID:      groupID,
+		UserID:       userID,
+		BalanceID:    balanceID,
+		MerchantID:   &merchantID,
+		Type:         "expense",
+		ApprovedAt:   time.Now(),
+		TransactedAt: time.Now(),
+		Merchant:     merchant,
+		Balance:      balance,
+	}
+
+	// Create test transaction entry
+	entry := &TransactionEntry{
+		ID:            entryID,
+		TransactionID: transactionID,
+		Amount:        amount,
+		CategoryID:    &categoryID,
+		Transaction:   transaction,
+		Category:      category,
+	}
+
+	// Convert to API model
+	result := ToAPITransactionEntry(entry)
+
+	// Verify the conversion
+	if result.Amount != 4550 {
+		t.Errorf("Expected amount to be 4550 cents, got %d", result.Amount)
+	}
+
+	if result.CategoryName != "Groceries" {
+		t.Errorf("Expected categoryName to be 'Groceries', got '%s'", result.CategoryName)
+	}
+
+	if result.CategoryGroupName != "Food & Dining" {
+		t.Errorf("Expected categoryGroupName to be 'Food & Dining', got '%s'", result.CategoryGroupName)
+	}
+
+	if result.CategoryImageUrl != "https://example.com/groceries.png" {
+		t.Errorf("Expected categoryImageUrl to be 'https://example.com/groceries.png', got '%s'", result.CategoryImageUrl)
+	}
+
+	if result.MerchantName != "Mercadona" {
+		t.Errorf("Expected merchantName to be 'Mercadona', got '%s'", result.MerchantName)
+	}
+
+	if result.BalanceTitle != "Main Checking" {
+		t.Errorf("Expected balanceTitle to be 'Main Checking', got '%s'", result.BalanceTitle)
+	}
+
+	if result.BalanceCurrency != "EUR" {
+		t.Errorf("Expected balanceCurrency to be 'EUR', got '%s'", result.BalanceCurrency)
+	}
+
+	if result.Type != "expense" {
+		t.Errorf("Expected type to be 'expense', got '%s'", result.Type)
+	}
+
+	// Test CategoryGroupImageUrl is properly set as pointer
+	if result.CategoryGroupImageUrl == nil {
+		t.Error("Expected categoryGroupImageUrl to not be nil")
+	} else if *result.CategoryGroupImageUrl != "" {
+		t.Errorf("Expected categoryGroupImageUrl to be empty string, got '%s'", *result.CategoryGroupImageUrl)
+	}
+}
+
+func TestToAPITransactionEntry_ZeroAmount(t *testing.T) {
+	// Test with zero amount
+	entry := &TransactionEntry{
+		ID:     uuid.New(),
+		Amount: decimal.Zero,
+	}
+
+	result := ToAPITransactionEntry(entry)
+
+	if result.Amount != 0 {
+		t.Errorf("Expected amount to be 0 cents, got %d", result.Amount)
+	}
+}
+
+func TestToAPITransactionEntry_NilCategory(t *testing.T) {
+	// Test with nil category
+	entry := &TransactionEntry{
+		ID:       uuid.New(),
+		Amount:   decimal.NewFromFloat(10.99),
+		Category: nil,
+	}
+
+	result := ToAPITransactionEntry(entry)
+
+	if result.CategoryName != "" {
+		t.Errorf("Expected categoryName to be empty, got '%s'", result.CategoryName)
+	}
+
+	if result.CategoryGroupName != "" {
+		t.Errorf("Expected categoryGroupName to be empty, got '%s'", result.CategoryGroupName)
+	}
+
+	// Amount should still be converted correctly
+	if result.Amount != 1099 {
+		t.Errorf("Expected amount to be 1099 cents, got %d", result.Amount)
+	}
+}
+
+// Helper function to create string pointers
+func stringPtr(s string) *string {
+	return &s
+}

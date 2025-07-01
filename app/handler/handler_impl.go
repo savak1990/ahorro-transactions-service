@@ -67,7 +67,7 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	if count := r.URL.Query().Get("count"); count != "" {
 		// parse count as int
 		if n, err := parseInt(count); err == nil {
-			filter.Count = n
+			filter.Limit = n
 		}
 	}
 
@@ -182,10 +182,25 @@ func (h *HandlerImpl) CreateBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
-	filter := models.ListBalancesInput{
-		UserID:  r.URL.Query().Get("userId"),
-		GroupID: r.URL.Query().Get("groupId"),
+	query := r.URL.Query()
+
+	// Parse limit
+	limit := 50 // default
+	if limitStr := query.Get("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 100 {
+			limit = parsedLimit
+		}
 	}
+
+	filter := models.ListBalancesInput{
+		UserID:    query.Get("userId"),
+		GroupID:   query.Get("groupId"),
+		BalanceID: query.Get("balanceId"),
+		SortBy:    query.Get("sortBy"),
+		Order:     query.Get("order"),
+		Limit:     limit,
+	}
+
 	results, err := h.Service.ListBalances(r.Context(), filter)
 	if err != nil {
 		h.handleServiceError(w, err, "ListBalances")
@@ -271,14 +286,31 @@ func (h *HandlerImpl) UpdateBalance(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerImpl) DeleteBalance(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	balanceID := vars["balance_id"]
+
 	if balanceID == "" {
-		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing balance_id")
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing balance_id parameter")
 		return
 	}
 
 	err := h.Service.DeleteBalance(r.Context(), balanceID)
 	if err != nil {
 		h.handleServiceError(w, err, "DeleteBalance")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HandlerImpl) DeleteBalancesByUserId(w http.ResponseWriter, r *http.Request) {
+	userId := r.URL.Query().Get("userId")
+
+	if userId == "" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing userId parameter")
+		return
+	}
+
+	err := h.Service.DeleteBalancesByUserId(r.Context(), userId)
+	if err != nil {
+		h.handleServiceError(w, err, "DeleteBalancesByUserId")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -405,13 +437,31 @@ func (h *HandlerImpl) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerImpl) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	categoryID := vars["category_id"]
+
 	if categoryID == "" {
-		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing category_id")
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing category_id parameter")
 		return
 	}
+
 	err := h.Service.DeleteCategory(r.Context(), categoryID)
 	if err != nil {
 		h.handleServiceError(w, err, "DeleteCategory")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HandlerImpl) DeleteCategoriesByUserId(w http.ResponseWriter, r *http.Request) {
+	userId := r.URL.Query().Get("userId")
+
+	if userId == "" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing userId parameter")
+		return
+	}
+
+	err := h.Service.DeleteCategoriesByUserId(r.Context(), userId)
+	if err != nil {
+		h.handleServiceError(w, err, "DeleteCategoriesByUserId")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -453,7 +503,7 @@ func (h *HandlerImpl) ListMerchants(w http.ResponseWriter, r *http.Request) {
 	}
 	if count := r.URL.Query().Get("limit"); count != "" {
 		if n, err := parseInt(count); err == nil {
-			filter.Count = n
+			filter.Limit = n
 		}
 	}
 
@@ -549,6 +599,158 @@ func (h *HandlerImpl) DeleteMerchant(w http.ResponseWriter, r *http.Request) {
 	err := h.Service.DeleteMerchant(r.Context(), merchantID)
 	if err != nil {
 		h.handleServiceError(w, err, "DeleteMerchant")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *HandlerImpl) DeleteMerchantsByUserId(w http.ResponseWriter, r *http.Request) {
+	userId := r.URL.Query().Get("userId")
+
+	if userId == "" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing userId parameter")
+		return
+	}
+
+	err := h.Service.DeleteMerchantsByUserId(r.Context(), userId)
+	if err != nil {
+		h.handleServiceError(w, err, "DeleteMerchantsByUserId")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// CategoryGroup handlers
+func (h *HandlerImpl) CreateCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	var categoryGroupDto models.CategoryGroupDto
+	if err := json.NewDecoder(r.Body).Decode(&categoryGroupDto); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Convert DTO to DAO model
+	categoryGroup, err := models.FromAPICategoryGroup(categoryGroupDto)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid category group data: "+err.Error())
+		return
+	}
+
+	created, err := h.Service.CreateCategoryGroup(r.Context(), *categoryGroup)
+	if err != nil {
+		h.handleServiceError(w, err, "CreateCategoryGroup")
+		return
+	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPICategoryGroup(created)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) ListCategoryGroups(w http.ResponseWriter, r *http.Request) {
+	filter := models.ListCategoryGroupsInput{
+		SortBy: r.URL.Query().Get("sortBy"),
+		Order:  r.URL.Query().Get("order"),
+	}
+	if limit := r.URL.Query().Get("limit"); limit != "" {
+		if n, err := parseInt(limit); err == nil {
+			filter.Limit = n
+		}
+	}
+
+	results, err := h.Service.ListCategoryGroups(r.Context(), filter)
+	if err != nil {
+		h.handleServiceError(w, err, "ListCategoryGroups")
+		return
+	}
+
+	// Convert to DTOs for response
+	categoryGroupDtos := make([]models.CategoryGroupDto, len(results))
+	for i, categoryGroup := range results {
+		categoryGroupDtos[i] = models.ToAPICategoryGroup(&categoryGroup)
+	}
+
+	// Use paginated response structure (without actual pagination for now)
+	WriteJSONListResponse(w, categoryGroupDtos, "")
+}
+
+func (h *HandlerImpl) GetCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	categoryGroupID := vars["category_group_id"]
+	if categoryGroupID == "" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing category_group_id")
+		return
+	}
+
+	categoryGroup, err := h.Service.GetCategoryGroup(r.Context(), categoryGroupID)
+	if err != nil {
+		// Try to handle as "not found" error first
+		if h.handleNotFoundError(w, err, "category group", categoryGroupID) {
+			return
+		}
+		// Handle all other errors (including database connection errors)
+		h.handleServiceError(w, err, "GetCategoryGroup")
+		return
+	}
+
+	if categoryGroup == nil {
+		WriteJSONError(w, http.StatusNotFound, models.ErrorCodeNotFound, "Category group not found")
+		return
+	}
+
+	// Convert to DTO for response
+	responseDto := models.ToAPICategoryGroup(categoryGroup)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) UpdateCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	categoryGroupID := vars["category_group_id"]
+	var categoryGroupDto models.CategoryGroupDto
+	if err := json.NewDecoder(r.Body).Decode(&categoryGroupDto); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Parse category group ID and set it in DTO
+	id, err := uuid.Parse(categoryGroupID)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid category group ID format")
+		return
+	}
+	categoryGroupDto.CategoryGroupId = id.String()
+
+	// Convert DTO to DAO model
+	categoryGroup, err := models.FromAPICategoryGroup(categoryGroupDto)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid category group data: "+err.Error())
+		return
+	}
+
+	updated, err := h.Service.UpdateCategoryGroup(r.Context(), *categoryGroup)
+	if err != nil {
+		h.handleServiceError(w, err, "UpdateCategoryGroup")
+		return
+	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPICategoryGroup(updated)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+func (h *HandlerImpl) DeleteCategoryGroup(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	categoryGroupID := vars["category_group_id"]
+	if categoryGroupID == "" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Missing category_group_id")
+		return
+	}
+	err := h.Service.DeleteCategoryGroup(r.Context(), categoryGroupID)
+	if err != nil {
+		h.handleServiceError(w, err, "DeleteCategoryGroup")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
