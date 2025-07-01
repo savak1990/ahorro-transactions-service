@@ -99,5 +99,8 @@ func (h *HandlerMock) DeleteMerchant(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerMock) DeleteMerchantsByUserId(w http.ResponseWriter, r *http.Request) {
 	h.Called(w, r)
 }
+func (h *HandlerMock) GetTransactionStats(w http.ResponseWriter, r *http.Request) {
+	h.Called(w, r)
+}
 
 var _ Handler = (*HandlerMock)(nil)

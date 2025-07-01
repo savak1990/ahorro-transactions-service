@@ -15,6 +15,7 @@
 @balanceId=28e2d53a-22e9-4c7e-9c06-0b91a9d091f4
 @categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479
 @merchantId=d47ac10b-58cc-4372-a567-0e02b2c3d480
+@categoryGroupId=gh7ac10b-58cc-4372-a567-0e02b2c3d480
 
 ### Docs
 # This endpoint retrieves transaction statistics (expenses/income) for a specific balance within a given time range.
@@ -33,9 +34,44 @@
 # - endTime - date end (UTC)
 
 ### Get expenses by balanceId in a time range, expenses only
-GET {{baseUrl}}/transactions/stats/stats?balanceId={{balanceId}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z&type=expense
+GET {{baseUrl}}/transactions/stats?balanceId={{balanceId}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z&type=expense
 Authorization: Bearer {{authToken}}
 
 # The returned object can look like this
+# {
+#   "expenses": {
+#      "EUR": {
+#        "amount": 10500,
+#        "transactionsCount": 5,
+#        "transactionEntiesCount": 10
+#      },
+#      "totalAmount": 10500,
+#      "totalTransactionsCount": 5,
+#      "totalTransactionEntriesCount" : 10
+#   }
+# }
 
-GET {{baseUrl}}
+### Get stats for user for expenses or/and incomes for specific 
+# category group and merchant (e.g. Mercadona) in a date range between 
+# start time and now
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&categoryGroupId={{categoryGroupId}}&merchantId={{merchantId}}&startTime=2024-01-01T00:00:00Z&currency=EUR
+
+# The returned object can look like this
+# {
+#   "expenses": {
+#      "EUR": {
+#        "amount": 10500,
+#        "transactionsCount": 5,
+#        "transactionEntiesCount": 10
+#      },
+#      "USD": {
+#        "amount": 5600,
+#        "transactionsCount": 2,
+#        "transactionEntiesCount": 3
+#      },
+#      "totalAmount": 16100, # cannot be calculated for now. Need api call to convert currencies
+#      "currency": "EUR",
+#      "totalTransactionsCount": 7,
+#      "totalTransactionEntriesCount" : 20
+#   }
+# }

@@ -120,6 +120,7 @@ func main() {
 	// Transactions APIs
 	router.HandleFunc("/transactions", serviceHandler.CreateTransaction).Methods("POST")
 	router.HandleFunc("/transactions", serviceHandler.ListTransactions).Methods("GET")
+	router.HandleFunc("/transactions/stats", serviceHandler.GetTransactionStats).Methods("GET")
 	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.GetTransaction).Methods("GET")
 	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.UpdateTransaction).Methods("PUT")
 	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.DeleteTransaction).Methods("DELETE")

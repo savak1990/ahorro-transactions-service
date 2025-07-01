@@ -221,5 +221,13 @@ func (svc *MockService) DeleteCategoryGroup(ctx context.Context, categoryGroupID
 	return args.Error(0)
 }
 
+func (svc *MockService) GetTransactionStats(ctx context.Context, input models.TransactionStatsInput) (*models.TransactionStatsResponseDto, error) {
+	args := svc.Called(ctx, input)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.TransactionStatsResponseDto), args.Error(1)
+}
+
 // Ensure MockService implements Service
 var _ Service = (*MockService)(nil)

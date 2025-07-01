@@ -147,5 +147,21 @@ func (s *ServiceImpl) DeleteCategoryGroup(ctx context.Context, categoryGroupID s
 	return s.repo.DeleteCategoryGroup(ctx, categoryGroupID)
 }
 
+// GetTransactionStats retrieves aggregated transaction statistics
+func (s *ServiceImpl) GetTransactionStats(ctx context.Context, filter models.TransactionStatsInput) (*models.TransactionStatsResponseDto, error) {
+	// Get raw stats from repository
+	rawStats, err := s.repo.GetTransactionStats(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert to response format
+	response := &models.TransactionStatsResponseDto{
+		Totals: rawStats,
+	}
+
+	return response, nil
+}
+
 // Ensure ServiceImpl implements Service
 var _ Service = (*ServiceImpl)(nil)

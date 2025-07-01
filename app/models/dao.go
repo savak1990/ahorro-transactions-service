@@ -193,3 +193,12 @@ func formatTimePtr(t *time.Time) string {
 	}
 	return t.Format(time.RFC3339)
 }
+
+// TransactionStatsRaw represents raw statistics data from database aggregation
+type TransactionStatsRaw struct {
+	TransactionType         string          `gorm:"column:transaction_type"`
+	Currency                string          `gorm:"column:currency"`
+	TotalAmount             decimal.Decimal `gorm:"column:total_amount"`
+	TransactionsCount       int64           `gorm:"column:transactions_count"`
+	TransactionEntriesCount int64           `gorm:"column:transaction_entries_count"`
+}

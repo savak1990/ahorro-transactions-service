@@ -226,6 +226,135 @@ paths:
             responseTemplates:
               application/json: '{}'
 
+  /transactions/stats:
+    get:
+      summary: Get transaction statistics
+      description: |
+        Retrieves aggregated transaction statistics grouped by currency and transaction type.
+        Supports filtering by various parameters including date range, category, balance, etc.
+      tags: [transactions]
+      parameters:
+        - name: balanceId
+          in: query
+          description: "Filter by balance ID"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        - name: categoryId
+          in: query
+          description: "Filter by category ID"
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: categoryGroupId
+          in: query
+          description: "Filter by category group ID"
+          schema:
+            type: string
+          example: "groceries"
+        - name: merchantId
+          in: query
+          description: "Filter by merchant ID"
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: userId
+          in: query
+          description: "Filter by user ID"
+          schema:
+            type: string
+            format: uuid
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        - name: groupId
+          in: query
+          description: "Filter by group ID"
+          schema:
+            type: string
+            format: uuid
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        - name: type
+          in: query
+          description: "Filter by transaction type"
+          schema:
+            type: string
+            enum: [expense, income]
+          example: "expense"
+        - name: startTime
+          in: query
+          description: "Filter transactions from this date (inclusive)"
+          schema:
+            type: string
+            format: date-time
+          example: "2023-01-01T00:00:00Z"
+        - name: endTime
+          in: query
+          description: "Filter transactions until this date (inclusive)"
+          schema:
+            type: string
+            format: date-time
+          example: "2023-12-31T23:59:59Z"
+      responses:
+        '200':
+          description: Transaction statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionStatsResponse'
+              examples:
+                monthly_stats:
+                  summary: "Monthly transaction statistics"
+                  value:
+                    totals:
+                      expense:
+                        EUR:
+                          amount: 125043
+                          transactionCount: 15
+                          transactionEntriesCount: 23
+                        USD:
+                          amount: 85000
+                          transactionCount: 8
+                          transactionEntriesCount: 12
+                      income:
+                        EUR:
+                          amount: 300000
+                          transactionCount: 2
+                          transactionEntriesCount: 2
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for transaction stats endpoint
+      tags: [transactions-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
   /transactions/{transaction_id}:
     get:
       summary: Get transaction details
@@ -2581,6 +2710,61 @@ components:
           description: "List of merchants"
           items:
             $ref: '#/components/schemas/MerchantResponse'
+
+    TransactionStatsResponse:
+      type: object
+      required:
+        - totals
+      properties:
+        totals:
+          type: object
+          description: "Aggregated transaction statistics by type"
+          properties:
+            expense:
+              type: object
+              description: "Expense statistics grouped by currency"
+              additionalProperties:
+                $ref: '#/components/schemas/CurrencyStats'
+            income:
+              type: object
+              description: "Income statistics grouped by currency"
+              additionalProperties:
+                $ref: '#/components/schemas/CurrencyStats'
+          example:
+            expense:
+              EUR:
+                amount: 125043
+                transactionsCount: 15
+                transactionEntriesCount: 23
+              USD:
+                amount: 85000
+                transactionsCount: 8
+                transactionEntriesCount: 12
+            income:
+              EUR:
+                amount: 300000
+                transactionsCount: 2
+                transactionEntriesCount: 2
+
+    CurrencyStats:
+      type: object
+      required:
+        - amount
+        - transactionsCount
+        - transactionEntriesCount
+      properties:
+        amount:
+          type: integer
+          description: "Total amount in cents"
+          example: 125043
+        transactionsCount:
+          type: integer
+          description: "Number of unique transactions"
+          example: 15
+        transactionEntriesCount:
+          type: integer
+          description: "Total number of transaction entries"
+          example: 23
 
 x-amazon-apigateway-request-validators:
   validate-all:

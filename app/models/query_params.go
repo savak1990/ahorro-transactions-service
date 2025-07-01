@@ -55,3 +55,17 @@ type ListMerchantsInput struct {
 	Order      string
 	Limit      int
 }
+
+// TransactionStatsInput defines the filter options for transaction statistics
+type TransactionStatsInput struct {
+	GroupID         *string
+	UserID          *string
+	BalanceID       *string
+	CategoryId      *string
+	CategoryGroupId *string
+	MerchantId      *string
+	Type            *string // "expense", "income", or empty for both
+	Currency        *string // Future feature, not implemented yet
+	StartTime       *time.Time
+	EndTime         *time.Time
+}

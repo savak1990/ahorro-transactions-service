@@ -41,4 +41,7 @@ type Service interface {
 	DeleteMerchant(ctx context.Context, merchantID string) error
 	DeleteMerchantsByUserId(ctx context.Context, userId string) error
 	ListMerchants(ctx context.Context, filter m.ListMerchantsInput) ([]m.Merchant, error)
+
+	// Transaction statistics
+	GetTransactionStats(ctx context.Context, filter m.TransactionStatsInput) (*m.TransactionStatsResponseDto, error)
 }

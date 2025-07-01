@@ -96,3 +96,15 @@ type MerchantDto struct {
 	UpdatedAt   string `json:"updatedAt"`
 	DeletedAt   string `json:"deletedAt,omitempty"`
 }
+
+// TransactionStatsDto represents aggregated transaction statistics by currency
+type CurrencyStatsDto struct {
+	Amount                  int `json:"amount"`                  // Total amount in cents
+	TransactionsCount       int `json:"transactionsCount"`       // Number of transactions
+	TransactionEntriesCount int `json:"transactionEntriesCount"` // Number of transaction entries
+}
+
+// TransactionStatsResponseDto represents the response for transaction statistics
+type TransactionStatsResponseDto struct {
+	Totals map[string]map[string]CurrencyStatsDto `json:"totals"` // Stats by transaction type, then by currency
+}

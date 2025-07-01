@@ -37,4 +37,7 @@ type Handler interface {
 	UpdateMerchant(http.ResponseWriter, *http.Request)
 	DeleteMerchant(http.ResponseWriter, *http.Request)
 	DeleteMerchantsByUserId(http.ResponseWriter, *http.Request)
+
+	// Transaction statistics
+	GetTransactionStats(http.ResponseWriter, *http.Request)
 }
