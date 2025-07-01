@@ -458,6 +458,7 @@ func ToAPIMerchant(m *Merchant) MerchantDto {
 		Name:        m.Name,
 		Description: desc,
 		ImageUrl:    imageUrl,
+		Rank:        &m.Rank,
 		CreatedAt:   m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339),
 		DeletedAt:   formatTimePtr(m.DeletedAt),
@@ -494,6 +495,11 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 		imageUrl = &m.ImageUrl
 	}
 
+	rank := 0
+	if m.Rank != nil {
+		rank = *m.Rank
+	}
+
 	return &Merchant{
 		ID:          id,
 		GroupID:     groupID,
@@ -501,5 +507,6 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 		Name:        m.Name,
 		Description: desc,
 		ImageUrl:    imageUrl,
+		Rank:        rank,
 	}, nil
 }

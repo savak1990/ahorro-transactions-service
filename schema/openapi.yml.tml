@@ -133,6 +133,13 @@ paths:
             type: string
             format: uuid
           example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+        - name: categoryGroupId
+          in: query
+          description: "Filter by category group ID"
+          schema:
+            type: string
+            format: uuid
+          example: "cg47ac10b-58cc-4372-a567-0e02b2c3d479"
         - name: merchantId
           in: query
           description: "Filter by merchant ID"
@@ -140,6 +147,20 @@ paths:
             type: string
             format: uuid
           example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+        - name: startTime
+          in: query
+          description: "Filter transactions from this date/time (ISO 8601)"
+          schema:
+            type: string
+            format: date-time
+          example: "2024-01-01T00:00:00Z"
+        - name: endTime
+          in: query
+          description: "Filter transactions until this date/time (ISO 8601)"
+          schema:
+            type: string
+            format: date-time
+          example: "2024-12-31T23:59:59Z"
         - name: sortedBy
           in: query
           description: "Field to sort by"
@@ -404,7 +425,7 @@ paths:
           description: "Sort field"
           schema:
             type: string
-            enum: [rank, createdAt, updatedAt, title]
+            enum: [rank, createdAt, updatedAt, title, name]
             default: createdAt
           example: "rank"
         - name: order
@@ -661,6 +682,22 @@ paths:
             maximum: 100
             default: 50
           example: 20
+        - name: sortBy
+          in: query
+          description: "Field to sort categories by"
+          schema:
+            type: string
+            enum: ["name", "rank", "created_at", "updated_at"]
+            default: "name"
+          example: "name"
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: ["ASC", "DESC", "asc", "desc"]
+            default: "ASC"
+          example: "asc"
       responses:
         '200':
           description: List of categories retrieved successfully
@@ -1159,6 +1196,22 @@ paths:
             maximum: 100
             default: 50
           example: 20
+        - name: sortBy
+          in: query
+          description: "Field to sort merchants by"
+          schema:
+            type: string
+            enum: ["rank", "name", "created_at", "updated_at"]
+            default: "created_at"
+          example: "rank"
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: ["ASC", "DESC", "asc", "desc"]
+            default: "ASC"
+          example: "asc"
       responses:
         '200':
           description: List of merchants retrieved successfully
@@ -2428,6 +2481,11 @@ components:
           format: uri
           description: "Optional URL for the merchant's logo/image"
           example: "https://example.com/mercadona-logo.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering merchants"
+          example: 1
 
     UpdateMerchantRequest:
       type: object
@@ -2463,6 +2521,11 @@ components:
           format: uri
           description: "Optional URL for the merchant's logo/image"
           example: "https://example.com/mercadona-new-logo.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering merchants"
+          example: 2
 
     MerchantResponse:
       type: object
@@ -2494,6 +2557,11 @@ components:
           type: string
           description: "URL of the merchant's logo/image"
           example: "https://example.com/mercadona-logo.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Rank for ordering merchants"
+          example: 1
         createdAt:
           type: string
           format: date-time

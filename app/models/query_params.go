@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 // ListCategoryGroupsInput defines the input for only category groups
 type ListCategoryGroupsInput struct {
 	Limit  int
@@ -19,15 +21,18 @@ type ListCategoriesInput struct {
 
 // ListTransactionsInput defines the filter and pagination options for listing transactions.
 type ListTransactionsInput struct {
-	GroupID    string
-	UserID     string
-	BalanceID  string
-	Type       string
-	CategoryId string
-	MerchantId string
-	SortBy     string
-	Order      string
-	Limit      int
+	GroupID         string
+	UserID          string
+	BalanceID       string
+	CategoryId      string
+	CategoryGroupId string
+	MerchantId      string
+	Type            string
+	StartTime       time.Time
+	EndTime         time.Time
+	SortBy          string
+	Order           string
+	Limit           int
 }
 
 // ListBalancesInput defines the filter and pagination options for list of balances

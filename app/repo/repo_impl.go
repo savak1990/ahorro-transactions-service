@@ -132,13 +132,13 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Preload("Category")
 
 	// Join transaction table once if we need to filter by transaction fields
-	needsTransactionJoin := filter.GroupID != "" || filter.UserID != "" || filter.BalanceID != "" || filter.Type != ""
+	needsTransactionJoin := filter.GroupID != "" || filter.UserID != "" || filter.BalanceID != "" || filter.Type != "" || !filter.StartTime.IsZero() || !filter.EndTime.IsZero()
 	if needsTransactionJoin {
 		query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id")
 	}
 
-	// Join category table if we need to filter by category
-	if filter.CategoryId != "" {
+	// Join category table if we need to filter by category or category group
+	if filter.CategoryId != "" || filter.CategoryGroupId != "" {
 		query = query.Joins("JOIN category ON transaction_entry.category_id = category.id")
 	}
 
@@ -164,9 +164,23 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Where("transaction.type = ?", filter.Type)
 	}
 
+	// Apply date range filters
+	if !filter.StartTime.IsZero() {
+		query = query.Where("transaction.transacted_at >= ?", filter.StartTime)
+	}
+
+	if !filter.EndTime.IsZero() {
+		query = query.Where("transaction.transacted_at <= ?", filter.EndTime)
+	}
+
 	// Apply category filter
 	if filter.CategoryId != "" {
 		query = query.Where("transaction_entry.category_id = ?", filter.CategoryId)
+	}
+
+	// Apply category group filter
+	if filter.CategoryGroupId != "" {
+		query = query.Where("category.\"group\" = ?", filter.CategoryGroupId)
 	}
 
 	// Apply merchant filter
@@ -230,6 +244,26 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	db := r.getDB()
 	query := db.WithContext(ctx)
 
+	// Apply ordering
+	orderBy := "category_name"
+	if input.SortBy != "" {
+		switch input.SortBy {
+		case "name", "category_name", "rank", "created_at", "updated_at":
+			if input.SortBy == "name" {
+				orderBy = "category_name" // Map 'name' to the actual column name
+			} else {
+				orderBy = input.SortBy
+			}
+		default:
+			orderBy = "category_name" // fallback to default if invalid sort field
+		}
+	}
+	order := "ASC"
+	if input.Order != "" && (input.Order == "DESC" || input.Order == "desc") {
+		order = "DESC"
+	}
+	query = query.Order(fmt.Sprintf("%s %s", orderBy, order))
+
 	// Apply limit
 	if input.Limit > 0 {
 		query = query.Limit(input.Limit)
@@ -238,7 +272,7 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	// For now, we'll ignore pagination (StartKey) since it's more complex
 	// You can implement pagination later if needed
 
-	if err := query.Order("category_name ASC").Find(&categories).Error; err != nil {
+	if err := query.Find(&categories).Error; err != nil {
 		return nil, fmt.Errorf("failed to list categories: %w", err)
 	}
 
@@ -326,6 +360,7 @@ func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.L
 			"createdAt": "created_at",
 			"updatedAt": "updated_at",
 			"title":     "title",
+			"name":      "title", // Map 'name' to the actual column name 'title'
 		}
 
 		if dbField, valid := validSortFields[filter.SortBy]; valid {
@@ -411,7 +446,12 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 	// Apply ordering
 	orderBy := "created_at"
 	if filter.SortBy != "" {
-		orderBy = filter.SortBy
+		switch filter.SortBy {
+		case "rank", "name", "created_at", "updated_at":
+			orderBy = filter.SortBy
+		default:
+			orderBy = "created_at" // fallback to default if invalid sort field
+		}
 	}
 	order := "ASC"
 	if filter.Order != "" && (filter.Order == "DESC" || filter.Order == "desc") {

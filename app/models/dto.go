@@ -91,6 +91,7 @@ type MerchantDto struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
 	ImageUrl    string `json:"imageUrl,omitempty"`
+	Rank        *int   `json:"rank,omitempty"`
 	CreatedAt   string `json:"createdAt"`
 	UpdatedAt   string `json:"updatedAt"`
 	DeletedAt   string `json:"deletedAt,omitempty"`

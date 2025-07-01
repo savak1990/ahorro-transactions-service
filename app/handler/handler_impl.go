@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -55,15 +56,31 @@ func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) 
 // GET /transactions
 func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	filter := models.ListTransactionsInput{
-		UserID:     r.URL.Query().Get("userId"),
-		GroupID:    r.URL.Query().Get("groupId"),
-		BalanceID:  r.URL.Query().Get("balanceId"), // Now from query parameter
-		Type:       r.URL.Query().Get("type"),
-		CategoryId: r.URL.Query().Get("categoryId"),
-		MerchantId: r.URL.Query().Get("merchantId"),
-		SortBy:     r.URL.Query().Get("sortedBy"),
-		Order:      r.URL.Query().Get("order"),
+		UserID:          r.URL.Query().Get("userId"),
+		GroupID:         r.URL.Query().Get("groupId"),
+		BalanceID:       r.URL.Query().Get("balanceId"), // Now from query parameter
+		Type:            r.URL.Query().Get("type"),
+		CategoryId:      r.URL.Query().Get("categoryId"),
+		CategoryGroupId: r.URL.Query().Get("categoryGroupId"),
+		MerchantId:      r.URL.Query().Get("merchantId"),
+		SortBy:          r.URL.Query().Get("sortedBy"),
+		Order:           r.URL.Query().Get("order"),
 	}
+
+	// Parse startTime if provided
+	if startTimeStr := r.URL.Query().Get("startTime"); startTimeStr != "" {
+		if startTime, err := time.Parse(time.RFC3339, startTimeStr); err == nil {
+			filter.StartTime = startTime
+		}
+	}
+
+	// Parse endTime if provided
+	if endTimeStr := r.URL.Query().Get("endTime"); endTimeStr != "" {
+		if endTime, err := time.Parse(time.RFC3339, endTimeStr); err == nil {
+			filter.EndTime = endTime
+		}
+	}
+
 	if count := r.URL.Query().Get("count"); count != "" {
 		// parse count as int
 		if n, err := parseInt(count); err == nil {
