@@ -1,242 +1,369 @@
-# Project Health
-
-[![CodeBuild Status](https://codebuild.eu-west-1.amazonaws.com/badges?projectName=ahorro-transactions-service-build)](https://eu-west-1.console.aws.amazon.com/codesuite/codebuild/projects/ahorro-transactions-service-build/history)
-
-[![CodePipeline Status](https://aws-codepipeline-badges.s3.amazonaws.com/eu-west-1/transactions/badge.svg)](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/transactions/view)
-
 # Ahorro Transactions Service
 
-This project is a Go application that provides a REST API for managing user transactions, balances, and per-user category prioritization, backed by AWS Aurora PostgreSQL and DynamoDB. It includes infrastructure-as-code (Terraform), functional tests (pytest), and supports easy local and CI testing with isolated databases.
+[![CodeBuild Status](https://codebuild.eu-west-1.amazonaws.com/badges?projectName=ahorro-transactions-service-build)](https://eu-west-1.console.aws.amazon.com/codesuite/codebuild/projects/ahorro-transactions-service-build/history)
+[![CodePipeline Status](https://aws-codepipeline-badges.s3.amazonaws.com/eu-west-1/transactions/badge.svg)](https://eu-west-1.console.aws.amazon.com/codesuite/codepipeline/pipelines/transactions/view)
 
----
+A Go microservice for managing financial transactions, balances, and categories with comprehensive local development support and AWS deployment capabilities.
 
 ## Features
 
-- RESTful API for creating, updating, and retrieving transactions and balances
-- Per-user category prioritization with DynamoDB
-- Aurora PostgreSQL for transactional data (transactions, balances, outbox)
-- Infrastructure managed with Terraform modules
-- Functional end-to-end tests using Python and pytest
-- Easy local development and test setup via Makefile
-- Event-driven architecture with outbox pattern and Kafka integration
+- **RESTful API** for transactions, balances, categories, and merchants
+- **PostgreSQL** for transactional data with auto-migration
+- **UUID prefixing system** for easy entity identification
+- **Local development** with Docker PostgreSQL
+- **AWS deployment** with Lambda, RDS, and API Gateway
+- **Terraform IaC** for infrastructure management
+- **Comprehensive testing** and seeding scripts
 
 ---
 
-## Prerequisites
+## Quick Start Guide
 
-- Go 1.20 or later
-- Python 3.8+ (for functional tests)
-- AWS CLI configured with appropriate credentials
-- Terraform 1.3+ installed
-- [Optional] Docker (if you want to use DynamoDB Local for development)
+### Prerequisites
 
----
+- **Go 1.23+**
+- **Docker** (for local PostgreSQL)
+- **AWS CLI** (configured with credentials)
+- **Terraform 1.3+**
+- **Make** (for running commands)
 
-## Installation
+### Installation
 
-1. **Clone the repository:**
-    ```bash
-    git clone https://github.com/your-username/ahorro-transactions-service.git
-    cd ahorro-transactions-service
-    ```
-
-2. **Install Go dependencies:**
-    ```bash
-    go mod tidy
-    ```
-
-3. **Install Python dependencies (for tests):**
-    ```bash
-    python3 -m venv .venv
-    source .venv/bin/activate
-    pip install -r test/requirements.txt
-    ```
-
-4. **Install Terraform dependencies:**
-    ```bash
-    cd terraform
-    terraform init
-    cd ..
-    ```
-
----
-
-## Usage
-
-### Run the Application
-
-1. **Deploy Aurora PostgreSQL and DynamoDB tables (using Terraform):**
-    ```bash
-    make deploy
-    ```
-
-2. **Run the Go server locally:**
-    ```bash
-    make app-run
-    ```
-    The server will start on `localhost:8080`.
-
-3. **API Endpoints:**
-    - `POST   /transactions` — Create a new transaction (expense, income, or movement)
-    - `GET    /transactions` — List transactions for the user (supports filtering, sorting, pagination)
-    - `GET    /transactions/{transaction_id}` — Get transaction details
-    - `PUT    /transactions/{transaction_id}` — Update transaction
-    - `DELETE /transactions/{transaction_id}` — Delete transaction (soft delete)
-    - `GET    /balances/{user_id}` — List all balances for the user
-    - `POST   /balances/{user_id}` — Create new balance for the user
-    - `PUT    /balances/{balance_id}` — Update balance information
-    - `DELETE /balances/{balance_id}` — Delete balance information
-    - `GET    /categories/{user_id}` — List categories for the user, sorted by personalized score
-    - `GET    /health` — Health check
-    - `GET    /info` — Info endpoint
-
----
-
-### Running Functional Tests
-
-Functional tests will:
-- Deploy dedicated test Aurora PostgreSQL and DynamoDB tables
-- Start the Go server with the test databases
-- Run all Python/pytest tests
-- Clean up the test tables after
-
-To run all functional tests:
 ```bash
-make functional-test
+git clone <repository-url>
+cd ahorro-transactions-service
+go mod tidy
 ```
 
 ---
 
-### Clean Up
+## Development Workflows
 
-To destroy all infrastructure created by Terraform:
+### 🏠 1. Local Development Flow
+
+**Complete local development with Docker PostgreSQL - no AWS dependencies.**
+
+#### Setup Local Environment
+
 ```bash
-make undeploy
+# 1. Start local PostgreSQL container
+make local-db-start
+
+# 2. Create database schema (auto-migration)
+make local-db-create
+
+# 3. Seed with sample data
+make local-seed
+
+# 4. Verify seed data
+make local-verify-seed
+
+# 5. Run service locally
+make local-run
 ```
 
-To remove build artifacts:
+**Service will be available at: http://localhost:8080**
+
+#### Working with Local Database
+
 ```bash
+# Connect to local database
+make local-db-connect
+
+# Check database status
+make local-db-status
+
+# Reset all tables (destructive)
+make local-drop-tables
+
+# Re-seed after table reset
+make local-seed
+```
+
+#### Stop Local Development
+
+```bash
+# Stop the service (Ctrl+C in terminal where local-run is running)
+
+# Stop PostgreSQL container (keeps data)
+make local-db-stop
+
+# OR completely remove container and data
+make local-db-destroy
+```
+
+#### Local Development Commands Summary
+
+| Command | Purpose |
+|---------|---------|
+| `make local-db-start` | Start PostgreSQL container |
+| `make local-db-create` | Initialize database schema |
+| `make local-seed` | Add sample data |
+| `make local-run` | Run service on port 8080 |
+| `make local-db-connect` | Interactive database connection |
+| `make local-db-status` | Check container/database status |
+| `make local-db-stop` | Stop container (preserve data) |
+| `make local-db-destroy` | Remove container and all data |
+
+---
+
+### ☁️ 2. AWS Remote Database Development
+
+**Local service connecting to AWS RDS PostgreSQL.**
+
+#### Setup Remote Database Connection
+
+```bash
+# 1. Ensure AWS credentials are configured
+aws configure
+
+# 2. Check database configuration
+make show-db-config
+
+# 3. Start remote database (if stopped)
+make db-quick-start
+
+# 4. Seed remote database
+make seed
+
+# 5. Verify remote seed data
+make verify-seed
+
+# 6. Run service locally with remote DB
+make run
+```
+
+**Service connects to AWS RDS and runs locally on port 8080**
+
+#### Working with Remote Database
+
+```bash
+# Connect to remote database
+make db-connect
+
+# Check database status
+make db-status
+
+# Reset remote tables (⚠️ DESTRUCTIVE)
+make drop-tables
+
+# Get database endpoint info
+make get-db-endpoint
+make get-db-port
+make get-db-name
+```
+
+#### Cleanup Remote Development
+
+```bash
+# Stop remote database (saves costs)
+make db-quick-stop
+
+# Check if stopped
+make db-status
+```
+
+#### Remote Database Commands Summary
+
+| Command | Purpose |
+|---------|---------|
+| `make show-db-config` | Display RDS connection info |
+| `make db-quick-start` | Start RDS and wait until ready |
+| `make seed` | Seed remote database |
+| `make run` | Run service with remote DB |
+| `make db-connect` | Connect to remote database |
+| `make db-quick-stop` | Stop RDS (cost savings) |
+| `make drop-tables` | Reset remote tables |
+
+---
+
+### 🚀 3. AWS Lambda Deployment
+
+**Full serverless deployment with Lambda, API Gateway, and RDS.**
+
+#### Build and Deploy to Lambda
+
+```bash
+# 1. Build Lambda package
+make build
+
+# 2. Upload to S3 and deploy infrastructure
+make deploy
+
+# 3. Get API URL
+make show-api-url
+
+# 4. Seed production database
+make seed
+
+# 5. Get authentication token (if needed)
+make get-cognito-token
+```
+
+#### Lambda Deployment Commands
+
+| Command | Purpose |
+|---------|---------|
+| `make build` | Build local and Lambda binaries |
+| `make deploy` | Deploy full infrastructure |
+| `make show-api-url` | Get deployed API endpoint |
+| `make undeploy` | Destroy all infrastructure |
+| `make upload-and-tag` | Upload with Git tag (CI/CD) |
+
+#### Production Management
+
+```bash
+# Check infrastructure plan
+make plan
+
+# Upload new version
+make upload-and-tag
+
+# Redeploy with new code
+make deploy
+
+# Monitor costs by stopping DB when not needed
+make db-quick-stop
+make db-quick-start  # when ready to use again
+```
+
+---
+
+## API Reference
+
+### Base URLs
+
+- **Local Development:** `http://localhost:8080`
+- **AWS Deployment:** Use `make show-api-url` to get endpoint
+
+### Core Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Health check |
+| `GET` | `/info` | Service information |
+| `POST` | `/transactions` | Create transaction |
+| `GET` | `/transactions` | List transactions |
+| `GET` | `/transactions/{id}` | Get transaction |
+| `PUT` | `/transactions/{id}` | Update transaction |
+| `DELETE` | `/transactions/{id}` | Delete transaction |
+| `GET` | `/balances/{user_id}` | List user balances |
+| `POST` | `/balances` | Create balance |
+| `PUT` | `/balances/{id}` | Update balance |
+| `DELETE` | `/balances/{id}` | Delete balance |
+| `GET` | `/categories` | List categories |
+| `GET` | `/merchants` | List merchants |
+
+### Example Request
+
+```bash
+# Create a transaction (local)
+curl -X POST http://localhost:8080/transactions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "99bb2200-0011-2233-4455-667788990011",
+    "group_id": "88aa1100-0011-2233-4455-667788990011",
+    "type": "expense",
+    "amount": 25.50,
+    "balance_id": "ba001111-1111-1111-1111-111111111111",
+    "category_id": "ca001111-1111-1111-1111-111111111111",
+    "merchant_id": "4e001111-1111-1111-1111-111111111111",
+    "description": "Coffee and pastry",
+    "transacted_at": "2025-07-02T10:30:00Z"
+  }'
+```
+
+---
+
+## Database Schema
+
+The service uses a PostgreSQL database with the following main entities:
+
+- **category_group** - Logical groupings of categories
+- **category** - Transaction categories (Food, Transport, etc.)
+- **merchant** - Businesses/vendors
+- **balance** - User accounts/wallets
+- **transaction** - Financial transactions
+- **transaction_entry** - Detailed transaction line items
+
+### UUID Prefixing System
+
+All entities use prefixed UUIDs for easy identification:
+
+| Entity | Prefix | Example |
+|--------|--------|---------|
+| Balance | `ba` | `ba001111-1111-1111-1111-111111111111` |
+| Category | `ca` | `ca001111-1111-1111-1111-111111111111` |
+| CategoryGroup | `c9` | `c9001111-1111-1111-1111-111111111111` |
+| Merchant | `4e` | `4e001111-1111-1111-1111-111111111111` |
+| Transaction | `7a` | `7a001111-1111-1111-1111-111111111111` |
+| TransactionEntry | `7e` | `7e001111-1111-1111-1111-111111111111` |
+
+---
+
+## Development Tips
+
+### Useful Commands
+
+```bash
+# View all available commands
+make help
+
+# Clean build artifacts
 make clean
+
+# Run tests
+make test
+
+# Check your public IP (for database access)
+make get-my-ip
+
+# Pull latest PostgreSQL image
+make pull-postgres
+```
+
+### Troubleshooting
+
+**Port 8080 already in use:**
+```bash
+make local-cleanup-port  # Kills processes on port 8080
+```
+
+**Database connection issues:**
+```bash
+make local-db-status     # Check local container status
+make show-db-config      # Check remote database config
+```
+
+**Seed data foreign key errors:**
+```bash
+make local-drop-tables   # Reset local tables
+make local-seed          # Re-seed in correct order
 ```
 
 ---
 
-## Configuration
+## Architecture
 
-- The PostgreSQL and DynamoDB table names are configurable via environment variables (`DB_TABLE_NAME`, etc.).
-- The Makefile and Terraform use `DB_TABLE_NAME` and `DB_TABLE_TEST_NAME` for production and test tables, respectively.
-- You can override these variables when running `make`:
-    ```bash
-    make app-run DB_TABLE_NAME=my-custom-table
-    ```
-
----
-
-## Architecture Overview
-
-- **Aurora PostgreSQL** stores transactions, balances, and the outbox table for event publishing.
-- **DynamoDB** stores per-user categories and prioritization scores.
-- **Outbox Pattern:** All transaction writes also insert an event into the outbox table. A background Lambda reads the outbox and publishes events to Kafka (MSK), then deletes successfully sent events.
-- **API Gateway + Lambda** provide the REST API endpoints.
-- **Kafka (MSK)** is used for event-driven integration with other services.
+- **Language:** Go 1.23 with Gin HTTP framework
+- **Database:** PostgreSQL with GORM ORM
+- **Infrastructure:** Terraform (AWS Lambda, RDS, API Gateway)
+- **Authentication:** AWS Cognito (production)
+- **Development:** Docker PostgreSQL container
+- **Build:** Docker-based Lambda binary compilation
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please open issues or submit pull requests.
+1. Use local development flow for feature development
+2. Test with both local and remote databases
+3. Ensure all tests pass: `make test`
+4. Follow the UUID prefixing convention
+5. Update seed data if schema changes
 
 ---
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
-
-## Contact
-
-For questions or feedback, please contact [your-email@example.com].
-
-# Ahorro Transactions Service API Endpoints
-
-Base URL (local):
-```
-http://localhost:8080
-```
-
-## Health & Info
-- `GET /health` — Health check
-- `GET /info` — Service info
-
-## Transactions APIs
-- `POST /transactions` — Create a new transaction
-- `GET /transactions` — List transactions for the user (supports filtering, sorting, pagination)
-  - Query params: `user_id`, `type`, `category`, `sort_by`, `order`, `count`, `startKey`
-- `GET /transactions/{transaction_id}` — Get transaction details
-- `PUT /transactions/{transaction_id}` — Update transaction
-- `DELETE /transactions/{transaction_id}` — Delete transaction
-
-## Categories APIs
-- `GET /categories/{user_id}` — List categories for the user (sorted by personalized score, paginated)
-
----
-
-### Example Requests
-
-#### Create Transaction
-```http
-POST http://localhost:8080/transactions
-Content-Type: application/json
-
-{
-  "user_id": "user1",
-  "group_id": "group1",
-  "type": "expense",
-  "amount": 100.50,
-  "balance_id": "balance1",
-  "category": "Groceries",
-  "description": "Weekly groceries",
-  "transacted_at": "2024-06-19T12:00:00Z"
-}
-```
-
-#### List Transactions
-```http
-GET http://localhost:8080/transactions?user_id=user1&count=10&sort_by=transacted_at&order=desc
-```
-
-#### Get Transaction
-```http
-GET http://localhost:8080/transactions/{transaction_id}
-```
-
-#### Update Transaction
-```http
-PUT http://localhost:8080/transactions/{transaction_id}
-Content-Type: application/json
-{
-  "user_id": "user1",
-  "group_id": "group1",
-  "type": "expense",
-  "amount": 120.00,
-  "balance_id": "balance1",
-  "category": "Groceries",
-  "description": "Updated groceries",
-  "transacted_at": "2024-06-19T12:00:00Z"
-}
-```
-
-#### Delete Transaction
-```http
-DELETE http://localhost:8080/transactions/{transaction_id}
-```
-
-#### List Categories
-```http
-GET http://localhost:8080/categories/user1
-```
-
----
-
-See also: [ARCHITECTURE.md](../docs/architecture.md) for full API and data model details.
+MIT License - see LICENSE file for details.

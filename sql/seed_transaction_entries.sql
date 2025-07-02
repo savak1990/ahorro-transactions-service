@@ -21,24 +21,24 @@ INSERT INTO transaction_entry (id, transaction_id, description, amount, category
     ('7e006666-6666-6666-6666-666666666666', '7a006666-6666-6666-6666-666666666666', 'Netflix monthly subscription', -12.99, 'ca007777-7777-7777-7777-777777777777', NOW(), NOW()),
     
     -- MediaMarkt electronics
-    ('e7777777-7777-7777-7777-777777777777', 't7777777-7777-7777-7777-777777777777', 'Wireless headphones', -149.99, '88888888-8888-8888-8888-888888888888', NOW(), NOW()),
-    ('e7777778-7777-7777-7777-777777777777', 't7777777-7777-7777-7777-777777777777', 'Phone charging cable', -19.99, '88888888-8888-8888-8888-888888888888', NOW(), NOW()),
+    ('7e007777-7777-7777-7777-777777777777', '7a007777-7777-7777-7777-777777777777', 'Wireless headphones', -149.99, 'ca008888-8888-8888-8888-888888888888', NOW(), NOW()),
+    ('7e007778-7777-7777-7777-777777777777', '7a007777-7777-7777-7777-777777777777', 'Phone charging cable', -19.99, 'ca008888-8888-8888-8888-888888888888', NOW(), NOW()),
     
     -- Zara clothing
-    ('e8888888-8888-8888-8888-888888888888', 't8888888-8888-8888-8888-888888888888', 'Summer t-shirt', -29.95, '99999999-9999-9999-9999-999999999999', NOW(), NOW()),
-    ('e8888889-8888-8888-8888-888888888888', 't8888888-8888-8888-8888-888888888888', 'Jeans', -59.95, '99999999-9999-9999-9999-999999999999', NOW(), NOW()),
+    ('7e008888-8888-8888-8888-888888888888', '7a008888-8888-8888-8888-888888888888', 'Summer t-shirt', -29.95, 'ca009999-9999-9999-9999-999999999999', NOW(), NOW()),
+    ('7e008889-8888-8888-8888-888888888888', '7a008888-8888-8888-8888-888888888888', 'Jeans', -59.95, 'ca009999-9999-9999-9999-999999999999', NOW(), NOW()),
     
     -- Freelance income
-    ('e9999999-9999-9999-9999-999999999999', 't9999999-9999-9999-9999-999999999999', 'Freelance project payment', 1200.00, 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NOW(), NOW()),
+    ('7e009999-9999-9999-9999-999999999999', '7a009999-9999-9999-9999-999999999999', 'Freelance project payment', 1200.00, 'caaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NOW(), NOW()),
     
     -- Investment returns in USD
-    ('eaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'taaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Monthly dividend payment', 250.00, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', NOW(), NOW()),
+    ('7eaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '7aaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Monthly dividend payment', 250.00, 'cabbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', NOW(), NOW()),
     
     -- Travel expense in GBP
-    ('ebbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'tbbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Hotel accommodation in London', -180.00, 'cccccccc-cccc-cccc-cccc-cccccccccccc', NOW(), NOW()),
+    ('7ebbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '7abbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Hotel accommodation in London', -180.00, 'cacccccc-cccc-cccc-cccc-cccccccccccc', NOW(), NOW()),
     
     -- Transfer between accounts (movement) - debit entry
-    ('ecccccccc-cccc-cccc-cccc-cccccccccccc', 'tcccccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer to savings account', -500.00, 'dddddddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW()),
+    ('7ecccccc-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer to savings account', -500.00, 'cadddddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW()),
     -- Transfer between accounts (movement) - credit entry
-    ('ecccccccd-cccc-cccc-cccc-cccccccccccc', 'tcccccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer from checking account', 500.00, 'dddddddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW())
+    ('7ecccccd-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer from checking account', 500.00, 'cadddddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;

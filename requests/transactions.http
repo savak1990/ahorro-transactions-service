@@ -1,7 +1,6 @@
 # Transaction endpoints for ahorro-transactions-service
 
-#@baseUrl=http://localhost:8080
-@baseUrl=https://api-ahorro-transactions-savak.vkdev1.com
+@baseUrl=http://localhost:8080
 
 # Authentication token - get this by running:
 # make get-cognito-token

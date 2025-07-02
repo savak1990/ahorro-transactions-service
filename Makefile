@@ -25,6 +25,15 @@ DB_NAME = $(APP_NAME)_$(SERVICE_NAME)_stable_db
 DB_ENDPOINT = $(shell aws rds describe-db-instances --db-instance-identifier $(DB_IDENTIFIER) --query 'DBInstances[0].Endpoint.Address' --output text --region $(AWS_REGION) 2>/dev/null || echo "")
 DB_PORT = $(shell aws rds describe-db-instances --db-instance-identifier $(DB_IDENTIFIER) --query 'DBInstances[0].Endpoint.Port' --output text --region $(AWS_REGION) 2>/dev/null || echo "5432")
 
+# Local PostgreSQL development configuration
+LOCAL_DB_HOST=localhost
+LOCAL_DB_PORT=5432
+LOCAL_DB_NAME=ahorro_transactions_local
+LOCAL_DB_USER=postgres
+LOCAL_DB_PASSWORD=local_password
+LOCAL_POSTGRES_CONTAINER=ahorro-postgres-local
+LOCAL_SSL_MODE=disable
+
 # Main app arguments
 APP_DIR=app
 APP_BUILD_DIR=./build/service-handler
@@ -50,7 +59,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag local-db-start local-db-stop local-db-status local-db-create local-db-destroy local-db-connect local-drop-tables local-cleanup-port local-seed local-verify-seed local-run help
 
 # Default target
 all: build
@@ -93,6 +102,19 @@ help:
 	@echo "  verify-seed           - Verify seed data integrity and relationships"
 	@echo "  drop-tables           - Drop all tables (⚠️  DESTRUCTIVE)"
 	@echo ""
+	@echo "🏠 Local Development:"
+	@echo "  local-db-start        - Start local PostgreSQL in Docker"
+	@echo "  local-db-stop         - Stop local PostgreSQL container"
+	@echo "  local-db-status       - Check local PostgreSQL container and database status"
+	@echo "  local-db-create       - Create local database"
+	@echo "  local-db-destroy      - Remove local PostgreSQL container and data"
+	@echo "  local-db-connect      - Connect to local PostgreSQL database"
+	@echo "  local-drop-tables     - Drop all tables in local database"
+	@echo "  local-cleanup-port    - Clean up any processes using port 8080"
+	@echo "  local-seed            - Seed local database with sample data"
+	@echo "  local-verify-seed     - Verify local seed data"
+	@echo "  local-run             - Run service locally with local database"
+	@echo ""
 	@echo "🔧 Configuration & Utilities:"
 	@echo "  show-db-config        - Show database configuration"
 	@echo "  show-api-url          - Show deployed API URL"
@@ -104,9 +126,13 @@ help:
 	@echo "  show-cognito-config   - Show Cognito configuration"
 	@echo ""
 	@echo "💡 Examples:"
+	@echo "  # AWS Development:"
 	@echo "  make build && make deploy"
 	@echo "  make get-cognito-token"
 	@echo "  make db-quick-start && make seed"
+	@echo ""
+	@echo "  # Local Development:"
+	@echo "  make local-db-start && make local-db-create && make local-seed && make local-run"
 
 # Schema generation target
 $(SCHEMA_OUTPUT): $(SCHEMA_TEMPLATE)
@@ -170,6 +196,7 @@ run: app-build-local get-db-config
 	DB_NAME=$(shell $(MAKE) -s get-db-name) \
 	DB_USER=$(DB_USERNAME) \
 	DB_PASSWORD=$(DB_PASSWORD) \
+	SSL_MODE=require \
 	LOG_LEVEL=$(LOG_LEVEL) \
 	./$(APP_BINARY)
 
@@ -420,6 +447,215 @@ db-quick-stop: db-stop db-wait-stopped
 
 clean:
 	rm -rf ./build ./app/schema/openapi.yml ./app/buildinfo/build-info.json .timestamp
+
+# ================================
+# Local Development Setup
+# ================================
+
+# Start local PostgreSQL container
+local-db-start:
+	@echo "Starting local PostgreSQL container..."
+	@if docker ps -a --format "table {{.Names}}" | grep -q "^$(LOCAL_POSTGRES_CONTAINER)$$"; then \
+		if docker ps --format "table {{.Names}}" | grep -q "^$(LOCAL_POSTGRES_CONTAINER)$$"; then \
+			echo "PostgreSQL container is already running"; \
+		else \
+			echo "Starting existing PostgreSQL container..."; \
+			docker start $(LOCAL_POSTGRES_CONTAINER); \
+		fi; \
+	else \
+		echo "Creating new PostgreSQL container..."; \
+		docker run -d \
+			--name $(LOCAL_POSTGRES_CONTAINER) \
+			-e POSTGRES_DB=$(LOCAL_DB_NAME) \
+			-e POSTGRES_USER=$(LOCAL_DB_USER) \
+			-e POSTGRES_PASSWORD=$(LOCAL_DB_PASSWORD) \
+			-p $(LOCAL_DB_PORT):5432 \
+			-v ahorro-postgres-data:/var/lib/postgresql/data \
+			--restart unless-stopped \
+			postgres:15-alpine; \
+	fi
+	@echo "Waiting for PostgreSQL to be ready..."
+	@for i in 1 2 3 4 5 6 7 8 9 10; do \
+		if docker exec $(LOCAL_POSTGRES_CONTAINER) pg_isready -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME) >/dev/null 2>&1; then \
+			echo "Local PostgreSQL is ready at localhost:$(LOCAL_DB_PORT)"; \
+			exit 0; \
+		fi; \
+		echo "Waiting... ($$i/10)"; \
+		sleep 2; \
+	done; \
+	echo "Failed to connect to PostgreSQL after 20 seconds"; \
+	exit 1
+
+# Stop local PostgreSQL container
+local-db-stop:
+	@echo "Stopping local PostgreSQL container..."
+	@if docker ps --format "table {{.Names}}" | grep -q "^$(LOCAL_POSTGRES_CONTAINER)$$"; then \
+		docker stop $(LOCAL_POSTGRES_CONTAINER); \
+		echo "PostgreSQL container stopped"; \
+	else \
+		echo "PostgreSQL container is not running"; \
+	fi
+
+# Check local PostgreSQL container status
+local-db-status:
+	@echo "Checking local PostgreSQL container status..."
+	@echo "Container: $(LOCAL_POSTGRES_CONTAINER)"
+	@echo "Expected Database: $(LOCAL_DB_NAME)"
+	@echo "Expected Port: $(LOCAL_DB_PORT)"
+	@echo ""
+	@if docker ps -a --format "table {{.Names}}" | grep -q "^$(LOCAL_POSTGRES_CONTAINER)$$"; then \
+		if docker ps --format "table {{.Names}}" | grep -q "^$(LOCAL_POSTGRES_CONTAINER)$$"; then \
+			echo "✅ Container Status: RUNNING"; \
+			if docker exec $(LOCAL_POSTGRES_CONTAINER) pg_isready -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME) >/dev/null 2>&1; then \
+				echo "✅ Database Status: READY"; \
+				echo "✅ Connection: SUCCESS"; \
+				echo ""; \
+				echo "Database Details:"; \
+				docker exec $(LOCAL_POSTGRES_CONTAINER) psql -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME) -c "SELECT version();" -t | head -1 | xargs echo "PostgreSQL Version:"; \
+				docker exec $(LOCAL_POSTGRES_CONTAINER) psql -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME) -c "SELECT current_database(), current_user;" -t | xargs echo "Connected as:"; \
+				echo ""; \
+				echo "Tables:"; \
+				docker exec $(LOCAL_POSTGRES_CONTAINER) psql -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME) -c "\dt" 2>/dev/null || echo "No tables found (database may need migration)"; \
+			else \
+				echo "❌ Database Status: NOT READY"; \
+				echo "❌ Connection: FAILED"; \
+			fi; \
+		else \
+			echo "⏸️  Container Status: STOPPED"; \
+			echo "❌ Database Status: NOT ACCESSIBLE"; \
+		fi; \
+	else \
+		echo "❌ Container Status: NOT EXISTS"; \
+		echo "❌ Database Status: NOT AVAILABLE"; \
+		echo ""; \
+		echo "💡 Run 'make local-db-start' to create and start the container"; \
+	fi
+
+# Create/initialize local database with schema
+local-db-create: local-db-start
+	@echo "Creating database schema in local PostgreSQL..."
+	@echo "Database: $(LOCAL_DB_NAME)"
+	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
+	@echo "User: $(LOCAL_DB_USER)"
+	@echo ""
+	@echo "The application will auto-migrate the schema on first connection."
+	@echo "Local database is ready for use!"
+
+# Remove local PostgreSQL container and all data
+local-db-destroy:
+	@echo "WARNING: This will DESTROY the local PostgreSQL container and ALL DATA!"
+	@echo "Container: $(LOCAL_POSTGRES_CONTAINER)"
+	@echo "Volume: ahorro-postgres-data"
+	@echo ""
+	@echo -n "Are you sure you want to continue? (y/N): "; \
+	read CONFIRM; \
+	if [ "$$CONFIRM" != "y" ] && [ "$$CONFIRM" != "Y" ]; then \
+		echo "Operation cancelled."; \
+		exit 1; \
+	fi
+	@echo "Removing PostgreSQL container..."
+	@docker rm -f $(LOCAL_POSTGRES_CONTAINER) 2>/dev/null || echo "Container not found"
+	@echo "Removing PostgreSQL data volume..."
+	@docker volume rm ahorro-postgres-data 2>/dev/null || echo "Volume not found"
+	@echo "Local PostgreSQL container and data destroyed"
+
+# Drop all tables in local database
+local-drop-tables: local-db-start
+	@echo "WARNING: This will DROP ALL TABLES in the local database!"
+	@echo "Container: $(LOCAL_POSTGRES_CONTAINER)"
+	@echo "Database: $(LOCAL_DB_NAME)"
+	@echo ""
+	@echo -n "Are you sure you want to continue? (y/N): "; \
+	read CONFIRM; \
+	if [ "$$CONFIRM" != "y" ] && [ "$$CONFIRM" != "Y" ]; then \
+		echo "Operation cancelled."; \
+		exit 1; \
+	fi
+	@echo "Dropping all tables in local database..."
+	docker exec $(LOCAL_POSTGRES_CONTAINER) psql -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME) -c \
+		"DROP TABLE IF EXISTS transaction_entry CASCADE; DROP TABLE IF EXISTS transaction CASCADE; DROP TABLE IF EXISTS balance CASCADE; DROP TABLE IF EXISTS merchant CASCADE; DROP TABLE IF EXISTS category CASCADE; DROP TABLE IF EXISTS category_group CASCADE;"
+	@echo "All tables dropped successfully from local database!"
+
+# Seed local database with sample data
+local-seed: local-db-create
+	@echo "Seeding local PostgreSQL database with sample data..."
+	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
+	@echo "Database: $(LOCAL_DB_NAME)"
+	@echo "Username: $(LOCAL_DB_USER)"
+	@echo ""
+	@if [ ! -f "scripts/seed_database.sh" ]; then \
+		echo "Error: scripts/seed_database.sh not found!"; \
+		exit 1; \
+	fi
+	@echo "Running modular seed scripts..."
+	docker run --rm --pull=missing -v "$(PWD):/app" -w /app \
+		--network host \
+		-e DB_HOST=$(LOCAL_DB_HOST) \
+		-e DB_PORT=$(LOCAL_DB_PORT) \
+		-e DB_USER=$(LOCAL_DB_USER) \
+		-e DB_PASSWORD=$(LOCAL_DB_PASSWORD) \
+		-e DB_NAME=$(LOCAL_DB_NAME) \
+		--entrypoint=/bin/bash \
+		postgres:15-alpine \
+		/app/scripts/seed_database.sh
+	@echo "Local database seeding completed!"
+
+# Verify local seed data
+local-verify-seed: local-db-create
+	@echo "Verifying seeded data in local PostgreSQL database..."
+	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
+	@echo "Database: $(LOCAL_DB_NAME)"
+	@echo "Username: $(LOCAL_DB_USER)"
+	@echo ""
+	@if [ ! -f "scripts/verify_seed_data.sh" ]; then \
+		echo "Error: scripts/verify_seed_data.sh not found!"; \
+		exit 1; \
+	fi
+	@echo "Running seed data verification..."
+	docker run --rm --pull=missing -v "$(PWD):/app" -w /app \
+		--network host \
+		-e DB_HOST=$(LOCAL_DB_HOST) \
+		-e DB_PORT=$(LOCAL_DB_PORT) \
+		-e DB_USER=$(LOCAL_DB_USER) \
+		-e DB_PASSWORD=$(LOCAL_DB_PASSWORD) \
+		-e DB_NAME=$(LOCAL_DB_NAME) \
+		--entrypoint=/bin/bash \
+		postgres:15-alpine \
+		/app/scripts/verify_seed_data.sh
+	@echo "Local seed data verification completed!"
+
+# Clean up any processes using port 8080
+local-cleanup-port:
+	@echo "Cleaning up any processes using port 8080..."
+	@kill $(shell lsof -ti:8080) 2>/dev/null || true
+	@echo "Port 8080 cleanup completed"
+
+# Run the service locally with local database
+local-run: app-build-local local-db-create local-cleanup-port
+	@echo "Running service locally with local PostgreSQL database..."
+	@echo "Database: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)/$(LOCAL_DB_NAME)"
+	@echo "Service will be available at: http://localhost:8080"
+	@echo ""
+	DB_HOST=$(LOCAL_DB_HOST) \
+	DB_PORT=$(LOCAL_DB_PORT) \
+	DB_NAME=$(LOCAL_DB_NAME) \
+	DB_USER=$(LOCAL_DB_USER) \
+	DB_PASSWORD=$(LOCAL_DB_PASSWORD) \
+	SSL_MODE=$(LOCAL_SSL_MODE) \
+	LOG_LEVEL=$(LOG_LEVEL) \
+	./$(APP_BINARY)
+
+# Connect to local PostgreSQL database
+local-db-connect: local-db-start
+	@echo "Connecting to local PostgreSQL database..."
+	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
+	@echo "Database: $(LOCAL_DB_NAME)"
+	@echo "Username: $(LOCAL_DB_USER)"
+	@echo ""
+	docker run -it --rm --pull=missing \
+		--network host \
+		postgres:15-alpine psql \
+		"postgres://$(LOCAL_DB_USER):$(LOCAL_DB_PASSWORD)@$(LOCAL_DB_HOST):$(LOCAL_DB_PORT)/$(LOCAL_DB_NAME)?sslmode=disable"
 
 # At the top
 TIMESTAMP_FILE := .timestamp

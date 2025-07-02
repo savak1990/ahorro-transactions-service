@@ -311,16 +311,16 @@ paths:
                       expense:
                         EUR:
                           amount: 125043
-                          transactionCount: 15
+                          transactionsCount: 15
                           transactionEntriesCount: 23
                         USD:
                           amount: 85000
-                          transactionCount: 8
+                          transactionsCount: 8
                           transactionEntriesCount: 12
                       income:
                         EUR:
                           amount: 300000
-                          transactionCount: 2
+                          transactionsCount: 2
                           transactionEntriesCount: 2
         '400':
           $ref: '#/components/responses/BadRequestError'
@@ -696,7 +696,7 @@ paths:
       parameters:
         - name: balance_id
           in: path
-          required: false
+          required: true
           description: "Unique identifier for the balance to delete"
           schema:
             type: string
@@ -1281,6 +1281,8 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateMerchantRequest'
             example:
+              groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+              userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
               name: "Mercadona"
               description: "Spanish supermarket chain"
               imageUrl: "https://example.com/mercadona-logo.png"

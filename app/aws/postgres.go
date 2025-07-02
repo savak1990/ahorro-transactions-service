@@ -3,6 +3,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -104,9 +105,15 @@ func GetGormDB(appCfg config.AppConfig) *gorm.DB {
 	lastAttempt = now
 	log.Info("Attempting to establish new database connection...")
 
-	// Enhanced DSN with short timeout for fast-fail behavior
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require TimeZone=UTC connect_timeout=2 statement_timeout=5000",
-		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName)
+	// Get SSL mode from environment variable, default to 'require' for security
+	sslMode := os.Getenv("SSL_MODE")
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	// Enhanced DSN with configurable SSL mode
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC connect_timeout=2 statement_timeout=5000",
+		cfg.DBHost, cfg.DBPort, cfg.DBUser, cfg.DBPassword, cfg.DBName, sslMode)
 
 	var err error
 	gormDB, err = retryConnect(dsn, 1) // Only 1 attempt for fast-fail
@@ -211,6 +218,7 @@ func autoMigrate(db *gorm.DB) error {
 	err := db.AutoMigrate(
 		&models.Balance{},
 		&models.Merchant{},
+		&models.CategoryGroup{},
 		&models.Category{},
 		&models.Transaction{},
 		&models.TransactionEntry{},
@@ -236,8 +244,14 @@ func WithDatabaseTimeout(ctx context.Context) (context.Context, context.CancelFu
 
 // TestDatabaseConnection tests if the database is reachable without panicking
 func TestDatabaseConnection(appCfg config.AppConfig) error {
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require TimeZone=UTC connect_timeout=1 statement_timeout=2000",
-		appCfg.DBHost, appCfg.DBPort, appCfg.DBUser, appCfg.DBPassword, appCfg.DBName)
+	// Get SSL mode from environment variable, default to 'require' for security
+	sslMode := os.Getenv("SSL_MODE")
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s TimeZone=UTC connect_timeout=1 statement_timeout=2000",
+		appCfg.DBHost, appCfg.DBPort, appCfg.DBUser, appCfg.DBPassword, appCfg.DBName, sslMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent), // Silent mode for testing
