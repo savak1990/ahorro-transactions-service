@@ -1,6 +1,6 @@
 # System and health check endpoints for ahorro-transactions-service
 
-@baseUrl=https://localhost:8080
+@baseUrl=http://localhost:8080
 
 ### Info
 GET {{baseUrl}}/info

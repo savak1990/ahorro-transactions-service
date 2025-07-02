@@ -29,16 +29,16 @@ INSERT INTO transaction_entry (id, transaction_id, description, amount, category
     ('7e008889-8888-8888-8888-888888888888', '7a008888-8888-8888-8888-888888888888', 'Jeans', -59.95, 'ca009999-9999-9999-9999-999999999999', NOW(), NOW()),
     
     -- Freelance income
-    ('7e009999-9999-9999-9999-999999999999', '7a009999-9999-9999-9999-999999999999', 'Freelance project payment', 1200.00, 'caaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NOW(), NOW()),
+    ('7e009999-9999-9999-9999-999999999999', '7a009999-9999-9999-9999-999999999999', 'Freelance project payment', 1200.00, 'ca00aaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', NOW(), NOW()),
     
     -- Investment returns in USD
-    ('7eaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '7aaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Monthly dividend payment', 250.00, 'cabbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', NOW(), NOW()),
+    ('7eaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', '7aaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', 'Monthly dividend payment', 250.00, 'ca00bbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', NOW(), NOW()),
     
     -- Travel expense in GBP
-    ('7ebbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '7abbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Hotel accommodation in London', -180.00, 'cacccccc-cccc-cccc-cccc-cccccccccccc', NOW(), NOW()),
+    ('7ebbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', '7abbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'Hotel accommodation in London', -180.00, 'ca00cccc-cccc-cccc-cccc-cccccccccccc', NOW(), NOW()),
     
     -- Transfer between accounts (movement) - debit entry
-    ('7ecccccc-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer to savings account', -500.00, 'cadddddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW()),
+    ('7ecccccc-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer to savings account', -500.00, 'ca00dddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW()),
     -- Transfer between accounts (movement) - credit entry
-    ('7ecccccd-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer from checking account', 500.00, 'cadddddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW())
+    ('7ecccccd-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer from checking account', 500.00, 'ca00dddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;

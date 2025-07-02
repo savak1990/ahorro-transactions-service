@@ -565,6 +565,15 @@ local-db-destroy:
 	@docker volume rm ahorro-postgres-data 2>/dev/null || echo "Volume not found"
 	@echo "Local PostgreSQL container and data destroyed"
 
+# Connect to local PostgreSQL database
+local-db-connect: local-db-start
+	@echo "Connecting to local PostgreSQL database..."
+	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
+	@echo "Database: $(LOCAL_DB_NAME)"
+	@echo "Username: $(LOCAL_DB_USER)"
+	@echo ""
+	docker exec -it $(LOCAL_POSTGRES_CONTAINER) psql -U $(LOCAL_DB_USER) -d $(LOCAL_DB_NAME)
+
 # Drop all tables in local database
 local-drop-tables: local-db-start
 	@echo "WARNING: This will DROP ALL TABLES in the local database!"
