@@ -59,7 +59,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag local-db-start local-db-stop local-db-status local-db-create local-db-destroy local-db-connect local-drop-tables local-cleanup-port local-seed local-verify-seed local-run help
+.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag local-db-start local-db-stop local-db-status local-db-create local-db-destroy local-db-connect local-drop-tables local-cleanup-port local-seed local-verify-seed local-run local-full-start local-full-stop help
 
 # Default target
 all: build
@@ -114,6 +114,8 @@ help:
 	@echo "  local-seed            - Seed local database with sample data"
 	@echo "  local-verify-seed     - Verify local seed data"
 	@echo "  local-run             - Run service locally with local database"
+	@echo "  local-full-start      - Complete setup: start DB, create schema, run service (no seeding)"
+	@echo "  local-full-stop       - Complete cleanup: stop service, cleanup port, destroy DB"
 	@echo ""
 	@echo "🔧 Configuration & Utilities:"
 	@echo "  show-db-config        - Show database configuration"
@@ -132,6 +134,10 @@ help:
 	@echo "  make db-quick-start && make seed"
 	@echo ""
 	@echo "  # Local Development:"
+	@echo "  make local-full-start      # Setup and run service (no seeding)"
+	@echo "  make local-seed            # Seed with sample data (optional)"
+	@echo "  make local-full-stop       # Complete cleanup"
+	@echo "  # OR step by step:"
 	@echo "  make local-db-start && make local-db-create && make local-seed && make local-run"
 
 # Schema generation target
@@ -601,7 +607,7 @@ local-seed: local-db-create
 	@echo "Local database seeding completed!"
 
 # Verify local seed data
-local-verify-seed: local-db-create
+local-verify-seed: local-seed
 	@echo "Verifying seeded data in local PostgreSQL database..."
 	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
 	@echo "Database: $(LOCAL_DB_NAME)"
@@ -645,17 +651,28 @@ local-run: app-build-local local-db-create local-cleanup-port
 	LOG_LEVEL=$(LOG_LEVEL) \
 	./$(APP_BINARY)
 
-# Connect to local PostgreSQL database
-local-db-connect: local-db-start
-	@echo "Connecting to local PostgreSQL database..."
-	@echo "Host: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)"
-	@echo "Database: $(LOCAL_DB_NAME)"
-	@echo "Username: $(LOCAL_DB_USER)"
+# Complete local development setup (start DB, create schema, run service)
+local-full-start: local-run
+	@echo "================================"
+	@echo "LOCAL DEVELOPMENT ENVIRONMENT READY!"
+	@echo "================================"
+	@echo "Database: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)/$(LOCAL_DB_NAME)"
+	@echo "Service is running at: http://localhost:8080"
 	@echo ""
-	docker run -it --rm --pull=missing \
-		--network host \
-		postgres:15-alpine psql \
-		"postgres://$(LOCAL_DB_USER):$(LOCAL_DB_PASSWORD)@$(LOCAL_DB_HOST):$(LOCAL_DB_PORT)/$(LOCAL_DB_NAME)?sslmode=disable"
+	@echo "💡 Next steps (run separately as needed):"
+	@echo "  make local-seed        # Seed database with sample data"
+	@echo "  make local-verify-seed # Verify seed data integrity"
+
+# Complete local development cleanup (stop service, cleanup port, destroy DB)
+local-full-stop: local-cleanup-port local-db-destroy
+	@echo "================================"
+	@echo "COMPLETE LOCAL CLEANUP FINISHED!"
+	@echo "================================"
+	@echo "All local development resources have been cleaned up:"
+	@echo "- PostgreSQL container stopped and removed"
+	@echo "- All database data destroyed"
+	@echo "- Port 8080 freed up"
+	@echo "- Local development environment reset"
 
 # At the top
 TIMESTAMP_FILE := .timestamp

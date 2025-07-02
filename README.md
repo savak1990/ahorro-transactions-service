@@ -43,7 +43,29 @@ go mod tidy
 
 **Complete local development with Docker PostgreSQL - no AWS dependencies.**
 
-#### Setup Local Environment
+#### Quick Start (Recommended)
+
+For streamlined development, use the lifecycle management targets:
+
+```bash
+# Complete setup and run service (no seeding)
+make local-full-start
+
+# In another terminal, add sample data when needed
+make local-seed
+
+# Verify data integrity when needed
+make local-verify-seed
+
+# Complete cleanup when done
+make local-full-stop
+```
+
+**Service will be available at: http://localhost:8080**
+
+#### Step-by-Step Setup (Alternative)
+
+For more control over individual steps:
 
 ```bash
 # 1. Start local PostgreSQL container
@@ -62,8 +84,6 @@ make local-verify-seed
 make local-run
 ```
 
-**Service will be available at: http://localhost:8080**
-
 #### Working with Local Database
 
 ```bash
@@ -80,11 +100,27 @@ make local-drop-tables
 make local-seed
 ```
 
+#### Development Workflow Notes
+
+**Dependency Chain:** The targets have proper dependencies to ensure correct order:
+- `local-full-start` → `local-run` → `local-db-create` → `local-db-start`
+- `local-verify-seed` → `local-seed` → `local-db-create` → `local-db-start`
+- `local-full-stop` → `local-cleanup-port` + `local-db-destroy`
+
+**Flexible Development:** 
+- Use `local-full-start` for quick environment setup
+- Run `local-seed` separately when you need sample data
+- Database auto-migration happens when the service first connects
+- Seeding and verification are optional and run independently
+
 #### Stop Local Development
 
 ```bash
-# Stop the service (Ctrl+C in terminal where local-run is running)
+# Quick cleanup (recommended)
+make local-full-stop
 
+# OR manual cleanup:
+# Stop the service (Ctrl+C in terminal where local-run is running)
 # Stop PostgreSQL container (keeps data)
 make local-db-stop
 
@@ -96,12 +132,17 @@ make local-db-destroy
 
 | Command | Purpose |
 |---------|---------|
+| `make local-full-start` | **Complete setup and run service (recommended)** |
+| `make local-full-stop` | **Complete cleanup (recommended)** |
 | `make local-db-start` | Start PostgreSQL container |
 | `make local-db-create` | Initialize database schema |
 | `make local-seed` | Add sample data |
+| `make local-verify-seed` | Verify data integrity and relationships |
 | `make local-run` | Run service on port 8080 |
 | `make local-db-connect` | Interactive database connection |
 | `make local-db-status` | Check container/database status |
+| `make local-cleanup-port` | Clean up processes using port 8080 |
+| `make local-drop-tables` | Drop all tables in local database |
 | `make local-db-stop` | Stop container (preserve data) |
 | `make local-db-destroy` | Remove container and all data |
 
@@ -322,11 +363,33 @@ make get-my-ip
 make pull-postgres
 ```
 
+### Development Workflow Examples
+
+**Quick local development:**
+```bash
+make local-full-start    # Setup and run service
+make local-seed          # Add sample data (optional)
+make local-full-stop     # Complete cleanup
+```
+
+**Step-by-step development:**
+```bash
+make local-db-start && make local-db-create && make local-seed && make local-run
+```
+
+**Reset local environment:**
+```bash
+make local-drop-tables   # Remove all tables
+make local-seed          # Re-seed with fresh data
+```
+
 ### Troubleshooting
 
 **Port 8080 already in use:**
 ```bash
 make local-cleanup-port  # Kills processes on port 8080
+# OR use the full cleanup
+make local-full-stop     # Complete environment reset
 ```
 
 **Database connection issues:**
@@ -339,6 +402,13 @@ make show-db-config      # Check remote database config
 ```bash
 make local-drop-tables   # Reset local tables
 make local-seed          # Re-seed in correct order
+```
+
+**Complete environment reset:**
+```bash
+make local-full-stop     # Destroy everything
+make local-full-start    # Start fresh
+make local-seed          # Add sample data
 ```
 
 ---
