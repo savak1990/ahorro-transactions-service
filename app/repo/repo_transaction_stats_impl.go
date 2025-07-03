@@ -55,7 +55,8 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 	}
 
 	if filter.MerchantId != nil && *filter.MerchantId != "" {
-		query = query.Where("t.merchant_id = ?", *filter.MerchantId)
+		query = query.Joins("JOIN merchant m ON t.merchant_id = m.id AND m.deleted_at IS NULL").
+			Where("t.merchant_id = ?", *filter.MerchantId)
 	}
 
 	if filter.StartTime != nil {

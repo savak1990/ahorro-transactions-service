@@ -39,7 +39,7 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 
 	var tx models.Transaction
 	if err := db.WithContext(ctx).
-		Preload("Merchant").
+		Preload("Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
 		Joins("JOIN balance ON transaction.balance_id = balance.id").
@@ -90,7 +90,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 
 	query := db.WithContext(ctx).
 		Preload("Transaction").
-		Preload("Transaction.Merchant").
+		Preload("Transaction.Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("Transaction.Balance").
 		Preload("Category")
 
@@ -104,9 +104,9 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Joins("JOIN category ON transaction_entry.category_id = category.id")
 	}
 
-	// Join merchant table if we need to filter by merchant
+	// Join merchant table if we need to filter by merchant (exclude soft-deleted merchants)
 	if filter.MerchantId != "" {
-		query = query.Joins("JOIN merchant ON transaction.merchant_id = merchant.id")
+		query = query.Joins("JOIN merchant ON transaction.merchant_id = merchant.id AND merchant.deleted_at IS NULL")
 	}
 
 	// Apply transaction-related filters

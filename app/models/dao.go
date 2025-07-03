@@ -111,7 +111,7 @@ type Transaction struct {
 	DeletedAt    *time.Time `gorm:"index"`
 
 	// Relationships
-	Merchant           *Merchant          `gorm:"foreignKey:MerchantID"`
+	Merchant           *Merchant          `gorm:"foreignKey:MerchantID;constraint:OnDelete:SET NULL"`
 	Balance            *Balance           `gorm:"foreignKey:BalanceID"`
 	TransactionEntries []TransactionEntry `gorm:"foreignKey:TransactionID"`
 }

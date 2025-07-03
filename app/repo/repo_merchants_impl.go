@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/savak1990/transactions-service/app/models"
 	"gorm.io/gorm"
@@ -86,22 +87,53 @@ func (r *PostgreSQLRepository) UpdateMerchant(ctx context.Context, merchant mode
 	return &merchant, nil
 }
 
-// DeleteMerchant soft deletes a merchant by ID
+// DeleteMerchant soft deletes a merchant by ID and nullifies merchant references in transactions
 func (r *PostgreSQLRepository) DeleteMerchant(ctx context.Context, merchantId string) error {
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ?", merchantId).Delete(&models.Merchant{}).Error; err != nil {
-		return fmt.Errorf("failed to delete merchant: %w", err)
-	}
-	return nil
+
+	// Start a transaction to ensure both operations succeed or fail together
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// First, update all transactions that reference this merchant to set merchant_id to NULL
+		if err := tx.Model(&models.Transaction{}).
+			Where("merchant_id = ?", merchantId).
+			Update("merchant_id", nil).Error; err != nil {
+			return fmt.Errorf("failed to nullify merchant references in transactions: %w", err)
+		}
+
+		// Then manually soft delete the merchant by setting deleted_at timestamp
+		// This avoids triggering foreign key constraints that GORM's Delete() might cause
+		if err := tx.Model(&models.Merchant{}).
+			Where("id = ? AND deleted_at IS NULL", merchantId).
+			Update("deleted_at", time.Now()).Error; err != nil {
+			return fmt.Errorf("failed to soft delete merchant: %w", err)
+		}
+
+		return nil
+	})
 }
 
-// DeleteMerchantsByUserId deletes all merchants for a user ID
+// DeleteMerchantsByUserId deletes all merchants for a user ID and nullifies merchant references in transactions
 func (r *PostgreSQLRepository) DeleteMerchantsByUserId(ctx context.Context, userId string) error {
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("user_id = ?", userId).Delete(&models.Merchant{}).Error; err != nil {
-		return fmt.Errorf("failed to delete merchants for user %s: %w", userId, err)
-	}
-	return nil
+
+	// Start a transaction to ensure both operations succeed or fail together
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// First, update all transactions that reference merchants for this user to set merchant_id to NULL
+		if err := tx.Model(&models.Transaction{}).
+			Where("merchant_id IN (SELECT id FROM merchant WHERE user_id = ? AND deleted_at IS NULL)", userId).
+			Update("merchant_id", nil).Error; err != nil {
+			return fmt.Errorf("failed to nullify merchant references in transactions for user %s: %w", userId, err)
+		}
+
+		// Then manually soft delete all merchants for the user by setting deleted_at timestamp
+		if err := tx.Model(&models.Merchant{}).
+			Where("user_id = ? AND deleted_at IS NULL", userId).
+			Update("deleted_at", time.Now()).Error; err != nil {
+			return fmt.Errorf("failed to soft delete merchants for user %s: %w", userId, err)
+		}
+
+		return nil
+	})
 }
 
 // GetMerchantByNameAndUserId checks if a merchant with the given name already exists for a user
