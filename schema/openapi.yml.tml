@@ -1396,8 +1396,8 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateMerchantRequest'
             example:
-              groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
-              userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              userId: "99bb2200-0011-2233-4455-667788990011"
               name: "Mercadona"
               rank: 50
               description: "Spanish supermarket chain"
@@ -1432,14 +1432,14 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         - name: userId
           in: query
           description: "Filter merchants by user ID"
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: name
           in: query
           description: "Filter merchants by name (partial match)"
@@ -1525,7 +1525,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
       responses:
         '204':
           description: All merchants for the user deleted successfully
@@ -1554,7 +1554,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       responses:
         '200':
           description: Merchant found
@@ -1586,7 +1586,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       requestBody:
         required: true
         content:
@@ -1626,7 +1626,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       responses:
         '204':
           description: Merchant deleted successfully
@@ -1654,7 +1654,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       responses:
         '200':
           $ref: '#/components/responses/CorsResponse'
@@ -2848,12 +2848,12 @@ components:
           type: string
           format: uuid
           description: "Group ID this merchant belongs to"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         userId:
           type: string
           format: uuid
           description: "User ID this merchant belongs to"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         name:
           type: string
           minLength: 1
@@ -2888,12 +2888,12 @@ components:
           type: string
           format: uuid
           description: "Group ID this merchant belongs to"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         userId:
           type: string
           format: uuid
           description: "User ID this merchant belongs to"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         name:
           type: string
           minLength: 1
@@ -2924,17 +2924,17 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the merchant"
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
         groupId:
           type: string
           format: uuid
           description: "Group ID this merchant belongs to"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         userId:
           type: string
           format: uuid
           description: "User ID this merchant belongs to"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         name:
           type: string
           description: "Name of the merchant"
