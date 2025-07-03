@@ -51,6 +51,7 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 		CategoryId:      r.URL.Query().Get("categoryId"),
 		CategoryGroupId: r.URL.Query().Get("categoryGroupId"),
 		MerchantId:      r.URL.Query().Get("merchantId"),
+		TransactionID:   r.URL.Query().Get("transactionId"),
 		SortBy:          r.URL.Query().Get("sortedBy"),
 		Order:           r.URL.Query().Get("order"),
 	}

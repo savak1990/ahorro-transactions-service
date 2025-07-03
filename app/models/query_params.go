@@ -28,6 +28,7 @@ type ListTransactionsInput struct {
 	CategoryId      string
 	CategoryGroupId string
 	MerchantId      string
+	TransactionID   string
 	Type            string
 	StartTime       time.Time
 	EndTime         time.Time

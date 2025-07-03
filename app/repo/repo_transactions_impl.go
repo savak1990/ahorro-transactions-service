@@ -122,6 +122,10 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Where("transaction.balance_id = ?", filter.BalanceID)
 	}
 
+	if filter.TransactionID != "" {
+		query = query.Where("transaction.id = ?", filter.TransactionID)
+	}
+
 	if filter.Type != "" {
 		query = query.Where("transaction.type = ?", filter.Type)
 	}

@@ -118,49 +118,51 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
         - name: type
           in: query
           description: "Filter by transaction type"
           schema:
             type: string
             enum: [expense, income, movement]
-          example: "expense"
         - name: categoryId
           in: query
           description: "Filter by category ID"
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
         - name: categoryGroupId
           in: query
           description: "Filter by category group ID"
           schema:
             type: string
             format: uuid
-          example: "cg47ac10b-58cc-4372-a567-0e02b2c3d479"
         - name: merchantId
           in: query
           description: "Filter by merchant ID"
           schema:
             type: string
             format: uuid
-          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+        - name: transactionId
+          in: query
+          description: "Filter transaction entries by specific transaction ID"
+          schema:
+            type: string
+            format: uuid
         - name: startTime
           in: query
           description: "Filter transactions from this date/time (ISO 8601)"
           schema:
             type: string
             format: date-time
-          example: "2024-01-01T00:00:00Z"
+          example: "2025-01-01T00:00:00Z"
         - name: endTime
           in: query
           description: "Filter transactions until this date/time (ISO 8601)"
           schema:
             type: string
             format: date-time
-          example: "2024-12-31T23:59:59Z"
+          example: "2025-12-31T23:59:59Z"
         - name: sortedBy
           in: query
           description: "Field to sort by"
