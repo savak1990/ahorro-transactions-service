@@ -28,7 +28,16 @@ func (r *PostgreSQLRepository) ListCategoryGroups(ctx context.Context, filter mo
 	// Apply ordering
 	orderBy := "rank"
 	if filter.SortBy != "" {
-		orderBy = filter.SortBy
+		switch filter.SortBy {
+		case "rank", "name", "created_at", "updated_at":
+			orderBy = filter.SortBy
+		case "createdAt":
+			orderBy = "created_at"
+		case "updatedAt":
+			orderBy = "updated_at"
+		default:
+			orderBy = "rank" // fallback to default if invalid sort field
+		}
 	}
 	order := "DESC"
 	if filter.Order != "" && (filter.Order == "ASC" || filter.Order == "asc") {

@@ -25,17 +25,17 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	query := db.WithContext(ctx)
 
 	// Apply ordering
-	orderBy := "category_name"
+	orderBy := "name"
 	if input.SortBy != "" {
 		switch input.SortBy {
-		case "name", "category_name", "rank", "created_at", "updated_at":
-			if input.SortBy == "name" {
-				orderBy = "category_name" // Map 'name' to the actual column name
-			} else {
-				orderBy = input.SortBy
-			}
+		case "name", "rank", "created_at", "updated_at":
+			orderBy = input.SortBy
+		case "createdAt":
+			orderBy = "created_at"
+		case "updatedAt":
+			orderBy = "updated_at"
 		default:
-			orderBy = "category_name" // fallback to default if invalid sort field
+			orderBy = "name" // fallback to default if invalid sort field
 		}
 	}
 	order := "ASC"
@@ -52,7 +52,7 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	// For now, we'll ignore pagination (StartKey) since it's more complex
 	// You can implement pagination later if needed
 
-	if err := query.Find(&categories).Error; err != nil {
+	if err := query.Preload("CategoryGroup").Find(&categories).Error; err != nil {
 		return nil, fmt.Errorf("failed to list categories: %w", err)
 	}
 
@@ -63,7 +63,7 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 func (r *PostgreSQLRepository) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
 	var category models.Category
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ?", categoryID).First(&category).Error; err != nil {
+	if err := db.WithContext(ctx).Preload("CategoryGroup").Where("id = ?", categoryID).First(&category).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("category not found: %s", categoryID)
 		}

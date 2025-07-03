@@ -16,13 +16,23 @@ func ToAPICategory(c *Category) CategoryDto {
 		return CategoryDto{}
 	}
 
-	return CategoryDto{
+	dto := CategoryDto{
 		CategoryID:  c.ID.String(),
 		Name:        c.Name,
 		Description: c.Description,
 		ImageUrl:    c.ImageUrl,
 		Rank:        c.Rank,
 	}
+
+	// Add category group information if available
+	if c.CategoryGroup != nil {
+		dto.CategoryGroupID = c.CategoryGroup.ID.String()
+		dto.CategoryGroupName = c.CategoryGroup.Name
+		dto.CategoryGroupImageUrl = c.CategoryGroup.ImageUrl
+		dto.CategoryGroupRank = c.CategoryGroup.Rank
+	}
+
+	return dto
 }
 
 // ToAPICategoryGroup converts CategoryGroup (DAO) to CategoryGroupDto (API model)
@@ -266,10 +276,65 @@ func FromAPICategory(c CategoryDto) (*Category, error) {
 		id = NewCategoryID() // Generate new ID if not provided
 	}
 
+	// Parse CategoryGroupId if provided
+	var categoryGroupId string
+	if c.CategoryGroupID != "" {
+		// Validate that it's a proper UUID format
+		_, err = uuid.Parse(c.CategoryGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+		categoryGroupId = c.CategoryGroupID
+	}
+
 	return &Category{
-		ID:       id,
-		Name:     c.Name,
-		ImageUrl: c.ImageUrl,
+		ID:              id,
+		CategoryGroupId: categoryGroupId,
+		Name:            c.Name,
+		Description:     c.Description,
+		Rank:            c.Rank,
+		ImageUrl:        c.ImageUrl,
+		// Note: UserId and GroupId should be set by the handler from request context
+	}, nil
+}
+
+// FromAPICreateCategory converts CreateCategoryDto (API model) to Category (DAO)
+func FromAPICreateCategory(c CreateCategoryDto) (*Category, error) {
+	// Generate new ID for creation
+	id := NewCategoryID()
+
+	// Parse UserID
+	userID, err := uuid.Parse(c.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format: %w", err)
+	}
+
+	// Parse GroupID
+	groupID, err := uuid.Parse(c.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID format: %w", err)
+	}
+
+	// Parse CategoryGroupId if provided
+	var categoryGroupId string
+	if c.CategoryGroupID != "" {
+		// Validate that it's a proper UUID format
+		_, err = uuid.Parse(c.CategoryGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+		categoryGroupId = c.CategoryGroupID
+	}
+
+	return &Category{
+		ID:              id,
+		UserId:          userID,
+		GroupId:         groupID,
+		CategoryGroupId: categoryGroupId,
+		Name:            c.Name,
+		Description:     c.Description,
+		Rank:            c.Rank,
+		ImageUrl:        c.ImageUrl,
 	}, nil
 }
 

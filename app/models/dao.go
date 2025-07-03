@@ -85,6 +85,9 @@ type Category struct {
 	CreatedAt       time.Time  `gorm:"default:now()"`
 	UpdatedAt       time.Time  `gorm:"default:now()"`
 	DeletedAt       *time.Time `gorm:"index"`
+
+	// Relationships
+	CategoryGroup *CategoryGroup `gorm:"foreignKey:CategoryGroupId;references:ID"`
 }
 
 // TableName specifies the table name for GORM

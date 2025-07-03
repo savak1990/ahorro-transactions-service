@@ -74,13 +74,37 @@ type CategoryGroupDto struct {
 	Rank            *int    `json:"rank,omitempty"`
 }
 
+// CreateCategoryDto represents a category for creation via POST requests.
+type CreateCategoryDto struct {
+	GroupID         string  `json:"groupId"`
+	UserID          string  `json:"userId"`
+	CategoryGroupID string  `json:"categoryGroupId"`
+	Name            string  `json:"name"`
+	Description     string  `json:"description,omitempty"`
+	ImageUrl        *string `json:"imageUrl,omitempty"`
+	Rank            *int    `json:"rank,omitempty"`
+}
+
 // Category represents a user's category with a score for prioritization.
 type CategoryDto struct {
-	CategoryID  string  `json:"categoryId"`
-	Name        string  `json:"name"`
-	Description string  `json:"description,omitempty"`
-	ImageUrl    *string `json:"imageUrl,omitempty"`
-	Rank        *int    `json:"rank,omitempty"`
+	CategoryID            string  `json:"categoryId"`
+	Name                  string  `json:"name"`
+	Description           string  `json:"description,omitempty"`
+	ImageUrl              *string `json:"imageUrl,omitempty"`
+	Rank                  *int    `json:"rank,omitempty"`
+	CategoryGroupID       string  `json:"categoryGroupId,omitempty"`
+	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
+	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
+	CategoryGroupRank     *int    `json:"categoryGroupRank,omitempty"`
+}
+
+// CategoryGroupWithCategoriesDto represents a category group with its associated categories
+type CategoryGroupWithCategoriesDto struct {
+	CategoryGroupID       string        `json:"categoryGroupId"`
+	CategoryGroupName     string        `json:"categoryGroupName"`
+	CategoryGroupImageUrl *string       `json:"categoryGroupImageUrl,omitempty"`
+	CategoryGroupRank     *int          `json:"categoryGroupRank,omitempty"`
+	Categories            []CategoryDto `json:"categories"`
 }
 
 // Merchant represents a merchant for API responses.

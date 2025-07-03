@@ -44,25 +44,25 @@ paths:
               expense_transaction:
                 summary: "Grocery shopping with multiple items"
                 value:
-                  userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
-                  groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
-                  balanceId: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+                  userId: "99bb2200-0011-2233-4455-667788990011"
+                  groupId: "88aa1100-0011-2233-4455-667788990011"
+                  balanceId: "ba001111-1111-1111-1111-111111111111"
                   type: "expense"
                   merchant: "Mercadona"
                   transactedAt: "2024-06-19T12:00:00Z"
                   transactionEntries:
                     - description: "Organic vegetables"
                       amount: 45.50
-                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                      categoryId: "ca001111-1111-1111-1111-111111111111"
                     - description: "Cleaning supplies"
                       amount: 28.75
-                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d487"
+                      categoryId: "ca005555-5555-5555-5555-555555555555"
               income_transaction:
                 summary: "Monthly salary"
                 value:
-                  userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
-                  groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
-                  balanceId: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+                  userId: "99bb2200-0011-2233-4455-667788990011"
+                  groupId: "88aa1100-0011-2233-4455-667788990011"
+                  balanceId: "ba001111-1111-1111-1111-111111111111"
                   type: "income"
                   merchant: "Acme Corp Payroll"
                   approvedAt: "2024-06-19T09:00:00Z"
@@ -70,7 +70,7 @@ paths:
                   transactionEntries:
                     - description: "Monthly salary"
                       amount: 3500.00
-                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4a3"
+                      categoryId: "ca012222-2222-2222-2222-222222222222"
       responses:
         '201':
           description: Transaction created successfully
@@ -104,14 +104,14 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: groupId
           in: query
           description: "Filter transactions by group ID. Required if userId is not provided."
           schema:
             type: string
             format: uuid
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         - name: balanceId
           in: query
           description: "Filter transactions by balance/account ID"
@@ -769,8 +769,13 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateCategoryRequest'
             example:
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              categoryGroupId: "c9001234-7890-1234-5678-901234567890"
               name: "Restaurants"
-              imageUrl: "https://example.com/restaurant-icon.png"
+              description: "Dining out at restaurants"
+              imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+              rank: 200
       responses:
         '201':
           description: Category created successfully
@@ -827,13 +832,74 @@ paths:
             enum: ["asc", "desc"]
             default: "desc"
           example: "desc"
+        - name: groupBy
+          in: query
+          description: "Group categories by specific criteria. When set to 'categoryGroup', returns categories grouped by their category groups"
+          schema:
+            type: string
+            enum: ["categoryGroup"]
+          example: "categoryGroup"
       responses:
         '200':
-          description: List of categories retrieved successfully
+          description: List of categories retrieved successfully. Response structure depends on the groupBy parameter.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CategoryListResponse'
+                anyOf:
+                  - $ref: '#/components/schemas/CategoryListResponse'
+                  - $ref: '#/components/schemas/CategoryGroupedListResponse'
+              examples:
+                default_list:
+                  summary: "Default category list"
+                  description: "Response when groupBy parameter is not provided"
+                  value:
+                    items:
+                      - categoryId: "ca001111-1111-1111-1111-111111111111"
+                        name: "Restaurants"
+                        description: "Dining out at restaurants"
+                        imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+                        rank: 200
+                        categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                        categoryGroupName: "Food & Dining"
+                        categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                        categoryGroupRank: 10000
+                      - categoryId: "ca002222-2222-2222-2222-222222222222"
+                        name: "Cafes"
+                        description: "Coffee shops and cafes"
+                        imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=100&h=100&fit=crop"
+                        rank: 150
+                        categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                        categoryGroupName: "Food & Dining"
+                        categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                        categoryGroupRank: 10000
+                grouped_by_category_group:
+                  summary: "Categories grouped by category group"
+                  description: "Response when groupBy=categoryGroup"
+                  value:
+                    items:
+                      - categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                        categoryGroupName: "Food & Dining"
+                        categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                        categoryGroupRank: 10000
+                        categories:
+                          - categoryId: "ca001111-1111-1111-1111-111111111111"
+                            name: "Restaurants"
+                            description: "Dining out at restaurants"
+                            imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+                            rank: 200
+                            categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                            categoryGroupName: "Food & Dining"
+                            categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                            categoryGroupRank: 10000
+                          - categoryId: "ca002222-2222-2222-2222-222222222222"
+                            name: "Cafes"
+                            description: "Coffee shops and cafes"
+                            imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=100&h=100&fit=crop"
+                            rank: 150
+                            categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                            categoryGroupName: "Food & Dining"
+                            categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                            categoryGroupRank: 10000
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -2435,19 +2501,47 @@ components:
     CreateCategoryRequest:
       type: object
       required:
+        - groupId
+        - userId
+        - categoryGroupId
         - name
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID this category belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID this category belongs to"
+          example: "99bb2200-0011-2233-4455-667788990011"
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Category group ID this category belongs to"
+          example: "c9001234-7890-1234-5678-901234567890"
         name:
           type: string
           minLength: 1
           maxLength: 100
           description: "Name of the category"
           example: "Restaurants"
+        description:
+          type: string
+          maxLength: 500
+          description: "Optional description of the category"
+          example: "Dining out at restaurants"
         imageUrl:
           type: string
           format: uri
           description: "Optional URL of the category image"
-          example: "https://example.com/restaurant-icon.png"
+          example: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering categories"
+          example: 200
 
     UpdateCategoryRequest:
       type: object
@@ -2471,25 +2565,98 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the category"
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca002222-2222-2222-2222-222222222222"
         name:
           type: string
           description: "Name of the category"
           example: "Restaurants"
+        description:
+          type: string
+          description: "Optional description of the category"
+          example: "Dining and restaurant expenses"
         imageUrl:
           type: string
           format: uri
           description: "URL of the category image"
-          example: "https://example.com/restaurant-icon.png"
+          example: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category"
+          example: 9800
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the category group this category belongs to"
+          example: "c9001234-7890-1234-5678-901234567890"
+        categoryGroupName:
+          type: string
+          description: "Name of the category group this category belongs to"
+          example: "Food & Dining"
+        categoryGroupImageUrl:
+          type: string
+          format: uri
+          description: "URL of the category group image"
+          example: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+        categoryGroupRank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category group"
+          example: 10000
 
     CategoryListResponse:
       type: object
+      required:
+        - items
       properties:
-        categories:
+        items:
           type: array
           description: "List of categories"
           items:
             $ref: '#/components/schemas/CategoryResponse'
+
+    CategoryGroupWithCategoriesResponse:
+      type: object
+      required:
+        - categoryGroupId
+        - categoryGroupName
+        - categories
+      properties:
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the category group"
+          example: "c9001234-7890-1234-5678-901234567890"
+        categoryGroupName:
+          type: string
+          description: "Name of the category group"
+          example: "Food & Dining"
+        categoryGroupImageUrl:
+          type: string
+          format: uri
+          description: "URL of the category group image"
+          example: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+        categoryGroupRank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category group"
+          example: 10000
+        categories:
+          type: array
+          description: "List of categories in this group"
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+
+    CategoryGroupedListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: "List of category groups with their categories"
+          items:
+            $ref: '#/components/schemas/CategoryGroupWithCategoriesResponse'
 
     CreateCategoryGroupRequest:
       type: object

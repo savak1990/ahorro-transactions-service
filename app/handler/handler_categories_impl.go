@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -12,14 +13,14 @@ import (
 
 // Category handlers
 func (h *HandlerImpl) CreateCategory(w http.ResponseWriter, r *http.Request) {
-	var categoryDto models.CategoryDto
-	if err := json.NewDecoder(r.Body).Decode(&categoryDto); err != nil {
+	var createCategoryDto models.CreateCategoryDto
+	if err := json.NewDecoder(r.Body).Decode(&createCategoryDto); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
 
-	// Convert DTO to DAO model
-	category, err := models.FromAPICategory(categoryDto)
+	// Convert DTO to DAO model using the new converter
+	category, err := models.FromAPICreateCategory(createCategoryDto)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid category data: "+err.Error())
 		return
@@ -39,7 +40,10 @@ func (h *HandlerImpl) CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 	filter := models.ListCategoriesInput{
-		UserID: r.URL.Query().Get("userId"),
+		UserID:  r.URL.Query().Get("userId"),
+		GroupBy: r.URL.Query().Get("groupBy"),
+		SortBy:  r.URL.Query().Get("sortBy"),
+		Order:   r.URL.Query().Get("order"),
 	}
 	if limit := r.URL.Query().Get("limit"); limit != "" {
 		if n, err := helpers.ParseInt(limit); err == nil {
@@ -52,14 +56,20 @@ func (h *HandlerImpl) ListCategories(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert to DTOs for response
-	categoryDtos := make([]models.CategoryDto, len(results))
-	for i, category := range results {
-		categoryDtos[i] = models.ToAPICategory(&category)
+	// Check if groupBy parameter is set to "categoryGroup"
+	if filter.GroupBy == "categoryGroup" {
+		// Group categories by category group
+		groupedCategories := h.groupCategoriesByGroup(results)
+		WriteJSONListResponse(w, groupedCategories, "")
+	} else {
+		// Convert to DTOs for regular response
+		categoryDtos := make([]models.CategoryDto, len(results))
+		for i, category := range results {
+			categoryDtos[i] = models.ToAPICategory(&category)
+		}
+		// Use paginated response structure (without actual pagination for now)
+		WriteJSONListResponse(w, categoryDtos, "")
 	}
-
-	// Use paginated response structure (without actual pagination for now)
-	WriteJSONListResponse(w, categoryDtos, "")
 }
 
 func (h *HandlerImpl) GetCategory(w http.ResponseWriter, r *http.Request) {
@@ -159,4 +169,73 @@ func (h *HandlerImpl) DeleteCategoriesByUserId(w http.ResponseWriter, r *http.Re
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// groupCategoriesByGroup groups categories by their category group
+func (h *HandlerImpl) groupCategoriesByGroup(categories []models.Category) []models.CategoryGroupWithCategoriesDto {
+	// Map to group categories by category group ID
+	groupMap := make(map[string]*models.CategoryGroupWithCategoriesDto)
+
+	for _, category := range categories {
+		categoryDto := models.ToAPICategory(&category)
+
+		// Get category group ID, handle cases where it might be empty
+		groupID := categoryDto.CategoryGroupID
+		if groupID == "" {
+			groupID = "ungrouped" // Handle categories without a group
+		}
+
+		// Check if we already have this group
+		if group, exists := groupMap[groupID]; exists {
+			// Add category to existing group
+			group.Categories = append(group.Categories, categoryDto)
+		} else {
+			// Create new group
+			newGroup := &models.CategoryGroupWithCategoriesDto{
+				CategoryGroupID:       categoryDto.CategoryGroupID,
+				CategoryGroupName:     categoryDto.CategoryGroupName,
+				CategoryGroupImageUrl: categoryDto.CategoryGroupImageUrl,
+				CategoryGroupRank:     categoryDto.CategoryGroupRank,
+				Categories:            []models.CategoryDto{categoryDto},
+			}
+
+			// Handle ungrouped categories
+			if groupID == "ungrouped" {
+				newGroup.CategoryGroupID = ""
+				newGroup.CategoryGroupName = "Ungrouped"
+				newGroup.CategoryGroupImageUrl = nil
+				newGroup.CategoryGroupRank = nil
+			}
+
+			groupMap[groupID] = newGroup
+		}
+	}
+	// Convert map to slice
+	result := make([]models.CategoryGroupWithCategoriesDto, 0, len(groupMap))
+	for _, group := range groupMap {
+		result = append(result, *group)
+	}
+
+	// Sort groups by rank (highest first, then by name)
+	sort.Slice(result, func(i, j int) bool {
+		// Handle nil ranks
+		rankI := result[i].CategoryGroupRank
+		rankJ := result[j].CategoryGroupRank
+
+		// If both have ranks, sort by rank (descending)
+		if rankI != nil && rankJ != nil {
+			if *rankI != *rankJ {
+				return *rankI > *rankJ // Higher rank first
+			}
+		} else if rankI != nil {
+			return true // Items with ranks come before items without ranks
+		} else if rankJ != nil {
+			return false // Items with ranks come before items without ranks
+		}
+
+		// If ranks are equal or both nil, sort by name (ascending)
+		return result[i].CategoryGroupName < result[j].CategoryGroupName
+	})
+
+	return result
 }

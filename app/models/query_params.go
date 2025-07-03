@@ -4,9 +4,10 @@ import "time"
 
 // ListCategoryGroupsInput defines the input for only category groups
 type ListCategoryGroupsInput struct {
-	Limit  int
-	SortBy string
-	Order  string
+	Limit   int
+	GroupBy string
+	SortBy  string
+	Order   string
 }
 
 // ListCategoriesInput defines the input options for listing categories.
