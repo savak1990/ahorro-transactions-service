@@ -78,7 +78,14 @@ func (r *PostgreSQLRepository) UpdateCategory(ctx context.Context, category mode
 	if err := db.WithContext(ctx).Save(&category).Error; err != nil {
 		return nil, fmt.Errorf("failed to update category: %w", err)
 	}
-	return &category, nil
+
+	// Fetch the updated category with preloaded relationships for response
+	var updatedCategory models.Category
+	if err := db.WithContext(ctx).Preload("CategoryGroup").Where("id = ?", category.ID).First(&updatedCategory).Error; err != nil {
+		return nil, fmt.Errorf("failed to get updated category: %w", err)
+	}
+
+	return &updatedCategory, nil
 }
 
 // DeleteCategory deletes a category by ID

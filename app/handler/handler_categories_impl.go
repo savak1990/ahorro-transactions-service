@@ -105,22 +105,21 @@ func (h *HandlerImpl) GetCategory(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerImpl) UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	categoryID := vars["category_id"]
-	var categoryDto models.CategoryDto
-	if err := json.NewDecoder(r.Body).Decode(&categoryDto); err != nil {
+	var updateCategoryDto models.UpdateCategoryDto
+	if err := json.NewDecoder(r.Body).Decode(&updateCategoryDto); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
 
-	// Parse category ID and set it in DTO
-	id, err := uuid.Parse(categoryID)
+	// Validate category ID format
+	_, err := uuid.Parse(categoryID)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid category ID format")
 		return
 	}
-	categoryDto.CategoryID = id.String()
 
-	// Convert DTO to DAO model
-	category, err := models.FromAPICategory(categoryDto)
+	// Convert DTO to DAO model using the new converter
+	category, err := models.FromAPIUpdateCategory(updateCategoryDto, categoryID)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid category data: "+err.Error())
 		return

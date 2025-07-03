@@ -575,3 +575,46 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 		Rank:        rank,
 	}, nil
 }
+
+// FromAPIUpdateCategory converts UpdateCategoryDto (API model) to Category (DAO)
+func FromAPIUpdateCategory(c UpdateCategoryDto, categoryID string) (*Category, error) {
+	// Parse CategoryID
+	id, err := uuid.Parse(categoryID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid category ID format: %w", err)
+	}
+
+	// Parse UserID
+	userID, err := uuid.Parse(c.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format: %w", err)
+	}
+
+	// Parse GroupID
+	groupID, err := uuid.Parse(c.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID format: %w", err)
+	}
+
+	// Parse CategoryGroupId if provided
+	var categoryGroupId string
+	if c.CategoryGroupID != "" {
+		// Validate that it's a proper UUID format
+		_, err = uuid.Parse(c.CategoryGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+		categoryGroupId = c.CategoryGroupID
+	}
+
+	return &Category{
+		ID:              id,
+		UserId:          userID,
+		GroupId:         groupID,
+		CategoryGroupId: categoryGroupId,
+		Name:            c.Name,
+		Description:     c.Description,
+		Rank:            c.Rank,
+		ImageUrl:        c.ImageUrl,
+	}, nil
+}

@@ -85,6 +85,17 @@ type CreateCategoryDto struct {
 	Rank            *int    `json:"rank,omitempty"`
 }
 
+// UpdateCategoryDto represents a category for update via PUT requests.
+type UpdateCategoryDto struct {
+	GroupID         string  `json:"groupId"`
+	UserID          string  `json:"userId"`
+	CategoryGroupID string  `json:"categoryGroupId,omitempty"`
+	Name            string  `json:"name,omitempty"`
+	Description     string  `json:"description,omitempty"`
+	ImageUrl        *string `json:"imageUrl,omitempty"`
+	Rank            *int    `json:"rank,omitempty"`
+}
+
 // Category represents a user's category with a score for prioritization.
 type CategoryDto struct {
 	CategoryID            string  `json:"categoryId"`

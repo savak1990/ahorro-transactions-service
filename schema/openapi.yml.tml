@@ -555,8 +555,8 @@ paths:
           schema:
             type: string
             enum: [rank, createdAt, updatedAt, title, name]
-            default: createdAt
-          example: "rank"
+            default: rank
+          example: rank
         - name: order
           in: query
           description: "Sort order"
@@ -822,8 +822,8 @@ paths:
           schema:
             type: string
             enum: ["name", "rank", "created_at", "updated_at"]
-            default: "name"
-          example: "name"
+            default: rank
+          example: rank
         - name: order
           in: query
           description: "Sort order"
@@ -974,7 +974,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       responses:
         '200':
           description: Category retrieved successfully
@@ -982,6 +982,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
+              example:
+                categoryId: "ca016666-6666-6666-6666-666666666666"
+                name: "Online Courses"
+                description: "Online learning and courses"
+                imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop"
+                rank: 1900
+                categoryGroupId: "c9089012-7890-1234-5678-901234567890"
+                categoryGroupName: "Education"
+                categoryGroupImageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop"
+                categoryGroupRank: 2000
         '404':
           $ref: '#/components/responses/NotFoundError'
         '401':
@@ -1006,7 +1016,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       requestBody:
         required: true
         content:
@@ -1014,8 +1024,13 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateCategoryRequest'
             example:
-              name: "Updated Groceries"
-              imageUrl: "https://example.com/updated-groceries-icon.png"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              categoryGroupId: "c9089012-7890-1234-5678-901234567890"
+              name: "Updated Online Courses"
+              description: "Updated online learning and educational courses"
+              imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop"
+              rank: 1950
       responses:
         '200':
           description: Category updated successfully
@@ -1023,6 +1038,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
+              example:
+                categoryId: "ca016666-6666-6666-6666-666666666666"
+                name: "Updated Online Courses"
+                description: "Updated online learning and educational courses"
+                imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop"
+                rank: 1950
+                categoryGroupId: "c9089012-7890-1234-5678-901234567890"
+                categoryGroupName: "Education"
+                categoryGroupImageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop"
+                categoryGroupRank: 2000
         '400':
           $ref: '#/components/responses/BadRequestError'
         '404':
@@ -1049,7 +1074,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       responses:
         '204':
           description: Category deleted successfully
@@ -1077,7 +1102,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       responses:
         '200':
           $ref: '#/components/responses/CorsResponse'
@@ -1142,7 +1167,7 @@ paths:
             type: string
             enum: [rank, name, createdAt, updatedAt]
             default: rank
-          example: "rank"
+          example: rank
         - name: order
           in: query
           description: "Sort order"
@@ -1399,8 +1424,8 @@ paths:
           schema:
             type: string
             enum: ["rank", "name", "created_at", "updated_at"]
-            default: "created_at"
-          example: "rank"
+            default: rank
+          example: rank
         - name: order
           in: query
           description: "Sort order"
@@ -2545,18 +2570,46 @@ components:
 
     UpdateCategoryRequest:
       type: object
+      required:
+        - groupId
+        - userId
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID that the category belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID that owns the category"
+          example: "99bb2200-0011-2233-4455-667788990011"
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Optional category group ID"
+          example: "c9089012-7890-1234-5678-901234567890"
         name:
           type: string
           minLength: 1
           maxLength: 100
           description: "Name of the category"
-          example: "Updated Restaurants"
+          example: "Updated Online Courses"
+        description:
+          type: string
+          maxLength: 500
+          description: "Optional description of the category"
+          example: "Updated online learning and educational courses"
         imageUrl:
           type: string
           format: uri
           description: "Optional URL of the category image"
-          example: "https://example.com/restaurant-icon.png"
+          example: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering categories"
+          example: 1950
 
     CategoryResponse:
       type: object
