@@ -498,11 +498,12 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateBalanceRequest'
             example:
-              userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
-              groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
               currency: "EUR"
-              title: "Main Checking Account"
-              description: "Primary bank account for daily expenses"
+              title: "New Checking Account"
+              description: "New primary bank account for daily expenses"
+              rank: 70
       responses:
         '201':
           description: Balance created successfully
@@ -534,21 +535,19 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: groupId
           in: query
           description: "Filter balances by group ID. Required if userId is not provided."
           schema:
             type: string
             format: uuid
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
         - name: balanceId
           in: query
           description: "Filter by specific balance ID"
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         - name: sortBy
           in: query
           description: "Sort field"
@@ -609,10 +608,38 @@ paths:
             statusCode: '200'
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,DELETE,OPTIONS'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
             responseTemplates:
               application/json: '{}'
+
+    delete:
+      summary: Delete all balances for a user
+      description: Deletes all balances associated with a specific user ID (bulk delete)
+      tags: [balances]
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: "User ID to delete all balances for"
+          schema:
+            type: string
+            format: uuid
+          example: "99bb2200-0011-2233-4455-667788990011"
+      responses:
+        '204':
+          description: All balances for the user deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
 
   /balances/{balance_id}:
     get:
@@ -627,7 +654,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
       responses:
         '200':
           description: Balance found
@@ -659,13 +686,20 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateBalanceRequest'
+            example:
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              currency: "EUR"
+              title: "Updated BBVA Main Account"
+              description: "Updated primary checking account at BBVA"
+              rank: 65
       responses:
         '200':
           description: Balance updated successfully
@@ -689,9 +723,7 @@ paths:
 
     delete:
       summary: Delete balance
-      description: |
-        Deletes a balance by ID (path parameter) or deletes all balances for a user (query parameter).
-        Exactly one of balance_id (path) or userId (query) must be provided.
+      description: Deletes a specific balance by its ID
       tags: [balances]
       parameters:
         - name: balance_id
@@ -701,18 +733,10 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
-        - name: userId
-          in: query
-          required: false
-          description: "Delete all balances for this user ID"
-          schema:
-            type: string
-            format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "ba002222-2222-2222-2222-222222222222"
       responses:
         '204':
-          description: Balance(s) deleted successfully
+          description: Balance deleted successfully
         '400':
           $ref: '#/components/responses/BadRequestError'
         '404':
@@ -739,7 +763,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
       responses:
         '200':
           $ref: '#/components/responses/CorsResponse'
@@ -806,7 +830,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: limit
           in: query
           description: "Maximum number of categories to return"
@@ -924,7 +948,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
       responses:
         '204':
           description: All categories deleted successfully
@@ -2395,12 +2419,12 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the user"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         groupId:
           type: string
           format: uuid
           description: "Unique identifier for the user's group"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         currency:
           type: string
           minLength: 3
@@ -2413,16 +2437,16 @@ components:
           minLength: 1
           maxLength: 100
           description: "Title of the balance/account"
-          example: "Main Checking Account"
+          example: "New Checking Account"
         description:
           type: string
           maxLength: 500
           description: "Optional description of the balance"
-          example: "Primary bank account for daily expenses"
+          example: "New primary bank account for daily expenses"
         rank:
           type: integer
           description: "Optional rank for ordering balances"
-          example: 1
+          example: 70
 
     UpdateBalanceRequest:
       type: object
@@ -2436,12 +2460,12 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the user"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         groupId:
           type: string
           format: uuid
           description: "Unique identifier for the user's group"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         currency:
           type: string
           minLength: 3
@@ -2472,17 +2496,17 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the balance"
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
         groupId:
           type: string
           format: uuid
           description: "Unique identifier for the user's group"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         userId:
           type: string
           format: uuid
           description: "Unique identifier for the user"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         currency:
           type: string
           description: "Currency code (ISO 4217)"
