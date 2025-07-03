@@ -42,7 +42,8 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 		Preload("Merchant").
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
-		Where("id = ?", transactionID).
+		Joins("JOIN balance ON transaction.balance_id = balance.id").
+		Where("transaction.id = ? AND balance.deleted_at IS NULL", transactionID).
 		First(&tx).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("transaction not found: %s", transactionID)
@@ -93,11 +94,10 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Preload("Transaction.Balance").
 		Preload("Category")
 
-	// Join transaction table once if we need to filter by transaction fields
-	needsTransactionJoin := filter.GroupID != "" || filter.UserID != "" || filter.BalanceID != "" || filter.Type != "" || !filter.StartTime.IsZero() || !filter.EndTime.IsZero()
-	if needsTransactionJoin {
-		query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id")
-	}
+	// Always join with balance table to exclude soft-deleted balances
+	query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id").
+		Joins("JOIN balance ON transaction.balance_id = balance.id").
+		Where("balance.deleted_at IS NULL")
 
 	// Join category table if we need to filter by category or category group
 	if filter.CategoryId != "" || filter.CategoryGroupId != "" {
@@ -155,13 +155,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 	if filter.SortBy != "" {
 		switch filter.SortBy {
 		case "transactedAt": // API uses camelCase, map to database field
-			if needsTransactionJoin {
-				orderBy = "transaction.transacted_at"
-			} else {
-				// If we didn't join transaction table yet, we need to join it for sorting
-				query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id")
-				orderBy = "transaction.transacted_at"
-			}
+			orderBy = "transaction.transacted_at"
 		case "amount":
 			orderBy = "transaction_entry.amount"
 		case "createdAt": // API uses camelCase, map to database field

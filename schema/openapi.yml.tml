@@ -615,7 +615,7 @@ paths:
 
     delete:
       summary: Delete all balances for a user
-      description: Deletes all balances associated with a specific user ID (bulk delete)
+      description: Soft deletes all balances associated with a specific user ID (bulk delete). The balances will be marked as deleted but remain in the database for data integrity.
       tags: [balances]
       parameters:
         - name: userId
@@ -723,7 +723,7 @@ paths:
 
     delete:
       summary: Delete balance
-      description: Deletes a specific balance by its ID
+      description: Soft deletes a specific balance by its ID. The balance will be marked as deleted but remain in the database for data integrity.
       tags: [balances]
       parameters:
         - name: balance_id
@@ -1399,6 +1399,7 @@ paths:
               groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
               userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
               name: "Mercadona"
+              rank: 50
               description: "Spanish supermarket chain"
               imageUrl: "https://example.com/mercadona-logo.png"
       responses:

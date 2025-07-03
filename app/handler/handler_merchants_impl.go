@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -27,6 +28,12 @@ func (h *HandlerImpl) CreateMerchant(w http.ResponseWriter, r *http.Request) {
 
 	created, err := h.Service.CreateMerchant(r.Context(), *merchant)
 	if err != nil {
+		// Check if it's a duplicate merchant error
+		errorMsg := err.Error()
+		if strings.Contains(errorMsg, "already exists for this user") {
+			WriteJSONError(w, http.StatusConflict, models.ErrorCodeConflict, err.Error())
+			return
+		}
 		h.handleServiceError(w, err, "CreateMerchant")
 		return
 	}

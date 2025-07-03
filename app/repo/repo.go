@@ -43,6 +43,7 @@ type Repository interface {
 	CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error)
 	ListMerchants(ctx context.Context, filter models.ListMerchantsInput) ([]models.Merchant, error)
 	GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error)
+	GetMerchantByNameAndUserId(ctx context.Context, name string, userId string) (*models.Merchant, error)
 	UpdateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error)
 	DeleteMerchant(ctx context.Context, merchantId string) error
 	DeleteMerchantsByUserId(ctx context.Context, userId string) error

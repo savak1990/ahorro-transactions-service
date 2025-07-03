@@ -7,4 +7,5 @@ const (
 	ErrorCodeBadResponse    = "BadResponse"
 	ErrorCodeDbError        = "DatabaseError"
 	ErrorCodeDbTimeout      = "DatabaseTimeout"
+	ErrorCodeConflict       = "Conflict"
 )

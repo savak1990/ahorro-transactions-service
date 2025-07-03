@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/savak1990/transactions-service/app/models"
@@ -93,6 +94,15 @@ func (s *ServiceImpl) DeleteCategoriesByUserId(ctx context.Context, userId strin
 }
 
 func (s *ServiceImpl) CreateMerchant(ctx context.Context, merchant models.Merchant) (*models.Merchant, error) {
+	// Check if a merchant with the same name already exists for this user
+	existingMerchant, err := s.repo.GetMerchantByNameAndUserId(ctx, merchant.Name, merchant.UserID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to check for existing merchant: %w", err)
+	}
+	if existingMerchant != nil {
+		return nil, fmt.Errorf("merchant with name '%s' already exists for this user", merchant.Name)
+	}
+
 	merchant.ID = models.NewMerchantID()
 	return s.repo.CreateMerchant(ctx, merchant)
 }

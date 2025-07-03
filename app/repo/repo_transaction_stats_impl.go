@@ -25,6 +25,7 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 		`).
 		Joins("JOIN transaction t ON te.transaction_id = t.id").
 		Joins("JOIN balance b ON t.balance_id = b.id").
+		Where("b.deleted_at IS NULL").
 		Group("t.type, b.currency")
 
 	// Apply filters

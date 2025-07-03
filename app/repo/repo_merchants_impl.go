@@ -97,3 +97,17 @@ func (r *PostgreSQLRepository) DeleteMerchantsByUserId(ctx context.Context, user
 	}
 	return nil
 }
+
+// GetMerchantByNameAndUserId checks if a merchant with the given name already exists for a user
+func (r *PostgreSQLRepository) GetMerchantByNameAndUserId(ctx context.Context, name string, userId string) (*models.Merchant, error) {
+	var merchant models.Merchant
+	db := r.getDB()
+	err := db.WithContext(ctx).Where("name = ? AND user_id = ? AND deleted_at IS NULL", name, userId).First(&merchant).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, nil // No existing merchant found - this is expected when name is available
+		}
+		return nil, fmt.Errorf("failed to check for existing merchant: %w", err)
+	}
+	return &merchant, nil
+}

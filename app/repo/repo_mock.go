@@ -201,6 +201,14 @@ func (m *MockRepository) DeleteMerchantsByUserId(ctx context.Context, userId str
 	return args.Error(0)
 }
 
+func (m *MockRepository) GetMerchantByNameAndUserId(ctx context.Context, name string, userId string) (*models.Merchant, error) {
+	args := m.Called(ctx, name, userId)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*models.Merchant), args.Error(1)
+}
+
 // CategoryGroup methods
 
 func (m *MockRepository) CreateCategoryGroup(ctx context.Context, categoryGroup models.CategoryGroup) (*models.CategoryGroup, error) {
@@ -341,6 +349,11 @@ func (m *MockRepository) ExpectDeleteMerchant(ctx context.Context, merchantId st
 // ExpectDeleteMerchantsByUserId sets up an expectation for DeleteMerchantsByUserId method
 func (m *MockRepository) ExpectDeleteMerchantsByUserId(ctx context.Context, userId string, err error) *mock.Call {
 	return m.On("DeleteMerchantsByUserId", ctx, userId).Return(err)
+}
+
+// ExpectGetMerchantByNameAndUserId sets up an expectation for GetMerchantByNameAndUserId method
+func (m *MockRepository) ExpectGetMerchantByNameAndUserId(ctx context.Context, name string, userId string, result *models.Merchant, err error) *mock.Call {
+	return m.On("GetMerchantByNameAndUserId", ctx, name, userId).Return(result, err)
 }
 
 // CategoryGroup expectation methods
