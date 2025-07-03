@@ -174,9 +174,9 @@ paths:
           description: "Sort order"
           schema:
             type: string
-            enum: [ASC, DESC, asc, desc]
-            default: DESC
-          example: "DESC"
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
         - name: count
           in: query
           description: "Number of items to return per page"
@@ -562,9 +562,9 @@ paths:
           description: "Sort order"
           schema:
             type: string
-            enum: [ASC, DESC, asc, desc]
-            default: ASC
-          example: "DESC"
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
         - name: limit
           in: query
           description: "Number of items to return"
@@ -824,9 +824,9 @@ paths:
           description: "Sort order"
           schema:
             type: string
-            enum: ["ASC", "DESC", "asc", "desc"]
-            default: "ASC"
-          example: "asc"
+            enum: ["asc", "desc"]
+            default: "desc"
+          example: "desc"
       responses:
         '200':
           description: List of categories retrieved successfully
@@ -1082,9 +1082,9 @@ paths:
           description: "Sort order"
           schema:
             type: string
-            enum: [ASC, DESC, asc, desc]
-            default: DESC
-          example: "DESC"
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
         - name: limit
           in: query
           description: "Number of items to return"
@@ -1340,9 +1340,9 @@ paths:
           description: "Sort order"
           schema:
             type: string
-            enum: ["ASC", "DESC", "asc", "desc"]
-            default: "ASC"
-          example: "asc"
+            enum: ["asc", "desc"]
+            default: "desc"
+          example: "desc"
       responses:
         '200':
           description: List of merchants retrieved successfully

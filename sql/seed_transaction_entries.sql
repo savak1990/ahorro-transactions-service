@@ -40,5 +40,24 @@ INSERT INTO transaction_entry (id, transaction_id, description, amount, category
     -- Transfer between accounts (movement) - debit entry
     ('7ecccccc-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer to savings account', -500.00, 'ca00dddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW()),
     -- Transfer between accounts (movement) - credit entry
-    ('7ecccccd-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer from checking account', 500.00, 'ca00dddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW())
+    ('7ecccccd-cccc-cccc-cccc-cccccccccccc', '7acccccc-cccc-cccc-cccc-cccccccccccc', 'Transfer from checking account', 500.00, 'ca00dddd-dddd-dddd-dddd-dddddddddddd', NOW(), NOW()),
+    
+    -- Transaction entries for secondary user (99bb3300-0011-2233-4455-667788990022)
+    -- Grocery shopping at Dia Supermercado
+    ('7e00aa00-0000-1111-2222-333344445555', '7a00aa00-0000-1111-2222-333344445555', 'Weekly grocery shopping', -32.45, 'caa00000-0000-1111-2222-333344445555', NOW(), NOW()),
+    ('7e00aa01-0000-1111-2222-333344445555', '7a00aa00-0000-1111-2222-333344445555', 'Personal care items', -15.20, 'ca440000-0000-1111-2222-333344445564', NOW(), NOW()),
+    
+    -- Coffee at Local Café
+    ('7e00bb00-0000-1111-2222-333344445556', '7a00bb00-0000-1111-2222-333344445556', 'Morning coffee and pastry', -6.80, 'caa00000-0000-1111-2222-333344445555', NOW(), NOW()),
+    
+    -- Part-time job income
+    ('7e00cc00-0000-1111-2222-333344445557', '7a00cc00-0000-1111-2222-333344445557', 'Part-time work payment', 450.00, 'ca110000-0000-1111-2222-333344445561', NOW(), NOW()),
+    
+    -- ATM withdrawal
+    ('7e00dd00-0000-1111-2222-333344445558', '7a00dd00-0000-1111-2222-333344445558', 'ATM withdrawal fee', -2.50, 'ca220000-0000-1111-2222-333344445562', NOW(), NOW()),
+    
+    -- Mixed shopping transaction
+    ('7e00ee00-0000-1111-2222-333344445559', '7a00ee00-0000-1111-2222-333344445559', 'Pharmacy medicine', -18.75, 'caff0000-0000-1111-2222-333344445560', NOW(), NOW()),
+    ('7e00ee01-0000-1111-2222-333344445559', '7a00ee00-0000-1111-2222-333344445559', 'Educational book', -25.90, 'ca330000-0000-1111-2222-333344445563', NOW(), NOW()),
+    ('7e00ee02-0000-1111-2222-333344445559', '7a00ee00-0000-1111-2222-333344445559', 'Phone bill payment', -35.00, 'caee0000-0000-1111-2222-333344445559', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
