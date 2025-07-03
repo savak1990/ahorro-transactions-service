@@ -24,6 +24,12 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 	query := db.WithContext(ctx)
 
 	// Apply filters
+	if filter.GroupID != "" {
+		query = query.Where("group_id = ?", filter.GroupID)
+	}
+	if filter.UserID != "" {
+		query = query.Where("user_id = ?", filter.UserID)
+	}
 	if filter.Name != "" {
 		query = query.Where("name ILIKE ?", "%"+filter.Name+"%")
 	}

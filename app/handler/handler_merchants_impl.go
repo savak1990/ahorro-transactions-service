@@ -47,9 +47,11 @@ func (h *HandlerImpl) CreateMerchant(w http.ResponseWriter, r *http.Request) {
 
 func (h *HandlerImpl) ListMerchants(w http.ResponseWriter, r *http.Request) {
 	filter := models.ListMerchantsInput{
-		Name:   r.URL.Query().Get("name"),
-		SortBy: r.URL.Query().Get("sortBy"),
-		Order:  r.URL.Query().Get("order"),
+		GroupID: r.URL.Query().Get("groupId"),
+		UserID:  r.URL.Query().Get("userId"),
+		Name:    r.URL.Query().Get("name"),
+		SortBy:  r.URL.Query().Get("sortBy"),
+		Order:   r.URL.Query().Get("order"),
 	}
 	if count := r.URL.Query().Get("limit"); count != "" {
 		if n, err := helpers.ParseInt(count); err == nil {

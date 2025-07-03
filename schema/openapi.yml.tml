@@ -1426,6 +1426,20 @@ paths:
       description: Retrieves a list of available merchants
       tags: [merchants]
       parameters:
+        - name: groupId
+          in: query
+          description: "Filter merchants by group ID"
+          schema:
+            type: string
+            format: uuid
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        - name: userId
+          in: query
+          description: "Filter merchants by user ID"
+          schema:
+            type: string
+            format: uuid
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
         - name: name
           in: query
           description: "Filter merchants by name (partial match)"
