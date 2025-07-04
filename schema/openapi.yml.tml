@@ -147,41 +147,97 @@ paths:
           example: "88aa1100-0011-2233-4455-667788990011"
         - name: balanceId
           in: query
-          description: "Filter transactions by balance/account ID"
+          description: | 
+            Filter transactions by balance/account ID
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            format: uuid
-          example: "ba001111-1111-1111-1111-111111111111"
+            type: array
+            items:
+              type: string
+              format: uuid
+          example: [ba001111-1111-1111-1111-111111111111]
         - name: type
           in: query
           description: "Filter by transaction type"
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            enum: [expense, income, move_in, move_out]
+            type: array
+            items:
+              type: string
+              enum: [expense, income, move_in, move_out]
+            example: [expense, income]
         - name: categoryId
           in: query
-          description: "Filter by category ID"
+          description: | 
+            Filter by category ID. You can specify list of categoryIds in 
+            coma-separated and exploded formats. Note that if you specify
+            categoryGroupId it will return transactions using OR operations.
+            If you specify other filters, like merhants or balanceId or type
+            It will use AND operation.
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            format: uuid
+            type: array
+            items:
+              type: string
+              format: uuid
         - name: categoryGroupId
           in: query
-          description: "Filter by category group ID"
+          description: |
+            Filter by categoryGroupID. You can specify list of categoryGroupIds in
+            coma-separated and exploded formats. Note that if you specify
+            categoryId it will return transactions using OR operation.
+            If you specify other filters, like merchants or balanceId or type
+            It will use AND operation.
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            format: uuid
+            type: array
+            items:
+              type: string
+              format: uuid
         - name: merchantId
           in: query
-          description: "Filter by merchant ID"
+          description: |
+            Filter transactions by merchant ID. You can specify list of merchantIds in
+            coma-separated and exploded formats. Note that if you specify
+            categoryId or categoryGroupId it will return transactions using AND operation.
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            format: uuid
+            type: array
+            items:
+              type: string
+              format: uuid
         - name: transactionId
           in: query
           description: "Filter transaction entries by specific transaction ID"
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            format: uuid
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: operationId
+          in: query
+          description: |
+            Filter transaction entries by specific operation ID.          style: form
+          explode: false
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
         - name: startTime
           in: query
           description: "Filter transactions from this date/time (ISO 8601)"

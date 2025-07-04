@@ -141,12 +141,12 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Where("balance.deleted_at IS NULL")
 
 	// Join category table if we need to filter by category or category group
-	if filter.CategoryId != "" || filter.CategoryGroupId != "" {
+	if len(filter.CategoryIds) > 0 || len(filter.CategoryGroupIds) > 0 {
 		query = query.Joins("JOIN category ON transaction_entry.category_id = category.id")
 	}
 
 	// Join merchant table if we need to filter by merchant (exclude soft-deleted merchants)
-	if filter.MerchantId != "" {
+	if len(filter.MerchantIds) > 0 {
 		query = query.Joins("JOIN merchant ON transaction.merchant_id = merchant.id AND merchant.deleted_at IS NULL")
 	}
 
@@ -159,16 +159,20 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Where("transaction.user_id = ?", filter.UserID)
 	}
 
-	if filter.BalanceID != "" {
-		query = query.Where("transaction.balance_id = ?", filter.BalanceID)
+	if len(filter.BalanceIds) > 0 {
+		query = query.Where("transaction.balance_id IN ?", filter.BalanceIds)
 	}
 
-	if filter.TransactionID != "" {
-		query = query.Where("transaction.id = ?", filter.TransactionID)
+	if len(filter.TransactionIds) > 0 {
+		query = query.Where("transaction.id IN ?", filter.TransactionIds)
 	}
 
-	if filter.Type != "" {
-		query = query.Where("transaction.type = ?", filter.Type)
+	if len(filter.OperationIds) > 0 {
+		query = query.Where("transaction.operation_id IN ?", filter.OperationIds)
+	}
+
+	if len(filter.Types) > 0 {
+		query = query.Where("transaction.type IN ?", filter.Types)
 	}
 
 	// Apply date range filters
@@ -180,19 +184,23 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Where("transaction.transacted_at <= ?", filter.EndTime)
 	}
 
-	// Apply category filter
-	if filter.CategoryId != "" {
-		query = query.Where("transaction_entry.category_id = ?", filter.CategoryId)
-	}
-
-	// Apply category group filter
-	if filter.CategoryGroupId != "" {
-		query = query.Where("category.category_group_id = ?", filter.CategoryGroupId)
+	// Apply category filter with OR logic between CategoryIds and CategoryGroupIds
+	// If both are provided, use OR logic: (categoryId IN [...] OR categoryGroupId IN [...])
+	// If only one is provided, use normal filtering
+	if len(filter.CategoryIds) > 0 && len(filter.CategoryGroupIds) > 0 {
+		// Both categoryIds and categoryGroupIds provided - use OR logic
+		query = query.Where("(transaction_entry.category_id IN ? OR category.category_group_id IN ?)", filter.CategoryIds, filter.CategoryGroupIds)
+	} else if len(filter.CategoryIds) > 0 {
+		// Only categoryIds provided
+		query = query.Where("transaction_entry.category_id IN ?", filter.CategoryIds)
+	} else if len(filter.CategoryGroupIds) > 0 {
+		// Only categoryGroupIds provided
+		query = query.Where("category.category_group_id IN ?", filter.CategoryGroupIds)
 	}
 
 	// Apply merchant filter
-	if filter.MerchantId != "" {
-		query = query.Where("transaction.merchant_id = ?", filter.MerchantId)
+	if len(filter.MerchantIds) > 0 {
+		query = query.Where("transaction.merchant_id IN ?", filter.MerchantIds)
 	}
 
 	// Apply sorting
