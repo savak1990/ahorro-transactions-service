@@ -1,0 +1,84 @@
+# Comprehensive Transaction Filter Testing
+# Testing 10 different filter combinations for GET /transactions API
+
+@baseUrl = http://localhost:8080
+@authToken = Bearer your-auth-token
+
+# Test Data IDs (from seed data)
+@groupId = 88aa1100-0011-2233-4455-667788990011
+@userId = 99bb2200-0011-2233-4455-667788990011
+@userId2 = 99bb3300-0011-2233-4455-667788990022
+
+# Balance IDs
+@balanceId1 = ba001111-1111-1111-1111-111111111111  # BBVA Main Account
+@balanceId2 = ba002222-2222-2222-2222-222222222222  # Santander Savings
+@balanceId3 = ba003333-3333-3333-3333-333333333333  # ING Orange Account
+@balanceId4 = ba007777-7777-7777-7777-777777777777  # Secondary user account
+
+# Category IDs
+@categoryId1 = ca001111-1111-1111-1111-111111111111  # Groceries (Food & Dining)
+@categoryId2 = ca002222-2222-2222-2222-222222222222  # Coffee (Food & Dining)
+@categoryId3 = ca009999-9999-9999-9999-999999999999  # Gas & Fuel (Transportation)
+
+# Category Group IDs
+@foodGroup = c9001234-7890-1234-5678-901234567890    # Food & Dining
+@transportGroup = c9023456-7890-1234-5678-901234567890  # Transportation
+
+# Merchant IDs  
+@merchantId1 = 4e001234-1234-5678-9abc-def012345678  # Mercadona
+@merchantId2 = 4e007890-789a-bcde-f012-345678901234  # Starbucks
+@merchantId3 = 4e00f0f0-f012-3456-789a-123456789012  # Repsol
+
+# Transaction IDs (from seed data)
+@transactionId1 = 7a001111-1111-1111-1111-111111111111  # Mercadona groceries
+@transactionId2 = 7a002222-2222-2222-2222-222222222222  # Starbucks coffee
+
+# Operation IDs (if any exist - for movement transactions)
+
+###
+# TEST 8: Date Range Filter
+# Test filtering by date range (last 30 days)
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&from=2024-11-01&to=2024-12-31
+Accept: application/json
+
+###
+# TEST 9: Complex Filter with Multiple Arrays
+# Test combining multiple array filters: multiple types, balances, and merchants
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&type=expense&type=income&balanceId={{balanceId1}}&balanceId={{balanceId2}}&merchantId={{merchantId1}}&merchantId={{merchantId2}}
+Accept: application/json
+
+###
+# TEST 10: Pagination Test with Complex Filters
+# Test pagination with limit and offset on filtered results
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&type=expense&categoryId={{categoryId1}}&limit=5&offset=0
+Accept: application/json
+
+###
+# BONUS TEST 11: Transaction ID Array Filter
+# Test filtering by specific transaction IDs (array format)
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&transactionId={{transactionId1}}&transactionId={{transactionId2}}
+Accept: application/json
+
+###
+# BONUS TEST 12: Merchant Array Filter (Comma-separated)
+# Test merchant filter with comma-separated format
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&merchantId={{merchantId1}},{{merchantId2}}
+Accept: application/json
+
+###
+# BONUS TEST 13: Edge Case - No Results Filter
+# Test filter combination that should return no results
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&type=income&categoryId={{categoryId3}}
+Accept: application/json
+
+###
+# BONUS TEST 14: All Users in Group (No userId filter)
+# Test getting transactions for all users in a group
+GET {{baseUrl}}/transactions?groupId={{groupId}}&type=expense&limit=20
+Accept: application/json
+
+###
+# BONUS TEST 15: Operation ID Filter (if any movement transactions exist)
+# Test filtering by operation ID for movement transactions
+GET {{baseUrl}}/transactions?groupId={{groupId}}&userId={{userId}}&type=movement
+Accept: application/json

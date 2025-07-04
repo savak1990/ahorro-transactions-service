@@ -13,8 +13,9 @@ import (
 // Returns a slice of trimmed, non-empty strings.
 //
 // Example usage:
-//   types := ParseQueryStringArray(query, "type")
-//   categories := ParseQueryStringArray(query, "categoryId")
+//
+//	types := ParseQueryStringArray(query, "type")
+//	categories := ParseQueryStringArray(query, "categoryId")
 func ParseQueryStringArray(query url.Values, paramName string) []string {
 	paramValues := query[paramName]
 	if len(paramValues) == 0 {
@@ -40,6 +41,6 @@ func ParseQueryStringArray(query url.Values, paramName string) []string {
 			}
 		}
 	}
-	
+
 	return result
 }

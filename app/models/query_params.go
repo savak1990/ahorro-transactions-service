@@ -24,12 +24,13 @@ type ListCategoriesInput struct {
 type ListTransactionsInput struct {
 	GroupID          string
 	UserID           string
-	BalanceID        string
+	BalanceIds       []string
 	CategoryIds      []string
 	CategoryGroupIds []string
-	MerchantId       string
-	TransactionID    string
-	Types            []string // Changed from Type string to Types []string to support multiple types
+	MerchantIds      []string
+	TransactionIds   []string
+	OperationIds     []string
+	Types            []string
 	StartTime        time.Time
 	EndTime          time.Time
 	SortBy           string
