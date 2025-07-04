@@ -102,17 +102,21 @@ func (h *HandlerImpl) handleBatchTransactions(w http.ResponseWriter, r *http.Req
 // GET /transactions
 func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	filter := models.ListTransactionsInput{
-		UserID:          r.URL.Query().Get("userId"),
-		GroupID:         r.URL.Query().Get("groupId"),
-		BalanceID:       r.URL.Query().Get("balanceId"), // Now from query parameter
-		Type:            r.URL.Query().Get("type"),
-		CategoryId:      r.URL.Query().Get("categoryId"),
-		CategoryGroupId: r.URL.Query().Get("categoryGroupId"),
-		MerchantId:      r.URL.Query().Get("merchantId"),
-		TransactionID:   r.URL.Query().Get("transactionId"),
-		SortBy:          r.URL.Query().Get("sortedBy"),
-		Order:           r.URL.Query().Get("order"),
+		UserID:        r.URL.Query().Get("userId"),
+		GroupID:       r.URL.Query().Get("groupId"),
+		BalanceID:     r.URL.Query().Get("balanceId"),
+		MerchantId:    r.URL.Query().Get("merchantId"),
+		TransactionID: r.URL.Query().Get("transactionId"),
+		SortBy:        r.URL.Query().Get("sortedBy"),
+		Order:         r.URL.Query().Get("order"),
 	}
+
+	// Parse types array from query parameter - support both formats:
+	// 1. type=expense,income (comma-separated)
+	// 2. type=expense&type=income (multiple parameters)
+	filter.Types = ParseQueryStringArray(r.URL.Query(), "type")
+	filter.CategoryIds = ParseQueryStringArray(r.URL.Query(), "categoryId")
+	filter.CategoryGroupIds = ParseQueryStringArray(r.URL.Query(), "categoryGroupId")
 
 	// Parse startTime if provided
 	if startTimeStr := r.URL.Query().Get("startTime"); startTimeStr != "" {

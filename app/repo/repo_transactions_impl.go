@@ -141,7 +141,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Where("balance.deleted_at IS NULL")
 
 	// Join category table if we need to filter by category or category group
-	if filter.CategoryId != "" || filter.CategoryGroupId != "" {
+	if len(filter.CategoryIds) > 0 || len(filter.CategoryGroupIds) > 0 {
 		query = query.Joins("JOIN category ON transaction_entry.category_id = category.id")
 	}
 
@@ -167,8 +167,8 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Where("transaction.id = ?", filter.TransactionID)
 	}
 
-	if filter.Type != "" {
-		query = query.Where("transaction.type = ?", filter.Type)
+	if len(filter.Types) > 0 {
+		query = query.Where("transaction.type IN ?", filter.Types)
 	}
 
 	// Apply date range filters
@@ -181,13 +181,13 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 	}
 
 	// Apply category filter
-	if filter.CategoryId != "" {
-		query = query.Where("transaction_entry.category_id = ?", filter.CategoryId)
+	if len(filter.CategoryIds) > 0 {
+		query = query.Where("transaction_entry.category_id IN ?", filter.CategoryIds)
 	}
 
 	// Apply category group filter
-	if filter.CategoryGroupId != "" {
-		query = query.Where("category.category_group_id = ?", filter.CategoryGroupId)
+	if len(filter.CategoryGroupIds) > 0 {
+		query = query.Where("category.category_group_id IN ?", filter.CategoryGroupIds)
 	}
 
 	// Apply merchant filter

@@ -155,9 +155,15 @@ paths:
         - name: type
           in: query
           description: "Filter by transaction type"
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            enum: [expense, income, move_in, move_out]
+            type: array
+            items:
+              type: string
+              enum: [expense, income, move_in, move_out]
+            example: [expense, income]
         - name: categoryId
           in: query
           description: "Filter by category ID"

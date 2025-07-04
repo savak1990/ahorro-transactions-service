@@ -220,6 +220,21 @@ GET {{baseUrl}}/transactions?userId={{userId1}}&balanceId={{balanceId}}&type=exp
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
+### List transaction entries by multiple types (comma-separated)
+GET {{baseUrl}}/transactions?userId={{userId1}}&type=expense,income
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries by multiple types (array format)
+GET {{baseUrl}}/transactions?userId={{userId1}}&type=expense&type=income
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transaction entries by movement types only
+GET {{baseUrl}}/transactions?userId={{userId1}}&type=move_in,move_out
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
 ### List transaction entries by category ID
 GET {{baseUrl}}/transactions?userId={{userId1}}&balanceId={{balanceId}}&categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479
 Content-Type: application/json

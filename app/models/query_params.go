@@ -22,19 +22,19 @@ type ListCategoriesInput struct {
 
 // ListTransactionsInput defines the filter and pagination options for listing transactions.
 type ListTransactionsInput struct {
-	GroupID         string
-	UserID          string
-	BalanceID       string
-	CategoryId      string
-	CategoryGroupId string
-	MerchantId      string
-	TransactionID   string
-	Type            string
-	StartTime       time.Time
-	EndTime         time.Time
-	SortBy          string
-	Order           string
-	Limit           int
+	GroupID          string
+	UserID           string
+	BalanceID        string
+	CategoryIds      []string
+	CategoryGroupIds []string
+	MerchantId       string
+	TransactionID    string
+	Types            []string // Changed from Type string to Types []string to support multiple types
+	StartTime        time.Time
+	EndTime          time.Time
+	SortBy           string
+	Order            string
+	Limit            int
 }
 
 // ListBalancesInput defines the filter and pagination options for list of balances
