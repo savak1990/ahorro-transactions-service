@@ -31,6 +31,14 @@ func ToAPICategory(c *Category) CategoryDto {
 		dto.CategoryGroupName = c.CategoryGroup.Name
 		dto.CategoryGroupImageUrl = c.CategoryGroup.ImageUrl
 		dto.CategoryGroupRank = c.CategoryGroup.Rank
+
+		// Set CategoryGroupDeleted flag if the category group is soft deleted
+		dto.CategoryGroupDeleted = c.CategoryGroup.DeletedAt != nil
+	} else if c.CategoryGroupId != "" {
+		// If category has a CategoryGroupId but CategoryGroup is nil,
+		// it means the category group is soft-deleted (due to preload filtering)
+		dto.CategoryGroupID = c.CategoryGroupId
+		dto.CategoryGroupDeleted = true
 	}
 
 	return dto
@@ -47,6 +55,7 @@ func ToAPICategoryGroup(cg *CategoryGroup) CategoryGroupDto {
 		Name:            cg.Name,
 		ImageUrl:        cg.ImageUrl,
 		Rank:            cg.Rank,
+		IsDeleted:       cg.DeletedAt != nil,
 	}
 }
 
@@ -462,6 +471,7 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 	categoryGroupName := ""
 	categoryGroupImageUrl := ""
 	categoryIsDeleted := false
+	categoryGroupDeleted := false
 	if te.Category != nil {
 		categoryID = te.Category.ID.String()
 		categoryName = te.Category.Name
@@ -473,6 +483,14 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		categoryGroupName = te.Category.Group
 		// Check if category is soft deleted
 		categoryIsDeleted = te.Category.DeletedAt != nil
+		// Check if category group is soft deleted
+		if te.Category.CategoryGroup != nil {
+			categoryGroupDeleted = te.Category.CategoryGroup.DeletedAt != nil
+		} else if te.Category.CategoryGroupId != "" {
+			// If category has a CategoryGroupId but CategoryGroup is nil,
+			// it means the category group is soft-deleted (due to preload filtering)
+			categoryGroupDeleted = true
+		}
 		// Note: To get categoryGroupImageUrl, we would need to look up the CategoryGroup by name
 		// This would require an additional database query or preloaded relationship
 		// For now, we'll leave it empty and could enhance this later
@@ -503,6 +521,7 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		CategoryGroupImageUrl: &categoryGroupImageUrl,
 		CategoryGroupID:       categoryGroupID,
 		CategoryIsDeleted:     categoryIsDeleted,
+		CategoryGroupDeleted:  categoryGroupDeleted,
 		MerchantName:          merchantName,
 		MerchantImageUrl:      merchantImageUrl,
 		OperationID:           operationID,

@@ -43,9 +43,10 @@ type TransactionEntryDto struct {
 	CategoryName          string  `json:"categoryName"`
 	CategoryImageUrl      string  `json:"categoryImageUrl,omitempty"`
 	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
-	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
+	CategoryGroupImageUrl *string `json:"cattegoryGroupImageUrl,omitempty"`
 	CategoryGroupID       string  `json:"categoryGroupId,omitempty"`
 	CategoryIsDeleted     bool    `json:"categoryIsDeleted,omitempty"`
+	CategoryGroupDeleted  bool    `json:"categoryGroupDeleted,omitempty"`
 	MerchantName          string  `json:"merchantName,omitempty"`
 	MerchantImageUrl      string  `json:"merchantImageUrl,omitempty"`
 	OperationID           string  `json:"operationId,omitempty"`
@@ -74,6 +75,7 @@ type CategoryGroupDto struct {
 	Description     string  `json:"description,omitempty"`
 	ImageUrl        *string `json:"imageUrl,omitempty"`
 	Rank            *int    `json:"rank,omitempty"`
+	IsDeleted       bool    `json:"isDeleted,omitempty"`
 }
 
 // CreateCategoryDto represents a category for creation via POST requests.
@@ -110,6 +112,7 @@ type CategoryDto struct {
 	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
 	CategoryGroupRank     *int    `json:"categoryGroupRank,omitempty"`
 	IsDeleted             bool    `json:"isDeleted,omitempty"`
+	CategoryGroupDeleted  bool    `json:"categoryGroupDeleted,omitempty"`
 }
 
 // CategoryGroupWithCategoriesDto represents a category group with its associated categories

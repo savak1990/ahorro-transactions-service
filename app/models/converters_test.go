@@ -191,6 +191,48 @@ func TestToAPITransactionEntry_SoftDeletedCategory(t *testing.T) {
 	}
 }
 
+func TestToAPITransactionEntry_SoftDeletedCategoryGroup(t *testing.T) {
+	// Test with soft-deleted category group (deleted_at is not nil)
+	now := time.Now()
+	categoryGroup := &CategoryGroup{
+		ID:        uuid.New(),
+		Name:      "Deleted Group",
+		DeletedAt: &now, // Category group is soft deleted
+	}
+
+	category := &Category{
+		ID:              uuid.New(),
+		Name:            "Active Category",
+		CategoryGroup:   categoryGroup,
+		CategoryGroupId: categoryGroup.ID.String(),
+	}
+
+	entry := &TransactionEntry{
+		ID:       uuid.New(),
+		Amount:   decimal.NewFromFloat(30.00),
+		Category: category,
+	}
+
+	result := ToAPITransactionEntry(entry)
+
+	if result.CategoryIsDeleted {
+		t.Error("Expected categoryIsDeleted to be false for active category")
+	}
+
+	if !result.CategoryGroupDeleted {
+		t.Error("Expected categoryGroupDeleted to be true for soft-deleted category group")
+	}
+
+	if result.CategoryName != "Active Category" {
+		t.Errorf("Expected categoryName to be 'Active Category', got '%s'", result.CategoryName)
+	}
+
+	// Amount should still be converted correctly
+	if result.Amount != 3000 {
+		t.Errorf("Expected amount to be 3000 cents, got %d", result.Amount)
+	}
+}
+
 // Helper function to create string pointers
 func stringPtr(s string) *string {
 	return &s

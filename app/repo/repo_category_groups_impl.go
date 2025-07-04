@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/savak1990/transactions-service/app/models"
 	"gorm.io/gorm"
@@ -23,7 +24,7 @@ func (r *PostgreSQLRepository) CreateCategoryGroup(ctx context.Context, category
 func (r *PostgreSQLRepository) ListCategoryGroups(ctx context.Context, filter models.ListCategoryGroupsInput) ([]models.CategoryGroup, error) {
 	var categoryGroups []models.CategoryGroup
 	db := r.getDB()
-	query := db.WithContext(ctx)
+	query := db.WithContext(ctx).Where("deleted_at IS NULL")
 
 	// Apply ordering
 	orderBy := "rank"
@@ -62,7 +63,7 @@ func (r *PostgreSQLRepository) GetCategoryGroup(ctx context.Context, categoryGro
 	var categoryGroup models.CategoryGroup
 	db := r.getDB()
 
-	if err := db.WithContext(ctx).Where("id = ?", categoryGroupID).First(&categoryGroup).Error; err != nil {
+	if err := db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", categoryGroupID).First(&categoryGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil
 		}
@@ -81,11 +82,23 @@ func (r *PostgreSQLRepository) UpdateCategoryGroup(ctx context.Context, category
 	return &categoryGroup, nil
 }
 
-// DeleteCategoryGroup deletes a category group by ID
+// DeleteCategoryGroup deletes a category group by ID using soft deletion
 func (r *PostgreSQLRepository) DeleteCategoryGroup(ctx context.Context, categoryGroupID string) error {
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ?", categoryGroupID).Delete(&models.CategoryGroup{}).Error; err != nil {
-		return fmt.Errorf("failed to delete category group: %w", err)
+
+	// Simply set deleted_at to current time - no foreign key constraints involved
+	now := time.Now()
+	result := db.WithContext(ctx).Model(&models.CategoryGroup{}).
+		Where("id = ? AND deleted_at IS NULL", categoryGroupID).
+		Update("deleted_at", now)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to soft delete category group: %w", result.Error)
 	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("category group not found or already deleted: %s", categoryGroupID)
+	}
+
 	return nil
 }

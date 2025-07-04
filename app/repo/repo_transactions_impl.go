@@ -24,6 +24,7 @@ func (r *PostgreSQLRepository) CreateTransaction(ctx context.Context, tx models.
 		Preload("Merchant").
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
+		Preload("TransactionEntries.Category.CategoryGroup"). // Load CategoryGroup without filtering to detect soft-deleted groups
 		Where("id = ?", tx.ID).
 		First(&createdTx).Error; err != nil {
 		return nil, fmt.Errorf("failed to reload created transaction: %w", err)
@@ -42,6 +43,7 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 		Preload("Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
+		Preload("TransactionEntries.Category.CategoryGroup"). // Load CategoryGroup without filtering to detect soft-deleted groups
 		Joins("JOIN balance ON transaction.balance_id = balance.id").
 		Where("transaction.id = ? AND balance.deleted_at IS NULL", transactionID).
 		First(&tx).Error; err != nil {
@@ -92,7 +94,8 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Preload("Transaction").
 		Preload("Transaction.Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("Transaction.Balance").
-		Preload("Category")
+		Preload("Category").
+		Preload("Category.CategoryGroup") // Load CategoryGroup without filtering to detect soft-deleted groups
 
 	// Always join with balance table to exclude soft-deleted balances
 	query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id").
