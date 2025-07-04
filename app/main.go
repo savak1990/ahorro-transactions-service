@@ -125,7 +125,7 @@ func main() {
 	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.UpdateTransaction).Methods("PUT")
 	router.HandleFunc("/transactions/{transaction_id}", serviceHandler.DeleteTransaction).Methods("DELETE")
 
-	// Balances APIs
+	// Balances APIsте
 	router.HandleFunc("/balances", serviceHandler.CreateBalance).Methods("POST")
 	router.HandleFunc("/balances", serviceHandler.ListBalances).Methods("GET")
 	router.HandleFunc("/balances", serviceHandler.DeleteBalancesByUserId).Methods("DELETE") // Bulk delete by userId

@@ -10,6 +10,7 @@ import (
 type Repository interface {
 	// Transaction methods
 	CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error)
+	CreateTransactions(ctx context.Context, transactions []models.Transaction) ([]models.Transaction, error) // Batch transaction creation
 	GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error)
 	ListTransactions(ctx context.Context, filter models.ListTransactionsInput) ([]models.Transaction, error)
 	ListTransactionEntries(ctx context.Context, filter models.ListTransactionsInput) ([]models.TransactionEntry, error)

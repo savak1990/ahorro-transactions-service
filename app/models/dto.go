@@ -6,7 +6,7 @@ type CreateTransactionDto struct {
 	GroupID            string                      `json:"groupId"`
 	UserID             string                      `json:"userId"`
 	BalanceID          string                      `json:"balanceId"`
-	Type               string                      `json:"type"`
+	Type               string                      `json:"type"` // Supported: income, expense, movement, move_in, move_out
 	Merchant           *string                     `json:"merchant,omitempty"`
 	OperationID        *string                     `json:"operationId,omitempty"`
 	ApprovedAt         *string                     `json:"approvedAt,omitempty"`
@@ -17,15 +17,26 @@ type CreateTransactionDto struct {
 	TransactionEntries []CreateTransactionEntryDto `json:"transactionEntries"`
 }
 
+// CreateTransactionsRequestDto represents a batch transaction creation request
+type CreateTransactionsRequestDto struct {
+	Transactions []CreateTransactionDto `json:"transactions"`
+}
+
+// CreateTransactionsResponseDto represents a batch transaction creation response
+type CreateTransactionsResponseDto struct {
+	Transactions []CreateTransactionDto `json:"transactions"`
+	OperationID  *string                `json:"operationId,omitempty"`
+}
+
 // CreateTransactionEntryDto represents a single entry within a transaction for creation
 type CreateTransactionEntryDto struct {
-	ID          string  `json:"id,omitempty"`
-	Description string  `json:"description"`
-	Amount      float64 `json:"amount"`
-	CategoryID  string  `json:"categoryId"`
-	CreatedAt   string  `json:"createdAt,omitempty"`
-	UpdatedAt   string  `json:"updatedAt,omitempty"`
-	DeletedAt   string  `json:"deletedAt,omitempty"`
+	ID          string `json:"id,omitempty"`
+	Description string `json:"description"`
+	Amount      int    `json:"amount"`
+	CategoryID  string `json:"categoryId"`
+	CreatedAt   string `json:"createdAt,omitempty"`
+	UpdatedAt   string `json:"updatedAt,omitempty"`
+	DeletedAt   string `json:"deletedAt,omitempty"`
 }
 
 // TransactionDto represents a financial transaction for API responses.
@@ -35,7 +46,7 @@ type TransactionEntryDto struct {
 	BalanceID             string  `json:"balanceId"`
 	TransactionID         string  `json:"transactionId"`
 	TransactionEntryID    string  `json:"transactionEntryId"`
-	Type                  string  `json:"type"`
+	Type                  string  `json:"type"` // Supported: income, expense, movement, move_in, move_out
 	Amount                int     `json:"amount"`
 	BalanceTitle          string  `json:"balanceTitle"`
 	BalanceCurrency       string  `json:"balanceCurrency"`
@@ -148,4 +159,21 @@ type CurrencyStatsDto struct {
 // TransactionStatsResponseDto represents the response for transaction statistics
 type TransactionStatsResponseDto struct {
 	Totals map[string]map[string]CurrencyStatsDto `json:"totals"` // Stats by transaction type, then by currency
+}
+
+// UpdateTransactionDto represents a financial transaction for update via PUT requests.
+type UpdateTransactionDto struct {
+	TransactionID      string                      `json:"transactionId,omitempty"`
+	GroupID            string                      `json:"groupId"`
+	UserID             string                      `json:"userId"`
+	BalanceID          string                      `json:"balanceId"`
+	Type               string                      `json:"type"` // Supported: income, expense, movement, move_in, move_out
+	Merchant           *string                     `json:"merchant,omitempty"`
+	OperationID        *string                     `json:"operationId,omitempty"`
+	ApprovedAt         *string                     `json:"approvedAt,omitempty"`
+	TransactedAt       string                      `json:"transactedAt"`
+	CreatedAt          string                      `json:"createdAt,omitempty"`
+	UpdatedAt          string                      `json:"updatedAt,omitempty"`
+	DeletedAt          string                      `json:"deletedAt,omitempty"`
+	TransactionEntries []CreateTransactionEntryDto `json:"transactionEntries"`
 }

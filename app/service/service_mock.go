@@ -19,6 +19,18 @@ func (svc *MockService) CreateTransaction(ctx context.Context, tx models.Transac
 	return args.Get(0).(*models.Transaction), args.Error(1)
 }
 
+func (svc *MockService) CreateTransactions(ctx context.Context, transactions []models.Transaction) ([]models.Transaction, *string, error) {
+	args := svc.Called(ctx, transactions)
+	if args.Get(0) == nil {
+		return nil, nil, args.Error(2)
+	}
+	var operationID *string
+	if args.Get(1) != nil {
+		operationID = args.Get(1).(*string)
+	}
+	return args.Get(0).([]models.Transaction), operationID, args.Error(2)
+}
+
 func (svc *MockService) GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error) {
 	args := svc.Called(ctx, transactionID)
 	if args.Get(0) == nil {

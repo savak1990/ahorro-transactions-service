@@ -27,6 +27,14 @@ func (m *MockRepository) CreateTransaction(ctx context.Context, tx models.Transa
 	return args.Get(0).(*models.Transaction), args.Error(1)
 }
 
+func (m *MockRepository) CreateTransactions(ctx context.Context, transactions []models.Transaction) ([]models.Transaction, error) {
+	args := m.Called(ctx, transactions)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]models.Transaction), args.Error(1)
+}
+
 func (m *MockRepository) GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error) {
 	args := m.Called(ctx, transactionID)
 	if args.Get(0) == nil {
@@ -254,6 +262,11 @@ func (m *MockRepository) DeleteCategoryGroup(ctx context.Context, categoryGroupI
 // ExpectCreateTransaction sets up an expectation for CreateTransaction method
 func (m *MockRepository) ExpectCreateTransaction(ctx context.Context, tx models.Transaction, result *models.Transaction, err error) *mock.Call {
 	return m.On("CreateTransaction", ctx, tx).Return(result, err)
+}
+
+// ExpectCreateTransactions sets up an expectation for CreateTransactions method
+func (m *MockRepository) ExpectCreateTransactions(ctx context.Context, transactions []models.Transaction, result []models.Transaction, err error) *mock.Call {
+	return m.On("CreateTransactions", ctx, transactions).Return(result, err)
 }
 
 // ExpectListTransactions sets up an expectation for ListTransactions method

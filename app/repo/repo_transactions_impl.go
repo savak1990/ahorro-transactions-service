@@ -33,6 +33,44 @@ func (r *PostgreSQLRepository) CreateTransaction(ctx context.Context, tx models.
 	return &createdTx, nil
 }
 
+// CreateTransactions creates multiple transactions atomically in a single database transaction
+func (r *PostgreSQLRepository) CreateTransactions(ctx context.Context, transactions []models.Transaction) ([]models.Transaction, error) {
+	db := r.getDB()
+
+	var createdTransactions []models.Transaction
+
+	// Use a database transaction to ensure atomicity
+	err := db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Create all transactions in the same database transaction
+		for _, transaction := range transactions {
+			if err := tx.Create(&transaction).Error; err != nil {
+				return fmt.Errorf("failed to create transaction %s: %w", transaction.ID.String(), err)
+			}
+
+			// Reload the transaction with all relationships
+			var createdTx models.Transaction
+			if err := tx.
+				Preload("Merchant").
+				Preload("TransactionEntries").
+				Preload("TransactionEntries.Category").
+				Preload("TransactionEntries.Category.CategoryGroup").
+				Where("id = ?", transaction.ID).
+				First(&createdTx).Error; err != nil {
+				return fmt.Errorf("failed to reload created transaction %s: %w", transaction.ID.String(), err)
+			}
+
+			createdTransactions = append(createdTransactions, createdTx)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return createdTransactions, nil
+}
+
 // GetTransaction retrieves a single transaction by ID
 func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error) {
 

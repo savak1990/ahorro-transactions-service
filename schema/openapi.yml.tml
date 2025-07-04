@@ -29,17 +29,22 @@ security:
 paths:
   /transactions:
     post:
-      summary: Create a new transaction
+      summary: Create transaction(s)
       description: |
-        Creates a new financial transaction with one or more transaction entries.
-        Each transaction can have multiple entries for different categories.
+        Creates one or more financial transactions. Supports both single transactions and batch operations.
+        
+        For single transactions: Include expense, income, or movement transaction with entries.
+        For batch transactions: Include multiple transactions (max 5) for movement operations.
+        Movement operations should include both move_out and move_in transactions with same operationId.
       tags: [transactions]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTransactionRequest'
+              oneOf:
+                - $ref: '#/components/schemas/CreateTransactionRequest'
+                - $ref: '#/components/schemas/CreateTransactionsRequest'
             examples:
               expense_transaction:
                 summary: "Grocery shopping with multiple items"
@@ -52,10 +57,10 @@ paths:
                   transactedAt: "2024-06-19T12:00:00Z"
                   transactionEntries:
                     - description: "Organic vegetables"
-                      amount: 45.50
+                      amount: 4550
                       categoryId: "ca001111-1111-1111-1111-111111111111"
                     - description: "Cleaning supplies"
-                      amount: 28.75
+                      amount: 2875
                       categoryId: "ca005555-5555-5555-5555-555555555555"
               income_transaction:
                 summary: "Monthly salary"
@@ -69,19 +74,47 @@ paths:
                   transactedAt: "2024-06-19T09:00:00Z"
                   transactionEntries:
                     - description: "Monthly salary"
-                      amount: 3500.00
+                      amount: 350000
                       categoryId: "ca012222-2222-2222-2222-222222222222"
+              movement_batch_transaction:
+                summary: "Transfer money between accounts (batch)"
+                value:
+                  transactions:
+                    - userId: "99bb2200-0011-2233-4455-667788990011"
+                      groupId: "88aa1100-0011-2233-4455-667788990011"
+                      balanceId: "ba001111-1111-1111-1111-111111111111"
+                      type: "move_out"
+                      merchant: null
+                      transactedAt: "2024-06-19T14:30:00Z"
+                      transactionEntries:
+                        - description: "Transfer to savings account"
+                          amount: 50000
+                          categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+                    - userId: "99bb2200-0011-2233-4455-667788990011"
+                      groupId: "88aa1100-0011-2233-4455-667788990011"
+                      balanceId: "ba002222-2222-2222-2222-222222222222"
+                      type: "move_in"
+                      merchant: null
+                      transactedAt: "2024-06-19T14:30:00Z"
+                      transactionEntries:
+                        - description: "Transfer from checking account"
+                          amount: 50000
+                          categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
       responses:
         '201':
-          description: Transaction created successfully
+          description: Transaction(s) created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateTransactionResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/CreateTransactionResponse'
+                  - $ref: '#/components/schemas/CreateTransactionsResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
       x-amazon-apigateway-integration:
@@ -124,7 +157,7 @@ paths:
           description: "Filter by transaction type"
           schema:
             type: string
-            enum: [expense, income, movement]
+            enum: [expense, income, move_in, move_out]
         - name: categoryId
           in: query
           description: "Filter by category ID"
@@ -2078,6 +2111,16 @@ components:
             code: "InternalServerError"
             error: "An unexpected error occurred"
 
+    ConflictError:
+      description: "Conflict - resource limit exceeded or validation error"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "Conflict"
+            error: "Maximum 5 transactions allowed per batch"
+
   schemas:
     ErrorResponse:
       type: object
@@ -2088,7 +2131,7 @@ components:
         code:
           type: string
           description: "Error code"
-          enum: [BadRequest, Unauthorized, NotFound, InternalServerError, DatabaseError]
+          enum: [BadRequest, Unauthorized, NotFound, InternalServerError, DatabaseError, Conflict]
           example: "BadRequest"
         error:
           type: string
@@ -2122,11 +2165,12 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, movement, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
           type: string
+          nullable: true
           description: "Merchant name (optional for income transactions)"
           example: "Mercadona"
         operationId:
@@ -2165,17 +2209,62 @@ components:
           description: "Description of the transaction entry"
           example: "Organic vegetables and fruits"
         amount:
-          type: number
-          format: double
-          minimum: 0.01
-          maximum: 999999.99
+          type: integer
           description: "Amount for this entry"
-          example: 45.50
+          example: 4550
         categoryId:
           type: string
           format: uuid
           description: "Category ID for this entry"
           example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+    CreateTransactionsRequest:
+      type: object
+      required:
+        - transactions
+      properties:
+        transactions:
+          type: array
+          description: "List of transactions to create"
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/CreateTransactionRequest'
+      example:
+        transactions:
+          - userId: "99bb2200-0011-2233-4455-667788990011"
+            groupId: "88aa1100-0011-2233-4455-667788990011"
+            balanceId: "ba001111-1111-1111-1111-111111111111"
+            type: "move_out"
+            merchant: null
+            transactedAt: "2024-06-19T14:30:00Z"
+            transactionEntries:
+              - description: "Transfer to savings account"
+                amount: 50000
+                categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+          - userId: "99bb2200-0011-2233-4455-667788990011"
+            groupId: "88aa1100-0011-2233-4455-667788990011"
+            balanceId: "ba002222-2222-2222-2222-222222222222"
+            type: "move_in"
+            merchant: null
+            transactedAt: "2024-06-19T14:30:00Z"
+            transactionEntries:
+              - description: "Transfer from checking account"
+                amount: 50000
+                categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+
+    CreateTransactionsResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          description: "List of created transactions"
+          items:
+            $ref: '#/components/schemas/CreateTransactionResponse'
+        operationId:
+          type: string
+          description: "Operation ID for tracking related transactions"
+          example: "fa123456-7890-1234-5678-901234567890"
 
     UpdateTransactionRequest:
       type: object
@@ -2204,7 +2293,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -2258,7 +2347,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -2308,10 +2397,9 @@ components:
           description: "Description of the transaction entry"
           example: "Organic vegetables and fruits"
         amount:
-          type: number
-          format: double
+          type: integer
           description: "Amount for this entry"
-          example: 45.50
+          example: -4550
         categoryId:
           type: string
           format: uuid
@@ -2368,13 +2456,13 @@ components:
           example: "456e7890-e89b-12d3-a456-426614174000"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         amount:
           type: integer
           description: "Amount for this entry in cents (e.g., $45.50 = 4550)"
-          example: 4550
+          example: -4550
         balanceTitle:
           type: string
           description: "Title of the balance/account"

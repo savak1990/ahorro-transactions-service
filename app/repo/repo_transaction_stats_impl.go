@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/savak1990/transactions-service/app/models"
-	"github.com/shopspring/decimal"
 )
 
 // GetTransactionStats retrieves aggregated transaction statistics
@@ -79,8 +78,8 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 			statsMap[result.TransactionType] = make(map[string]models.CurrencyStatsDto)
 		}
 
-		// Convert decimal amount to cents (multiply by 100)
-		amountInCents := int(result.TotalAmount.Mul(decimal.NewFromInt(100)).IntPart())
+		// Amount is already in cents (int64)
+		amountInCents := int(result.TotalAmount)
 
 		statsMap[result.TransactionType][result.Currency] = models.CurrencyStatsDto{
 			Amount:                  amountInCents,

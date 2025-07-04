@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 func TestToAPITransactionEntry(t *testing.T) {
@@ -18,8 +17,8 @@ func TestToAPITransactionEntry(t *testing.T) {
 	balanceID := uuid.New()
 	merchantID := uuid.New()
 
-	// Create a test amount of $45.50 (which should become 4550 cents)
-	amount := decimal.NewFromFloat(45.50)
+	// Create a test amount of $45.50 (which should be 4550 cents)
+	amount := int64(4550) // Amount in cents
 
 	// Create test category with group
 	category := &Category{
@@ -121,7 +120,7 @@ func TestToAPITransactionEntry_ZeroAmount(t *testing.T) {
 	// Test with zero amount
 	entry := &TransactionEntry{
 		ID:     uuid.New(),
-		Amount: decimal.Zero,
+		Amount: int64(0), // Zero amount in cents
 	}
 
 	result := ToAPITransactionEntry(entry)
@@ -135,7 +134,7 @@ func TestToAPITransactionEntry_NilCategory(t *testing.T) {
 	// Test with nil category
 	entry := &TransactionEntry{
 		ID:       uuid.New(),
-		Amount:   decimal.NewFromFloat(10.99),
+		Amount:   int64(1099), // $10.99 in cents
 		Category: nil,
 	}
 
@@ -171,7 +170,7 @@ func TestToAPITransactionEntry_SoftDeletedCategory(t *testing.T) {
 
 	entry := &TransactionEntry{
 		ID:       uuid.New(),
-		Amount:   decimal.NewFromFloat(25.00),
+		Amount:   int64(2500), // $25.00 in cents
 		Category: category,
 	}
 
@@ -209,7 +208,7 @@ func TestToAPITransactionEntry_SoftDeletedCategoryGroup(t *testing.T) {
 
 	entry := &TransactionEntry{
 		ID:       uuid.New(),
-		Amount:   decimal.NewFromFloat(30.00),
+		Amount:   int64(3000), // $30.00 in cents
 		Category: category,
 	}
 

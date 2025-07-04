@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -126,11 +125,11 @@ type TransactionEntry struct {
 	ID            uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	TransactionID uuid.UUID `gorm:"type:uuid;not null;index:idx_transaction_entry_transaction_id"`
 	Description   *string
-	Amount        decimal.Decimal `gorm:"type:numeric(18,2);not null"`
-	CategoryID    *uuid.UUID      `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
-	CreatedAt     time.Time       `gorm:"default:now()"`
-	UpdatedAt     time.Time       `gorm:"default:now()"`
-	DeletedAt     *time.Time      `gorm:"index"`
+	Amount        int64      `gorm:"type:bigint;not null"` // Amount in cents
+	CategoryID    *uuid.UUID `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
+	CreatedAt     time.Time  `gorm:"default:now()"`
+	UpdatedAt     time.Time  `gorm:"default:now()"`
+	DeletedAt     *time.Time `gorm:"index"`
 
 	// Relationships
 	Transaction *Transaction `gorm:"foreignKey:TransactionID"`
@@ -168,7 +167,7 @@ func (t *Transaction) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (t *Transaction) validateType() error {
-	validTypes := []string{"income", "expense", "movement"}
+	validTypes := []string{"income", "expense", "movement", "move_in", "move_out"}
 	for _, validType := range validTypes {
 		if t.Type == validType {
 			return nil
@@ -199,9 +198,9 @@ func formatTimePtr(t *time.Time) string {
 
 // TransactionStatsRaw represents raw statistics data from database aggregation
 type TransactionStatsRaw struct {
-	TransactionType         string          `gorm:"column:transaction_type"`
-	Currency                string          `gorm:"column:currency"`
-	TotalAmount             decimal.Decimal `gorm:"column:total_amount"`
-	TransactionsCount       int64           `gorm:"column:transactions_count"`
-	TransactionEntriesCount int64           `gorm:"column:transaction_entries_count"`
+	TransactionType         string `gorm:"column:transaction_type"`
+	Currency                string `gorm:"column:currency"`
+	TotalAmount             int64  `gorm:"column:total_amount"` // Amount in cents
+	TransactionsCount       int64  `gorm:"column:transactions_count"`
+	TransactionEntriesCount int64  `gorm:"column:transaction_entries_count"`
 }

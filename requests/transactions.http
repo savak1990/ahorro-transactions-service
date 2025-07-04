@@ -7,11 +7,12 @@
 @authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6ImIyYTM0ZDIyLWYxZWUtNDcwZC04NzJmLWVkYjllZGQyYzM0OSIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6ImU1YzA2MmMwLTYwNWUtNDU5Ny05ZGJmLTUyZWE2NDA0NmJiYiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMzkwNDg5LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTM5NDA4OSwiaWF0IjoxNzUxMzkwNDg5LCJqdGkiOiI1MmE5MWY3NS0yZDdjLTRlOWQtYmJkMi1hNmQ3MWUxMTY5NGMiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.0AvKlltzXWEdkRaYOn461Go-MLQ8MJZizwenKiaoYmGJ63KUmCYgyWXCyxjEDT5qg1xc1ShsSGUIVmfQPoDufIz8tGtZy4bxqSk01A4gUGLcjCe1-11qHa4RjS9oe7-ehRBfynGgjx5e3cIoj0nPtha4wV3ptow72RygtWhinvaojGIF2RqFlZ5Gr3tYxz4osXrwn6306mXLcanVLnsoigA_pHvGYtK2qvlwoz34e3yoZwH4Y0bkM8hvum93_MSDdu9Va0xYf-tKJ-X3Ly-NyC_KLTXaSGKpNaYmNAKEK7gWH1fzVI6RH4ifvrnpCGju-bYsVfOqs-9SNIL6ydO3Bw
 
 # Test data IDs
-@userId1=02c514a4-2021-708d-efff-ea6cd5e4eac9
+@userId1=99bb2200-0011-2233-4455-667788990011
 @userId2=12c514a4-2021-708d-efff-ea6cd5e4eac8
-@groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
+@groupId=88aa1100-0011-2233-4455-667788990011
 
-@balanceId=28e2d53a-22e9-4c7e-9c06-0b91a9d091f4
+@balanceId=ba001111-1111-1111-1111-111111111111
+@balanceId2=ba004444-4444-4444-4444-444444444444
 @categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479
 @categoryGroupName=Food & Dining
 @merchantId=d47ac10b-58cc-4372-a567-0e02b2c3d480
@@ -63,7 +64,7 @@ Authorization: Bearer {{authToken}}
     "transactionEntries": [
         {
             "description": "Monthly salary",
-            "amount": 3500.00,
+            "amount": 350000,
             "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d484"
         }
     ]
@@ -86,6 +87,93 @@ Authorization: Bearer {{authToken}}
         {
             "description": "Transfer to savings account",
             "amount": 500.00,
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+        }
+    ]
+}
+
+### ============================================================
+### BATCH TRANSACTION OPERATIONS (Movement between accounts)
+### ============================================================
+### Create multiple transactions in a single batch operation
+### Use for transfers between accounts (move_out from source, move_in to destination)
+### Maximum 5 transactions per batch
+
+### Create a batch movement transaction (transfer between accounts)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "transactions": [
+        {
+            "userId": "{{userId1}}",
+            "groupId": "{{groupId}}",
+            "balanceId": "{{balanceId}}",
+            "type": "move_out",
+            "transactedAt": "2024-06-19T14:30:00Z",
+            "transactionEntries": [
+                {
+                    "description": "Transfer to savings account",
+                    "amount": 50000,
+                    "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                }
+            ]
+        },
+        {
+            "userId": "{{userId1}}",
+            "groupId": "{{groupId}}",
+            "balanceId": "{{balanceId2}}",
+            "type": "move_in",
+            "transactedAt": "2024-06-19T14:30:00Z",
+            "transactionEntries": [
+                {
+                    "description": "Transfer from checking account",
+                    "amount": 50000,
+                    "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                }
+            ]
+        }
+    ]
+}
+
+### Create a single move_out transaction
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "move_out",
+    "merchant": null,
+    "transactedAt": "2024-06-19T14:30:00Z",
+    "transactionEntries": [
+        {
+            "description": "Outgoing transfer",
+            "amount": 250.00,
+            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+        }
+    ]
+}
+
+### Create a single move_in transaction
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId2}}",
+    "type": "move_in",
+    "merchant": null,
+    "transactedAt": "2024-06-19T14:30:00Z",
+    "transactionEntries": [
+        {
+            "description": "Incoming transfer",
+            "amount": 250.00,
             "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
         }
     ]

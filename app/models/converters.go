@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 // Conversion methods between DAO models (database) and DTO models (API)
@@ -364,13 +363,13 @@ func ToAPICreateTransactionEntry(te *TransactionEntry) CreateTransactionEntryDto
 		categoryID = te.CategoryID.String()
 	}
 
-	// Convert decimal to float64 for API response
-	amountFloat, _ := te.Amount.Float64()
+	// Amount is already in cents (int64), convert to int for API response
+	amountCents := int(te.Amount)
 
 	return CreateTransactionEntryDto{
 		ID:          te.ID.String(),
 		Description: desc,
-		Amount:      amountFloat,
+		Amount:      amountCents,
 		CategoryID:  categoryID,
 		CreatedAt:   te.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   te.UpdatedAt.Format(time.RFC3339),
@@ -411,7 +410,7 @@ func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID u
 		ID:            id,
 		TransactionID: transactionID,
 		Description:   desc,
-		Amount:        decimal.NewFromFloat(te.Amount),
+		Amount:        int64(te.Amount),
 		CategoryID:    categoryID,
 	}, nil
 }
@@ -496,13 +495,8 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		// For now, we'll leave it empty and could enhance this later
 	}
 
-	// Convert decimal amount to integer cents for API response
-	amountCents := int64(0)
-	if !te.Amount.IsZero() {
-		// Multiply by 100 to convert to cents and round to int64
-		amountFloat, _ := te.Amount.Float64()
-		amountCents = int64(amountFloat * 100)
-	}
+	// Amount is already in cents (int64), use directly
+	amountCents := te.Amount
 
 	return TransactionEntryDto{
 		GroupID:               groupID,
@@ -647,4 +641,102 @@ func FromAPIUpdateCategory(c UpdateCategoryDto, categoryID string) (*Category, e
 		Rank:            c.Rank,
 		ImageUrl:        c.ImageUrl,
 	}, nil
+}
+
+// FromAPICreateTransactionsRequest converts CreateTransactionsRequestDto to slice of Transaction DAOs
+func FromAPICreateTransactionsRequest(req CreateTransactionsRequestDto) ([]Transaction, error) {
+	var transactions []Transaction
+	for _, txDto := range req.Transactions {
+		tx, err := FromAPICreateTransaction(txDto)
+		if err != nil {
+			return nil, fmt.Errorf("error converting transaction: %w", err)
+		}
+		transactions = append(transactions, *tx)
+	}
+	return transactions, nil
+}
+
+// ToAPICreateTransactionsResponse converts slice of Transaction DAOs to CreateTransactionsResponseDto
+func ToAPICreateTransactionsResponse(transactions []Transaction, operationID *string) CreateTransactionsResponseDto {
+	var txDtos []CreateTransactionDto
+	for _, tx := range transactions {
+		txDtos = append(txDtos, ToAPICreateTransaction(&tx))
+	}
+	return CreateTransactionsResponseDto{
+		Transactions: txDtos,
+		OperationID:  operationID,
+	}
+}
+
+// FromAPIUpdateTransaction converts UpdateTransactionDto (API model) to Transaction (DAO)
+func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
+	// Parse UUIDs
+	id, err := parseUUID(t.TransactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction ID is required for update")
+	}
+
+	userID, err := parseUUID(t.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	groupID, err := parseUUID(t.GroupID)
+	if err != nil {
+		return nil, err
+	}
+
+	balanceID, err := parseUUID(t.BalanceID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse operation ID if provided
+	var operationID *uuid.UUID
+	if t.OperationID != nil && *t.OperationID != "" {
+		opID, err := uuid.Parse(*t.OperationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid operation ID format: %w", err)
+		}
+		operationID = &opID
+	}
+
+	// Parse timestamps
+	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+	}
+
+	approvedAt := transactedAt // Default to transacted_at
+	if t.ApprovedAt != nil && *t.ApprovedAt != "" {
+		approvedAt, err = time.Parse(time.RFC3339, *t.ApprovedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid approved_at format: %w", err)
+		}
+	}
+
+	// Create transaction
+	transaction := &Transaction{
+		ID:           id,
+		GroupID:      groupID,
+		UserID:       userID,
+		BalanceID:    balanceID,
+		Type:         t.Type,
+		OperationID:  operationID,
+		ApprovedAt:   approvedAt,
+		TransactedAt: transactedAt,
+	}
+
+	// Create transaction entries
+	var entries []TransactionEntry
+	for _, entryDto := range t.TransactionEntries {
+		entry, err := FromAPICreateTransactionEntry(entryDto, id)
+		if err != nil {
+			return nil, fmt.Errorf("error converting transaction entry: %w", err)
+		}
+		entries = append(entries, *entry)
+	}
+
+	transaction.TransactionEntries = entries
+	return transaction, nil
 }

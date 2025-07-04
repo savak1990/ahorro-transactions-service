@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -14,9 +15,30 @@ import (
 
 // POST /transactions
 func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) {
-	var req models.CreateTransactionDto
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	var rawBody json.RawMessage
+	if err := json.NewDecoder(r.Body).Decode(&rawBody); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Try to parse as batch request first
+	var batchReq models.CreateTransactionsRequestDto
+	if err := json.Unmarshal(rawBody, &batchReq); err == nil && len(batchReq.Transactions) > 0 {
+		// Handle batch request
+		h.handleBatchTransactions(w, r, batchReq)
+		return
+	}
+
+	// Fall back to single transaction
+	var req models.CreateTransactionDto
+	if err := json.Unmarshal(rawBody, &req); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	// Validate single transaction cannot be move_in or move_out
+	if req.Type == "move_in" || req.Type == "move_out" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Single transactions cannot be of type 'move_in' or 'move_out'. Use batch transactions for movement operations.")
 		return
 	}
 
@@ -36,6 +58,42 @@ func (h *HandlerImpl) CreateTransaction(w http.ResponseWriter, r *http.Request) 
 
 	// Convert response to DTO
 	responseDto := models.ToAPICreateTransaction(created)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(responseDto)
+}
+
+// handleBatchTransactions handles creation of multiple transactions
+func (h *HandlerImpl) handleBatchTransactions(w http.ResponseWriter, r *http.Request, batchReq models.CreateTransactionsRequestDto) {
+	// Validate transaction count (max 5)
+	if len(batchReq.Transactions) > 5 {
+		WriteJSONError(w, http.StatusConflict, models.ErrorCodeConflict, "Maximum 5 transactions allowed per batch")
+		return
+	}
+
+	// Validate movement operations: must have exactly 2 transactions with one move_in and one move_out
+	if err := h.validateMovementTransactions(batchReq.Transactions); err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, err.Error())
+		return
+	}
+
+	// Convert request DTOs to transactions
+	transactions, err := models.FromAPICreateTransactionsRequest(batchReq)
+	if err != nil {
+		logrus.WithError(err).Error("Failed to convert batch request DTOs")
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request: "+err.Error())
+		return
+	}
+
+	// Create transactions using service
+	created, operationID, err := h.Service.CreateTransactions(r.Context(), transactions)
+	if err != nil {
+		h.handleServiceError(w, err, "CreateTransactions")
+		return
+	}
+
+	// Convert response to DTO
+	responseDto := models.ToAPICreateTransactionsResponse(created, operationID)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(responseDto)
@@ -158,4 +216,45 @@ func (h *HandlerImpl) DeleteTransaction(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// validateMovementTransactions validates that movement operations follow the correct rules
+func (h *HandlerImpl) validateMovementTransactions(transactions []models.CreateTransactionDto) error {
+	moveInCount := 0
+	moveOutCount := 0
+	hasMovementTypes := false
+
+	// Count movement transaction types
+	for _, tx := range transactions {
+		switch tx.Type {
+		case "move_in":
+			moveInCount++
+			hasMovementTypes = true
+		case "move_out":
+			moveOutCount++
+			hasMovementTypes = true
+		case "expense", "income", "movement":
+			// Regular transaction types are allowed in batch, but not mixed with move_in/move_out
+			if hasMovementTypes {
+				return fmt.Errorf("cannot mix movement types (move_in/move_out) with regular transaction types (expense/income/movement) in the same batch")
+			}
+		default:
+			return fmt.Errorf("invalid transaction type: %s", tx.Type)
+		}
+	}
+
+	// If there are movement types, validate the rules
+	if hasMovementTypes {
+		if len(transactions) != 2 {
+			return fmt.Errorf("movement operations must contain exactly 2 transactions, got %d", len(transactions))
+		}
+		if moveInCount != 1 {
+			return fmt.Errorf("movement operations must contain exactly 1 'move_in' transaction, got %d", moveInCount)
+		}
+		if moveOutCount != 1 {
+			return fmt.Errorf("movement operations must contain exactly 1 'move_out' transaction, got %d", moveOutCount)
+		}
+	}
+
+	return nil
 }
