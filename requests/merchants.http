@@ -1,0 +1,96 @@
+# Merchant endpoints for ahorro-transactions-service
+
+@baseUrl=http://localhost:8080
+
+# Authentication token - get this by running:
+# make get-cognito-token
+@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6ImIyYTM0ZDIyLWYxZWUtNDcwZC04NzJmLWVkYjllZGQyYzM0OSIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6ImU1YzA2MmMwLTYwNWUtNDU5Ny05ZGJmLTUyZWE2NDA0NmJiYiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMzkwNDg5LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTM5NDA4OSwiaWF0IjoxNzUxMzkwNDg5LCJqdGkiOiI1MmE5MWY3NS0yZDdjLTRlOWQtYmJkMi1hNmQ3MWUxMTY5NGMiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.0AvKlltzXWEdkRaYOn461Go-MLQ8MJZizwenKiaoYmGJ63KUmCYgyWXCyxjEDT5qg1xc1ShsSGUIVmfQPoDufIz8tGtZy4bxqSk01A4gUGLcjCe1-11qHa4RjS9oe7-ehRBfynGgjx5e3cIoj0nPtha4wV3ptow72RygtWhinvaojGIF2RqFlZ5Gr3tYxz4osXrwn6306mXLcanVLnsoigA_pHvGYtK2qvlwoz34e3yoZwH4Y0bkM8hvum93_MSDdu9Va0xYf-tKJ-X3Ly-NyC_KLTXaSGKpNaYmNAKEK7gWH1fzVI6RH4ifvrnpCGju-bYsVfOqs-9SNIL6ydO3Bw
+
+# Test data IDs
+@userId1=02c514a4-2021-708d-efff-ea6cd5e4eac9
+@userId2=12c514a4-2021-708d-efff-ea6cd5e4eac8
+@groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
+@categoryGroupId=4jnf5pcfr7gvo2vseif36bu6k
+
+@categoryId=28e2d53a-22e9-4c7e-9c06-0b91a9d091f4
+@merchantId=28e2d53a-22e9-4c7e-9c06-0b91a9d091fg
+
+### Create a new merchant
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId1}}",
+    "name": "Mercadona",
+    "description": "Spanish supermarket chain",
+    "imageUrl": "https://example.com/mercadona-logo.png"
+}
+
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId1}}",
+    "name": "Carrefour",
+    "description": "French multinational retail corporation",
+    "imageUrl": "https://example.com/carrefour-logo.png"
+}
+
+POST {{baseUrl}}/merchants
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId2}}",
+    "name": "El Corte Inglés",
+    "description": "Spanish department store chain",
+    "imageUrl": "https://example.com/el-corte-ingles-logo.png"
+}
+
+### List all merchants
+GET {{baseUrl}}/merchants
+Authorization: Bearer {{authToken}}
+
+### List merchants with name filter
+GET {{baseUrl}}/merchants/{{merchantId}}
+Authorization: Bearer {{authToken}}
+
+### Get a specific merchant
+GET {{baseUrl}}/merchants?userId={{userId1}}&limit=10
+Authorization: Bearer {{authToken}}
+
+### Get merchants for group sorted by rank
+GET {{baseUrl}}/merchants?groupId={{groupId}}&sortBy=rank
+Authorization: Bearer {{authToken}}
+
+### Get merchants for group sorted by createdAt
+GET {{baseUrl}}/merchants?groupId={{groupId}}&sortBy=createdAt&order=asc
+Authorization: Bearer {{authToken}}
+
+GET {{baseUrl}}/merchants?groupId={{groupId}}&sortBy=name&order=desc&limit=20
+Authorization: Bearer {{authToken}}
+
+### Update a merchant
+PUT {{baseUrl}}/merchants/{{merchantId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "groupId": "{{groupId}}",
+    "userId": "{{userId2}}",
+    "name": "Mercadona Updated",
+    "description": "Updated Spanish supermarket chain description",
+    "imageUrl": "https://example.com/mercadona-new-logo.png"
+}
+
+### Delete a merchant
+DELETE {{baseUrl}}/merchants/REPLACE_WITH_MERCHANT_ID
+Authorization: Bearer {{authToken}}
+
+DELETE {{baseUrl}}/merchants?userId={{userId1}}
+Authorization: Bearer {{authToken}}

@@ -9,7 +9,7 @@ info:
     - Creating and managing financial transactions with multiple entries
     - Managing user balances/accounts
     - Managing transaction categories
-    - Retrieving transaction history with filtering and pagination
+    - Retrieving transaction history with filtering
   contact:
     name: "Ahorro Development Team"
   license:
@@ -29,59 +29,92 @@ security:
 paths:
   /transactions:
     post:
-      summary: Create a new transaction
+      summary: Create transaction(s)
       description: |
-        Creates a new financial transaction with one or more transaction entries.
-        Each transaction can have multiple entries for different categories.
+        Creates one or more financial transactions. Supports both single transactions and batch operations.
+        
+        For single transactions: Include expense, income, or movement transaction with entries.
+        For batch transactions: Include multiple transactions (max 5) for movement operations.
+        Movement operations should include both move_out and move_in transactions with same operationId.
       tags: [transactions]
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateTransactionRequest'
+              oneOf:
+                - $ref: '#/components/schemas/CreateTransactionRequest'
+                - $ref: '#/components/schemas/CreateTransactionsRequest'
             examples:
               expense_transaction:
                 summary: "Grocery shopping with multiple items"
                 value:
-                  userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
-                  groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
-                  balanceId: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+                  userId: "99bb2200-0011-2233-4455-667788990011"
+                  groupId: "88aa1100-0011-2233-4455-667788990011"
+                  balanceId: "ba001111-1111-1111-1111-111111111111"
                   type: "expense"
                   merchant: "Mercadona"
                   transactedAt: "2024-06-19T12:00:00Z"
                   transactionEntries:
                     - description: "Organic vegetables"
-                      amount: 45.50
-                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                      amount: 4550
+                      categoryId: "ca001111-1111-1111-1111-111111111111"
                     - description: "Cleaning supplies"
-                      amount: 28.75
-                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d487"
+                      amount: 2875
+                      categoryId: "ca005555-5555-5555-5555-555555555555"
               income_transaction:
                 summary: "Monthly salary"
                 value:
-                  userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
-                  groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
-                  balanceId: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+                  userId: "99bb2200-0011-2233-4455-667788990011"
+                  groupId: "88aa1100-0011-2233-4455-667788990011"
+                  balanceId: "ba001111-1111-1111-1111-111111111111"
                   type: "income"
                   merchant: "Acme Corp Payroll"
                   approvedAt: "2024-06-19T09:00:00Z"
                   transactedAt: "2024-06-19T09:00:00Z"
                   transactionEntries:
                     - description: "Monthly salary"
-                      amount: 3500.00
-                      categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4a3"
+                      amount: 350000
+                      categoryId: "ca012222-2222-2222-2222-222222222222"
+              movement_batch_transaction:
+                summary: "Transfer money between accounts (batch)"
+                value:
+                  transactions:
+                    - userId: "99bb2200-0011-2233-4455-667788990011"
+                      groupId: "88aa1100-0011-2233-4455-667788990011"
+                      balanceId: "ba001111-1111-1111-1111-111111111111"
+                      type: "move_out"
+                      merchant: null
+                      transactedAt: "2024-06-19T14:30:00Z"
+                      transactionEntries:
+                        - description: "Transfer to savings account"
+                          amount: 50000
+                          categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+                    - userId: "99bb2200-0011-2233-4455-667788990011"
+                      groupId: "88aa1100-0011-2233-4455-667788990011"
+                      balanceId: "ba002222-2222-2222-2222-222222222222"
+                      type: "move_in"
+                      merchant: null
+                      transactedAt: "2024-06-19T14:30:00Z"
+                      transactionEntries:
+                        - description: "Transfer from checking account"
+                          amount: 50000
+                          categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
       responses:
         '201':
-          description: Transaction created successfully
+          description: Transaction(s) created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateTransactionResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/CreateTransactionResponse'
+                  - $ref: '#/components/schemas/CreateTransactionsResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
         '500':
           $ref: '#/components/responses/InternalServerError'
       x-amazon-apigateway-integration:
@@ -104,36 +137,65 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: groupId
           in: query
           description: "Filter transactions by group ID. Required if userId is not provided."
           schema:
             type: string
             format: uuid
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         - name: balanceId
           in: query
           description: "Filter transactions by balance/account ID"
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
         - name: type
           in: query
           description: "Filter by transaction type"
           schema:
             type: string
-            enum: [expense, income, movement]
-          example: "expense"
-        - name: category
+            enum: [expense, income, move_in, move_out]
+        - name: categoryId
           in: query
-          description: "Filter by category name"
+          description: "Filter by category ID"
           schema:
             type: string
-            minLength: 1
-            maxLength: 100
-          example: "Groceries"
+            format: uuid
+        - name: categoryGroupId
+          in: query
+          description: "Filter by category group ID"
+          schema:
+            type: string
+            format: uuid
+        - name: merchantId
+          in: query
+          description: "Filter by merchant ID"
+          schema:
+            type: string
+            format: uuid
+        - name: transactionId
+          in: query
+          description: "Filter transaction entries by specific transaction ID"
+          schema:
+            type: string
+            format: uuid
+        - name: startTime
+          in: query
+          description: "Filter transactions from this date/time (ISO 8601)"
+          schema:
+            type: string
+            format: date-time
+          example: "2025-01-01T00:00:00Z"
+        - name: endTime
+          in: query
+          description: "Filter transactions until this date/time (ISO 8601)"
+          schema:
+            type: string
+            format: date-time
+          example: "2025-12-31T23:59:59Z"
         - name: sortedBy
           in: query
           description: "Field to sort by"
@@ -147,9 +209,9 @@ paths:
           description: "Sort order"
           schema:
             type: string
-            enum: [ASC, DESC, asc, desc]
-            default: DESC
-          example: "DESC"
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
         - name: count
           in: query
           description: "Number of items to return per page"
@@ -159,12 +221,6 @@ paths:
             maximum: 100
             default: 50
           example: 20
-        - name: startKey
-          in: query
-          description: "Pagination cursor from previous response"
-          schema:
-            type: string
-          example: "eyJpZCI6IjEyMzQ1In0="
       responses:
         '200':
           description: List of transaction entries retrieved successfully
@@ -201,6 +257,135 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
               method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /transactions/stats:
+    get:
+      summary: Get transaction statistics
+      description: |
+        Retrieves aggregated transaction statistics grouped by currency and transaction type.
+        Supports filtering by various parameters including date range, category, balance, etc.
+      tags: [transactions]
+      parameters:
+        - name: balanceId
+          in: query
+          description: "Filter by balance ID"
+          schema:
+            type: string
+            format: uuid
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        - name: categoryId
+          in: query
+          description: "Filter by category ID"
+          schema:
+            type: string
+            format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: categoryGroupId
+          in: query
+          description: "Filter by category group ID"
+          schema:
+            type: string
+          example: "groceries"
+        - name: merchantId
+          in: query
+          description: "Filter by merchant ID"
+          schema:
+            type: string
+            format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        - name: userId
+          in: query
+          description: "Filter by user ID"
+          schema:
+            type: string
+            format: uuid
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        - name: groupId
+          in: query
+          description: "Filter by group ID"
+          schema:
+            type: string
+            format: uuid
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        - name: type
+          in: query
+          description: "Filter by transaction type"
+          schema:
+            type: string
+            enum: [expense, income]
+          example: "expense"
+        - name: startTime
+          in: query
+          description: "Filter transactions from this date (inclusive)"
+          schema:
+            type: string
+            format: date-time
+          example: "2023-01-01T00:00:00Z"
+        - name: endTime
+          in: query
+          description: "Filter transactions until this date (inclusive)"
+          schema:
+            type: string
+            format: date-time
+          example: "2023-12-31T23:59:59Z"
+      responses:
+        '200':
+          description: Transaction statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionStatsResponse'
+              examples:
+                monthly_stats:
+                  summary: "Monthly transaction statistics"
+                  value:
+                    totals:
+                      expense:
+                        EUR:
+                          amount: 125043
+                          transactionsCount: 15
+                          transactionEntriesCount: 23
+                        USD:
+                          amount: 85000
+                          transactionsCount: 8
+                          transactionEntriesCount: 12
+                      income:
+                        EUR:
+                          amount: 300000
+                          transactionsCount: 2
+                          transactionEntriesCount: 2
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for transaction stats endpoint
+      tags: [transactions-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
             responseTemplates:
               application/json: '{}'
@@ -348,11 +533,12 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateBalanceRequest'
             example:
-              userId: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
-              groupId: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
               currency: "EUR"
-              title: "Main Checking Account"
-              description: "Primary bank account for daily expenses"
+              title: "New Checking Account"
+              description: "New primary bank account for daily expenses"
+              rank: 70
       responses:
         '201':
           description: Balance created successfully
@@ -384,14 +570,44 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: groupId
           in: query
           description: "Filter balances by group ID. Required if userId is not provided."
           schema:
             type: string
             format: uuid
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        - name: balanceId
+          in: query
+          description: "Filter by specific balance ID"
+          schema:
+            type: string
+            format: uuid
+        - name: sortBy
+          in: query
+          description: "Sort field"
+          schema:
+            type: string
+            enum: [rank, createdAt, updatedAt, title, name]
+            default: rank
+          example: rank
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
+        - name: limit
+          in: query
+          description: "Number of items to return"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          example: 20
       responses:
         '200':
           description: List of balances retrieved successfully
@@ -427,10 +643,38 @@ paths:
             statusCode: '200'
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,DELETE,OPTIONS'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
             responseTemplates:
               application/json: '{}'
+
+    delete:
+      summary: Delete all balances for a user
+      description: Soft deletes all balances associated with a specific user ID (bulk delete). The balances will be marked as deleted but remain in the database for data integrity.
+      tags: [balances]
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: "User ID to delete all balances for"
+          schema:
+            type: string
+            format: uuid
+          example: "99bb2200-0011-2233-4455-667788990011"
+      responses:
+        '204':
+          description: All balances for the user deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
 
   /balances/{balance_id}:
     get:
@@ -445,7 +689,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
       responses:
         '200':
           description: Balance found
@@ -477,13 +721,20 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/UpdateBalanceRequest'
+            example:
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              currency: "EUR"
+              title: "Updated BBVA Main Account"
+              description: "Updated primary checking account at BBVA"
+              rank: 65
       responses:
         '200':
           description: Balance updated successfully
@@ -507,20 +758,22 @@ paths:
 
     delete:
       summary: Delete balance
-      description: Soft deletes a balance
+      description: Soft deletes a specific balance by its ID. The balance will be marked as deleted but remain in the database for data integrity.
       tags: [balances]
       parameters:
         - name: balance_id
           in: path
           required: true
-          description: "Unique identifier for the balance"
+          description: "Unique identifier for the balance to delete"
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba002222-2222-2222-2222-222222222222"
       responses:
         '204':
           description: Balance deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '401':
@@ -545,7 +798,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
       responses:
         '200':
           $ref: '#/components/responses/CorsResponse'
@@ -575,8 +828,13 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateCategoryRequest'
             example:
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              categoryGroupId: "c9001234-7890-1234-5678-901234567890"
               name: "Restaurants"
-              imageUrl: "https://example.com/restaurant-icon.png"
+              description: "Dining out at restaurants"
+              imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+              rank: 200
       responses:
         '201':
           description: Category created successfully
@@ -607,7 +865,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: limit
           in: query
           description: "Maximum number of categories to return"
@@ -617,19 +875,118 @@ paths:
             maximum: 100
             default: 50
           example: 20
-        - name: startKey
+        - name: sortBy
           in: query
-          description: "Pagination cursor from previous response"
+          description: "Field to sort categories by"
           schema:
             type: string
-          example: "eyJpZCI6IjEyMzQ1In0="
+            enum: ["name", "rank", "created_at", "updated_at"]
+            default: rank
+          example: rank
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: ["asc", "desc"]
+            default: "desc"
+          example: "desc"
+        - name: groupBy
+          in: query
+          description: "Group categories by specific criteria. When set to 'categoryGroup', returns categories grouped by their category groups"
+          schema:
+            type: string
+            enum: ["categoryGroup"]
+          example: "categoryGroup"
       responses:
         '200':
-          description: List of categories retrieved successfully
+          description: List of categories retrieved successfully. Response structure depends on the groupBy parameter.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CategoryListResponse'
+                anyOf:
+                  - $ref: '#/components/schemas/CategoryListResponse'
+                  - $ref: '#/components/schemas/CategoryGroupedListResponse'
+              examples:
+                default_list:
+                  summary: "Default category list"
+                  description: "Response when groupBy parameter is not provided"
+                  value:
+                    items:
+                      - categoryId: "ca001111-1111-1111-1111-111111111111"
+                        name: "Restaurants"
+                        description: "Dining out at restaurants"
+                        imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+                        rank: 200
+                        categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                        categoryGroupName: "Food & Dining"
+                        categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                        categoryGroupRank: 10000
+                      - categoryId: "ca002222-2222-2222-2222-222222222222"
+                        name: "Cafes"
+                        description: "Coffee shops and cafes"
+                        imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=100&h=100&fit=crop"
+                        rank: 150
+                        categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                        categoryGroupName: "Food & Dining"
+                        categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                        categoryGroupRank: 10000
+                grouped_by_category_group:
+                  summary: "Categories grouped by category group"
+                  description: "Response when groupBy=categoryGroup"
+                  value:
+                    items:
+                      - categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                        categoryGroupName: "Food & Dining"
+                        categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                        categoryGroupRank: 10000
+                        categories:
+                          - categoryId: "ca001111-1111-1111-1111-111111111111"
+                            name: "Restaurants"
+                            description: "Dining out at restaurants"
+                            imageUrl: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+                            rank: 200
+                            categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                            categoryGroupName: "Food & Dining"
+                            categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                            categoryGroupRank: 10000
+                          - categoryId: "ca002222-2222-2222-2222-222222222222"
+                            name: "Cafes"
+                            description: "Coffee shops and cafes"
+                            imageUrl: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=100&h=100&fit=crop"
+                            rank: 150
+                            categoryGroupId: "c9001234-7890-1234-5678-901234567890"
+                            categoryGroupName: "Food & Dining"
+                            categoryGroupImageUrl: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+                            categoryGroupRank: 10000
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    delete:
+      summary: Delete all categories for a user
+      description: Deletes all categories for a specific user
+      tags: [categories]
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: "User ID for which to delete all categories"
+          schema:
+            type: string
+            format: uuid
+          example: "99bb2200-0011-2233-4455-667788990011"
+      responses:
+        '204':
+          description: All categories deleted successfully
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -658,7 +1015,7 @@ paths:
             statusCode: '200'
             responseParameters:
               method.response.header.Access-Control-Allow-Origin: "'*'"
-              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,DELETE,OPTIONS'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
             responseTemplates:
               application/json: '{}'
@@ -676,7 +1033,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       responses:
         '200':
           description: Category retrieved successfully
@@ -684,6 +1041,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
+              example:
+                categoryId: "ca016666-6666-6666-6666-666666666666"
+                name: "Online Courses"
+                description: "Online learning and courses"
+                imageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop"
+                rank: 1900
+                categoryGroupId: "c9089012-7890-1234-5678-901234567890"
+                categoryGroupName: "Education"
+                categoryGroupImageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop"
+                categoryGroupRank: 2000
         '404':
           $ref: '#/components/responses/NotFoundError'
         '401':
@@ -708,7 +1075,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       requestBody:
         required: true
         content:
@@ -716,8 +1083,13 @@ paths:
             schema:
               $ref: '#/components/schemas/UpdateCategoryRequest'
             example:
-              name: "Updated Groceries"
-              imageUrl: "https://example.com/updated-groceries-icon.png"
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              userId: "99bb2200-0011-2233-4455-667788990011"
+              categoryGroupId: "c9089012-7890-1234-5678-901234567890"
+              name: "Updated Online Courses"
+              description: "Updated online learning and educational courses"
+              imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop"
+              rank: 1950
       responses:
         '200':
           description: Category updated successfully
@@ -725,6 +1097,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CategoryResponse'
+              example:
+                categoryId: "ca016666-6666-6666-6666-666666666666"
+                name: "Updated Online Courses"
+                description: "Updated online learning and educational courses"
+                imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop"
+                rank: 1950
+                categoryGroupId: "c9089012-7890-1234-5678-901234567890"
+                categoryGroupName: "Education"
+                categoryGroupImageUrl: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=100&h=100&fit=crop"
+                categoryGroupRank: 2000
         '400':
           $ref: '#/components/responses/BadRequestError'
         '404':
@@ -751,7 +1133,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       responses:
         '204':
           description: Category deleted successfully
@@ -779,7 +1161,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca016666-6666-6666-6666-666666666666"
       responses:
         '200':
           $ref: '#/components/responses/CorsResponse'
@@ -797,6 +1179,246 @@ paths:
             responseTemplates:
               application/json: '{}'
 
+  /category-groups:
+    post:
+      summary: Create a new category group
+      description: Creates a new category group
+      tags: [category-groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryGroupRequest'
+            example:
+              name: "Food & Dining"
+              imageUrl: "https://example.com/food-icon.png"
+              rank: 500
+      responses:
+        '201':
+          description: Category group created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryGroupResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    get:
+      summary: List category groups
+      description: |
+        Retrieves a list of category groups sorted by rank (descending by default).
+      tags: [category-groups]
+      parameters:
+        - name: sortBy
+          in: query
+          description: "Field to sort by"
+          schema:
+            type: string
+            enum: [rank, name, createdAt, updatedAt]
+            default: rank
+          example: rank
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          example: "desc"
+        - name: limit
+          in: query
+          description: "Number of items to return"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+          example: 10
+      responses:
+        '200':
+          description: List of category groups retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryGroupListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for category groups endpoint
+      tags: [category-groups-cors]
+      security: []
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
+  /category-groups/{category_group_id}:
+    get:
+      summary: Get category group details
+      description: Retrieves a specific category group by ID
+      tags: [category-groups]
+      parameters:
+        - name: category_group_id
+          in: path
+          required: true
+          description: "Unique identifier for the category group"
+          schema:
+            type: string
+            format: uuid
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+      responses:
+        '200':
+          description: Category group details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryGroupResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    put:
+      summary: Update category group
+      description: Updates an existing category group
+      tags: [category-groups]
+      parameters:
+        - name: category_group_id
+          in: path
+          required: true
+          description: "Unique identifier for the category group"
+          schema:
+            type: string
+            format: uuid
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryGroupRequest'
+            example:
+              name: "Updated Food & Dining"
+              imageUrl: "https://example.com/updated-food-icon.png"
+              rank: 600
+      responses:
+        '200':
+          description: Category group updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryGroupResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    delete:
+      summary: Delete category group
+      description: Soft deletes a category group
+      tags: [category-groups]
+      parameters:
+        - name: category_group_id
+          in: path
+          required: true
+          description: "Unique identifier for the category group"
+          schema:
+            type: string
+            format: uuid
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+      responses:
+        '204':
+          description: Category group deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
+    options:
+      summary: CORS preflight for specific category group endpoint
+      tags: [category-groups-cors]
+      security: []
+      parameters:
+        - name: category_group_id
+          in: path
+          required: true
+          description: "Unique identifier for the category group"
+          schema:
+            type: string
+            format: uuid
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+      responses:
+        '200':
+          $ref: '#/components/responses/CorsResponse'
+      x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: '{"statusCode": 200}'
+        responses:
+          default:
+            statusCode: '200'
+            responseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,PUT,DELETE,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+            responseTemplates:
+              application/json: '{}'
+
   /merchants:
     post:
       summary: Create a new merchant
@@ -809,7 +1431,10 @@ paths:
             schema:
               $ref: '#/components/schemas/CreateMerchantRequest'
             example:
+              groupId: "88aa1100-0011-2233-4455-667788990011"
+              userId: "99bb2200-0011-2233-4455-667788990011"
               name: "Mercadona"
+              rank: 50
               description: "Spanish supermarket chain"
               imageUrl: "https://example.com/mercadona-logo.png"
       responses:
@@ -836,6 +1461,20 @@ paths:
       description: Retrieves a list of available merchants
       tags: [merchants]
       parameters:
+        - name: groupId
+          in: query
+          description: "Filter merchants by group ID"
+          schema:
+            type: string
+            format: uuid
+          example: "88aa1100-0011-2233-4455-667788990011"
+        - name: userId
+          in: query
+          description: "Filter merchants by user ID"
+          schema:
+            type: string
+            format: uuid
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: name
           in: query
           description: "Filter merchants by name (partial match)"
@@ -853,12 +1492,22 @@ paths:
             maximum: 100
             default: 50
           example: 20
-        - name: startKey
+        - name: sortBy
           in: query
-          description: "Pagination cursor from previous response"
+          description: "Field to sort merchants by"
           schema:
             type: string
-          example: "eyJpZCI6IjEyMzQ1In0="
+            enum: ["rank", "name", "created_at", "updated_at"]
+            default: rank
+          example: rank
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: ["asc", "desc"]
+            default: "desc"
+          example: "desc"
       responses:
         '200':
           description: List of merchants retrieved successfully
@@ -899,6 +1548,34 @@ paths:
             responseTemplates:
               application/json: '{}'
 
+    delete:
+      summary: Delete all merchants for a user
+      description: Deletes all merchants associated with a specific user ID (bulk delete)
+      tags: [merchants]
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          description: "User ID to delete all merchants for"
+          schema:
+            type: string
+            format: uuid
+          example: "99bb2200-0011-2233-4455-667788990011"
+      responses:
+        '204':
+          description: All merchants for the user deleted successfully
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: aws_proxy
+        httpMethod: POST
+        uri: ${LAMBDA_INVOKE_ARN}
+
   /merchants/{merchant_id}:
     get:
       summary: Get merchant details
@@ -912,7 +1589,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       responses:
         '200':
           description: Merchant found
@@ -944,7 +1621,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       requestBody:
         required: true
         content:
@@ -984,7 +1661,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       responses:
         '204':
           description: Merchant deleted successfully
@@ -1012,7 +1689,7 @@ paths:
           schema:
             type: string
             format: uuid
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
       responses:
         '200':
           $ref: '#/components/responses/CorsResponse'
@@ -1434,6 +2111,16 @@ components:
             code: "InternalServerError"
             error: "An unexpected error occurred"
 
+    ConflictError:
+      description: "Conflict - resource limit exceeded or validation error"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "Conflict"
+            error: "Maximum 5 transactions allowed per batch"
+
   schemas:
     ErrorResponse:
       type: object
@@ -1444,7 +2131,7 @@ components:
         code:
           type: string
           description: "Error code"
-          enum: [BadRequest, Unauthorized, NotFound, InternalServerError, DatabaseError]
+          enum: [BadRequest, Unauthorized, NotFound, InternalServerError, DatabaseError, Conflict]
           example: "BadRequest"
         error:
           type: string
@@ -1478,11 +2165,12 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, movement, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
           type: string
+          nullable: true
           description: "Merchant name (optional for income transactions)"
           example: "Mercadona"
         operationId:
@@ -1521,17 +2209,62 @@ components:
           description: "Description of the transaction entry"
           example: "Organic vegetables and fruits"
         amount:
-          type: number
-          format: double
-          minimum: 0.01
-          maximum: 999999.99
+          type: integer
           description: "Amount for this entry"
-          example: 45.50
+          example: 4550
         categoryId:
           type: string
           format: uuid
           description: "Category ID for this entry"
           example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+
+    CreateTransactionsRequest:
+      type: object
+      required:
+        - transactions
+      properties:
+        transactions:
+          type: array
+          description: "List of transactions to create"
+          minItems: 2
+          maxItems: 2
+          items:
+            $ref: '#/components/schemas/CreateTransactionRequest'
+      example:
+        transactions:
+          - userId: "99bb2200-0011-2233-4455-667788990011"
+            groupId: "88aa1100-0011-2233-4455-667788990011"
+            balanceId: "ba001111-1111-1111-1111-111111111111"
+            type: "move_out"
+            merchant: null
+            transactedAt: "2024-06-19T14:30:00Z"
+            transactionEntries:
+              - description: "Transfer to savings account"
+                amount: 50000
+                categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+          - userId: "99bb2200-0011-2233-4455-667788990011"
+            groupId: "88aa1100-0011-2233-4455-667788990011"
+            balanceId: "ba002222-2222-2222-2222-222222222222"
+            type: "move_in"
+            merchant: null
+            transactedAt: "2024-06-19T14:30:00Z"
+            transactionEntries:
+              - description: "Transfer from checking account"
+                amount: 50000
+                categoryId: "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+
+    CreateTransactionsResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          description: "List of created transactions"
+          items:
+            $ref: '#/components/schemas/CreateTransactionResponse'
+        operationId:
+          type: string
+          description: "Operation ID for tracking related transactions"
+          example: "fa123456-7890-1234-5678-901234567890"
 
     UpdateTransactionRequest:
       type: object
@@ -1560,7 +2293,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -1614,7 +2347,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -1664,10 +2397,9 @@ components:
           description: "Description of the transaction entry"
           example: "Organic vegetables and fruits"
         amount:
-          type: number
-          format: double
+          type: integer
           description: "Amount for this entry"
-          example: 45.50
+          example: -4550
         categoryId:
           type: string
           format: uuid
@@ -1692,10 +2424,6 @@ components:
           description: "List of flattened transaction entries with all related data"
           items:
             $ref: '#/components/schemas/TransactionEntryDto'
-        nextToken:
-          type: string
-          description: "Pagination token for next page (if available)"
-          example: "eyJpZCI6IjEyMzQ1In0="
 
     TransactionEntryDto:
       type: object
@@ -1728,14 +2456,13 @@ components:
           example: "456e7890-e89b-12d3-a456-426614174000"
         type:
           type: string
-          enum: [expense, income, movement]
+          enum: [expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         amount:
-          type: number
-          format: double
-          description: "Amount for this entry"
-          example: 45.50
+          type: integer
+          description: "Amount for this entry in cents (e.g., $45.50 = 4550)"
+          example: -4550
         balanceTitle:
           type: string
           description: "Title of the balance/account"
@@ -1753,6 +2480,15 @@ components:
           type: string
           description: "URL of the category image"
           example: "https://example.com/groceries-icon.png"
+        categoryGroupName:
+          type: string
+          description: "Name of the category group"
+          example: "Food & Dining"
+        categoryGroupImageUrl:
+          type: string
+          nullable: true
+          description: "URL of the category group image"
+          example: "https://example.com/food-dining-icon.png"
         merchantName:
           type: string
           description: "Name of the merchant"
@@ -1788,12 +2524,12 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the user"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         groupId:
           type: string
           format: uuid
           description: "Unique identifier for the user's group"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         currency:
           type: string
           minLength: 3
@@ -1806,12 +2542,16 @@ components:
           minLength: 1
           maxLength: 100
           description: "Title of the balance/account"
-          example: "Main Checking Account"
+          example: "New Checking Account"
         description:
           type: string
           maxLength: 500
           description: "Optional description of the balance"
-          example: "Primary bank account for daily expenses"
+          example: "New primary bank account for daily expenses"
+        rank:
+          type: integer
+          description: "Optional rank for ordering balances"
+          example: 70
 
     UpdateBalanceRequest:
       type: object
@@ -1825,12 +2565,12 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the user"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         groupId:
           type: string
           format: uuid
           description: "Unique identifier for the user's group"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         currency:
           type: string
           minLength: 3
@@ -1849,6 +2589,10 @@ components:
           maxLength: 500
           description: "Optional description of the balance"
           example: "Updated primary bank account for daily expenses"
+        rank:
+          type: integer
+          description: "Optional rank for ordering balances"
+          example: 1
 
     BalanceResponse:
       type: object
@@ -1857,17 +2601,17 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the balance"
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ba001111-1111-1111-1111-111111111111"
         groupId:
           type: string
           format: uuid
           description: "Unique identifier for the user's group"
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
         userId:
           type: string
           format: uuid
           description: "Unique identifier for the user"
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         currency:
           type: string
           description: "Currency code (ISO 4217)"
@@ -1880,6 +2624,10 @@ components:
           type: string
           description: "Description of the balance"
           example: "Primary bank account for daily expenses"
+        rank:
+          type: integer
+          description: "Optional rank for ordering balances"
+          example: 1
         createdAt:
           type: string
           format: date-time
@@ -1907,34 +2655,90 @@ components:
     CreateCategoryRequest:
       type: object
       required:
+        - groupId
+        - userId
+        - categoryGroupId
         - name
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID this category belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID this category belongs to"
+          example: "99bb2200-0011-2233-4455-667788990011"
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Category group ID this category belongs to"
+          example: "c9001234-7890-1234-5678-901234567890"
         name:
           type: string
           minLength: 1
           maxLength: 100
           description: "Name of the category"
           example: "Restaurants"
+        description:
+          type: string
+          maxLength: 500
+          description: "Optional description of the category"
+          example: "Dining out at restaurants"
         imageUrl:
           type: string
           format: uri
           description: "Optional URL of the category image"
-          example: "https://example.com/restaurant-icon.png"
+          example: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering categories"
+          example: 200
 
     UpdateCategoryRequest:
       type: object
+      required:
+        - groupId
+        - userId
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID that the category belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID that owns the category"
+          example: "99bb2200-0011-2233-4455-667788990011"
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Optional category group ID"
+          example: "c9089012-7890-1234-5678-901234567890"
         name:
           type: string
           minLength: 1
           maxLength: 100
           description: "Name of the category"
-          example: "Updated Restaurants"
+          example: "Updated Online Courses"
+        description:
+          type: string
+          maxLength: 500
+          description: "Optional description of the category"
+          example: "Updated online learning and educational courses"
         imageUrl:
           type: string
           format: uri
           description: "Optional URL of the category image"
-          example: "https://example.com/restaurant-icon.png"
+          example: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=100&h=100&fit=crop"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering categories"
+          example: 1950
 
     CategoryResponse:
       type: object
@@ -1943,31 +2747,203 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the category"
-          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "ca002222-2222-2222-2222-222222222222"
         name:
           type: string
           description: "Name of the category"
           example: "Restaurants"
+        description:
+          type: string
+          description: "Optional description of the category"
+          example: "Dining and restaurant expenses"
         imageUrl:
           type: string
           format: uri
           description: "URL of the category image"
-          example: "https://example.com/restaurant-icon.png"
+          example: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100&h=100&fit=crop"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category"
+          example: 9800
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the category group this category belongs to"
+          example: "c9001234-7890-1234-5678-901234567890"
+        categoryGroupName:
+          type: string
+          description: "Name of the category group this category belongs to"
+          example: "Food & Dining"
+        categoryGroupImageUrl:
+          type: string
+          format: uri
+          description: "URL of the category group image"
+          example: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+        categoryGroupRank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category group"
+          example: 10000
 
     CategoryListResponse:
       type: object
+      required:
+        - items
       properties:
-        categories:
+        items:
           type: array
           description: "List of categories"
           items:
             $ref: '#/components/schemas/CategoryResponse'
 
-    CreateMerchantRequest:
+    CategoryGroupWithCategoriesResponse:
+      type: object
+      required:
+        - categoryGroupId
+        - categoryGroupName
+        - categories
+      properties:
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the category group"
+          example: "c9001234-7890-1234-5678-901234567890"
+        categoryGroupName:
+          type: string
+          description: "Name of the category group"
+          example: "Food & Dining"
+        categoryGroupImageUrl:
+          type: string
+          format: uri
+          description: "URL of the category group image"
+          example: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+        categoryGroupRank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category group"
+          example: 10000
+        categories:
+          type: array
+          description: "List of categories in this group"
+          items:
+            $ref: '#/components/schemas/CategoryResponse'
+
+    CategoryGroupedListResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          description: "List of category groups with their categories"
+          items:
+            $ref: '#/components/schemas/CategoryGroupWithCategoriesResponse'
+
+    CreateCategoryGroupRequest:
       type: object
       required:
         - name
       properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "Name of the category group"
+          example: "Food & Dining"
+        imageUrl:
+          type: string
+          format: uri
+          description: "Optional URL of the category group image"
+          example: "https://example.com/food-icon.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category group"
+          example: 500
+
+    UpdateCategoryGroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: "Name of the category group"
+          example: "Updated Food & Dining"
+        imageUrl:
+          type: string
+          format: uri
+          description: "Optional URL of the category group image"
+          example: "https://example.com/updated-food-icon.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Display order rank for the category group"
+          example: 600
+
+    CategoryGroupResponse:
+      type: object
+      properties:
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the category group"
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d480"
+        name:
+          type: string
+          description: "Name of the category group"
+          example: "Food & Dining"
+        imageUrl:
+          type: string
+          format: uri
+          description: "URL of the category group image"
+          example: "https://example.com/food-icon.png"
+        rank:
+          type: integer
+          description: "Display order rank for the category group"
+          example: 500
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the category group was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the category group was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        deletedAt:
+          type: string
+          format: date-time
+          description: "When the category group was deleted (ISO 8601, null if not deleted)"
+
+    CategoryGroupListResponse:
+      type: object
+      properties:
+        categoryGroups:
+          type: array
+          description: "List of category groups"
+          items:
+            $ref: '#/components/schemas/CategoryGroupResponse'
+
+    CreateMerchantRequest:
+      type: object
+      required:
+        - name
+        - groupId
+        - userId
+      properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID this merchant belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID this merchant belongs to"
+          example: "99bb2200-0011-2233-4455-667788990011"
         name:
           type: string
           minLength: 1
@@ -1985,12 +2961,29 @@ components:
           format: uri
           description: "Optional URL for the merchant's logo/image"
           example: "https://example.com/mercadona-logo.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering merchants"
+          example: 1
 
     UpdateMerchantRequest:
       type: object
       required:
         - name
+        - groupId
+        - userId
       properties:
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID this merchant belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID this merchant belongs to"
+          example: "99bb2200-0011-2233-4455-667788990011"
         name:
           type: string
           minLength: 1
@@ -2008,6 +3001,11 @@ components:
           format: uri
           description: "Optional URL for the merchant's logo/image"
           example: "https://example.com/mercadona-new-logo.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Optional rank for ordering merchants"
+          example: 2
 
     MerchantResponse:
       type: object
@@ -2016,7 +3014,17 @@ components:
           type: string
           format: uuid
           description: "Unique identifier for the merchant"
-          example: "m47ac10b-58cc-4372-a567-0e02b2c3d479"
+          example: "4e001234-1234-5678-9abc-def012345678"
+        groupId:
+          type: string
+          format: uuid
+          description: "Group ID this merchant belongs to"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        userId:
+          type: string
+          format: uuid
+          description: "User ID this merchant belongs to"
+          example: "99bb2200-0011-2233-4455-667788990011"
         name:
           type: string
           description: "Name of the merchant"
@@ -2029,6 +3037,11 @@ components:
           type: string
           description: "URL of the merchant's logo/image"
           example: "https://example.com/mercadona-logo.png"
+        rank:
+          type: integer
+          minimum: 0
+          description: "Rank for ordering merchants"
+          example: 1
         createdAt:
           type: string
           format: date-time
@@ -2048,10 +3061,61 @@ components:
           description: "List of merchants"
           items:
             $ref: '#/components/schemas/MerchantResponse'
-        nextToken:
-          type: string
-          description: "Pagination token for next page (if available)"
-          example: "eyJpZCI6IjEyMzQ1In0="
+
+    TransactionStatsResponse:
+      type: object
+      required:
+        - totals
+      properties:
+        totals:
+          type: object
+          description: "Aggregated transaction statistics by type"
+          properties:
+            expense:
+              type: object
+              description: "Expense statistics grouped by currency"
+              additionalProperties:
+                $ref: '#/components/schemas/CurrencyStats'
+            income:
+              type: object
+              description: "Income statistics grouped by currency"
+              additionalProperties:
+                $ref: '#/components/schemas/CurrencyStats'
+          example:
+            expense:
+              EUR:
+                amount: 125043
+                transactionsCount: 15
+                transactionEntriesCount: 23
+              USD:
+                amount: 85000
+                transactionsCount: 8
+                transactionEntriesCount: 12
+            income:
+              EUR:
+                amount: 300000
+                transactionsCount: 2
+                transactionEntriesCount: 2
+
+    CurrencyStats:
+      type: object
+      required:
+        - amount
+        - transactionsCount
+        - transactionEntriesCount
+      properties:
+        amount:
+          type: integer
+          description: "Total amount in cents"
+          example: 125043
+        transactionsCount:
+          type: integer
+          description: "Number of unique transactions"
+          example: 15
+        transactionEntriesCount:
+          type: integer
+          description: "Total number of transaction entries"
+          example: 23
 
 x-amazon-apigateway-request-validators:
   validate-all:

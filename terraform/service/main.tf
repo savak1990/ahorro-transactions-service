@@ -38,6 +38,9 @@ resource "aws_lambda_function" "app" {
       DB_PASSWORD = var.db_password
       DB_PORT     = "5432"
 
+      # SSL Configuration
+      SSL_MODE = "require"
+
       # Application configuration
       LOG_LEVEL = var.log_level
     }

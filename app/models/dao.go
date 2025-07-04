@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 	"gorm.io/gorm"
 )
 
@@ -19,6 +18,7 @@ type Balance struct {
 	Currency    string     `gorm:"type:varchar(3);not null;default:'EUR'"` // ISO 4217 currency codes (3 chars)
 	Title       string     `gorm:"type:varchar(100);not null"`             // Limited to 100 characters
 	Description *string    `gorm:"type:varchar(500)"`                      // Optional description, limited to 500 characters
+	Rank        int        `gorm:"column:rank"`                            // Optional rank for ordering
 	CreatedAt   time.Time  `gorm:"default:now()"`
 	UpdatedAt   time.Time  `gorm:"default:now()"`
 	DeletedAt   *time.Time `gorm:"index"`
@@ -35,9 +35,12 @@ func (Balance) TableName() string {
 // Merchant represents a merchant in the system
 type Merchant struct {
 	ID          uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	GroupID     uuid.UUID  `gorm:"type:uuid;not null;index:idx_merchant_group_id"`
+	UserID      uuid.UUID  `gorm:"type:uuid;not null;index:idx_merchant_user_id"`
 	Name        string     `gorm:"not null"`
-	Description *string    `gorm:"type:varchar(500)"`
+	Description *string    `gorm:"type:varchar(255)"`
 	ImageUrl    *string    `gorm:"type:varchar(255)"`
+	Rank        int        `gorm:"column:rank"`
 	CreatedAt   time.Time  `gorm:"default:now()"`
 	UpdatedAt   time.Time  `gorm:"default:now()"`
 	DeletedAt   *time.Time `gorm:"index"`
@@ -51,16 +54,39 @@ func (Merchant) TableName() string {
 	return "merchant"
 }
 
+// Category group represents a group of categories
+type CategoryGroup struct {
+	ID        uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	Name      string     `gorm:"not null"`
+	Rank      *int       `gorm:"column:rank"`
+	ImageUrl  *string    `gorm:"column:image_url;type:varchar(255)"`
+	CreatedAt time.Time  `gorm:"default:now()"`
+	UpdatedAt time.Time  `gorm:"default:now()"`
+	DeletedAt *time.Time `gorm:"index"`
+}
+
+// TableName specifies the table name for GORM
+func (CategoryGroup) TableName() string {
+	return "category_group"
+}
+
 // Category represents a category in the PostgreSQL database
 type Category struct {
-	ID           uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
-	CategoryName string     `gorm:"not null"`
-	Group        *string    `gorm:"column:group"`
-	Rank         *int       `gorm:"column:rank"`
-	ImageUrl     *string    `gorm:"column:image_url;type:varchar(255)"`
-	CreatedAt    time.Time  `gorm:"default:now()"`
-	UpdatedAt    time.Time  `gorm:"default:now()"`
-	DeletedAt    *time.Time `gorm:"index"`
+	ID              uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
+	UserId          uuid.UUID  `gorm:"type:uuid;not null;index:idx_category_user_id"`
+	GroupId         uuid.UUID  `gorm:"type:uuid;not null;index:idx_category_group_id"`
+	CategoryGroupId string     `gorm:"not null;index:idx_category_group_id"`
+	Name            string     `gorm:"not null"`
+	Group           string     `gorm:"column:group;not null"` // Category group name from "group" column
+	Description     string     `gorm:"type:varchar(255)"`
+	Rank            *int       `gorm:"column:rank"`
+	ImageUrl        *string    `gorm:"column:image_url;type:varchar(255)"`
+	CreatedAt       time.Time  `gorm:"default:now()"`
+	UpdatedAt       time.Time  `gorm:"default:now()"`
+	DeletedAt       *time.Time `gorm:"index"`
+
+	// Relationships
+	CategoryGroup *CategoryGroup `gorm:"foreignKey:CategoryGroupId;references:ID"`
 }
 
 // TableName specifies the table name for GORM
@@ -84,7 +110,7 @@ type Transaction struct {
 	DeletedAt    *time.Time `gorm:"index"`
 
 	// Relationships
-	Merchant           *Merchant          `gorm:"foreignKey:MerchantID"`
+	Merchant           *Merchant          `gorm:"foreignKey:MerchantID;constraint:OnDelete:SET NULL"`
 	Balance            *Balance           `gorm:"foreignKey:BalanceID"`
 	TransactionEntries []TransactionEntry `gorm:"foreignKey:TransactionID"`
 }
@@ -99,15 +125,15 @@ type TransactionEntry struct {
 	ID            uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	TransactionID uuid.UUID `gorm:"type:uuid;not null;index:idx_transaction_entry_transaction_id"`
 	Description   *string
-	Amount        decimal.Decimal `gorm:"type:numeric(18,2);not null"`
-	CategoryID    *uuid.UUID      `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
-	CreatedAt     time.Time       `gorm:"default:now()"`
-	UpdatedAt     time.Time       `gorm:"default:now()"`
-	DeletedAt     *time.Time      `gorm:"index"`
+	Amount        int64      `gorm:"type:bigint;not null"` // Amount in cents
+	CategoryID    *uuid.UUID `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
+	CreatedAt     time.Time  `gorm:"default:now()"`
+	UpdatedAt     time.Time  `gorm:"default:now()"`
+	DeletedAt     *time.Time `gorm:"index"`
 
 	// Relationships
 	Transaction *Transaction `gorm:"foreignKey:TransactionID"`
-	Category    *Category    `gorm:"foreignKey:CategoryID"`
+	Category    *Category    `gorm:"foreignKey:CategoryID;references:ID"`
 }
 
 // TableName specifies the table name for GORM
@@ -141,7 +167,7 @@ func (t *Transaction) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (t *Transaction) validateType() error {
-	validTypes := []string{"income", "expense", "movement"}
+	validTypes := []string{"income", "expense", "movement", "move_in", "move_out"}
 	for _, validType := range validTypes {
 		if t.Type == validType {
 			return nil
@@ -168,4 +194,13 @@ func formatTimePtr(t *time.Time) string {
 		return ""
 	}
 	return t.Format(time.RFC3339)
+}
+
+// TransactionStatsRaw represents raw statistics data from database aggregation
+type TransactionStatsRaw struct {
+	TransactionType         string `gorm:"column:transaction_type"`
+	Currency                string `gorm:"column:currency"`
+	TotalAmount             int64  `gorm:"column:total_amount"` // Amount in cents
+	TransactionsCount       int64  `gorm:"column:transactions_count"`
+	TransactionEntriesCount int64  `gorm:"column:transaction_entries_count"`
 }

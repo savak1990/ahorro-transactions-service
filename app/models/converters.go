@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/shopspring/decimal"
 )
 
 // Conversion methods between DAO models (database) and DTO models (API)
@@ -16,11 +15,69 @@ func ToAPICategory(c *Category) CategoryDto {
 		return CategoryDto{}
 	}
 
-	return CategoryDto{
-		Name:       c.CategoryName,
-		CategoryID: c.ID.String(),
-		ImageUrl:   c.ImageUrl,
+	dto := CategoryDto{
+		CategoryID:  c.ID.String(),
+		Name:        c.Name,
+		Description: c.Description,
+		ImageUrl:    c.ImageUrl,
+		Rank:        c.Rank,
+		IsDeleted:   c.DeletedAt != nil,
 	}
+
+	// Add category group information if available
+	if c.CategoryGroup != nil {
+		dto.CategoryGroupID = c.CategoryGroup.ID.String()
+		dto.CategoryGroupName = c.CategoryGroup.Name
+		dto.CategoryGroupImageUrl = c.CategoryGroup.ImageUrl
+		dto.CategoryGroupRank = c.CategoryGroup.Rank
+
+		// Set CategoryGroupDeleted flag if the category group is soft deleted
+		dto.CategoryGroupDeleted = c.CategoryGroup.DeletedAt != nil
+	} else if c.CategoryGroupId != "" {
+		// If category has a CategoryGroupId but CategoryGroup is nil,
+		// it means the category group is soft-deleted (due to preload filtering)
+		dto.CategoryGroupID = c.CategoryGroupId
+		dto.CategoryGroupDeleted = true
+	}
+
+	return dto
+}
+
+// ToAPICategoryGroup converts CategoryGroup (DAO) to CategoryGroupDto (API model)
+func ToAPICategoryGroup(cg *CategoryGroup) CategoryGroupDto {
+	if cg == nil {
+		return CategoryGroupDto{}
+	}
+
+	return CategoryGroupDto{
+		CategoryGroupId: cg.ID.String(),
+		Name:            cg.Name,
+		ImageUrl:        cg.ImageUrl,
+		Rank:            cg.Rank,
+		IsDeleted:       cg.DeletedAt != nil,
+	}
+}
+
+// FromAPICategoryGroup converts CategoryGroupDto (API model) to CategoryGroup (DAO)
+func FromAPICategoryGroup(dto CategoryGroupDto) (*CategoryGroup, error) {
+	// Parse CategoryGroupId if provided, otherwise generate new ID
+	var id uuid.UUID
+	var err error
+	if dto.CategoryGroupId != "" {
+		id, err = uuid.Parse(dto.CategoryGroupId)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+	} else {
+		id = NewCategoryGroupID() // Generate new ID if not provided
+	}
+
+	return &CategoryGroup{
+		ID:       id,
+		Name:     dto.Name,
+		ImageUrl: dto.ImageUrl,
+		Rank:     dto.Rank,
+	}, nil
 }
 
 // ToAPIBalance converts Balance (DAO) to BalanceDto (API model)
@@ -41,6 +98,7 @@ func ToAPIBalance(b *Balance) BalanceDto {
 		Currency:    b.Currency,
 		Title:       b.Title,
 		Description: desc,
+		Rank:        &b.Rank,
 		CreatedAt:   b.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   b.UpdatedAt.Format(time.RFC3339),
 		DeletedAt:   formatTimePtr(b.DeletedAt),
@@ -101,7 +159,7 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	// Parse UUIDs
 	id, err := parseUUID(t.TransactionID)
 	if err != nil {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewTransactionID() // Generate new ID with prefix if not provided
 	}
 
 	userID, err := parseUUID(t.UserID)
@@ -178,7 +236,7 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 	// Parse UUIDs
 	id, err := parseUUID(b.BalanceID)
 	if err != nil {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewBalanceID() // Generate new ID if not provided
 	}
 
 	userID, err := parseUUID(b.UserID)
@@ -196,6 +254,11 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 		desc = &b.Description
 	}
 
+	rank := 0
+	if b.Rank != nil {
+		rank = *b.Rank
+	}
+
 	return &Balance{
 		ID:          id,
 		GroupID:     groupID,
@@ -203,6 +266,7 @@ func FromAPIBalance(b BalanceDto) (*Balance, error) {
 		Currency:    b.Currency,
 		Title:       b.Title,
 		Description: desc,
+		Rank:        rank,
 	}, nil
 }
 
@@ -218,13 +282,68 @@ func FromAPICategory(c CategoryDto) (*Category, error) {
 			return nil, fmt.Errorf("invalid category ID format: %w", err)
 		}
 	} else {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewCategoryID() // Generate new ID if not provided
+	}
+
+	// Parse CategoryGroupId if provided
+	var categoryGroupId string
+	if c.CategoryGroupID != "" {
+		// Validate that it's a proper UUID format
+		_, err = uuid.Parse(c.CategoryGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+		categoryGroupId = c.CategoryGroupID
 	}
 
 	return &Category{
-		ID:           id,
-		CategoryName: c.Name,
-		ImageUrl:     c.ImageUrl,
+		ID:              id,
+		CategoryGroupId: categoryGroupId,
+		Name:            c.Name,
+		Description:     c.Description,
+		Rank:            c.Rank,
+		ImageUrl:        c.ImageUrl,
+		// Note: UserId and GroupId should be set by the handler from request context
+	}, nil
+}
+
+// FromAPICreateCategory converts CreateCategoryDto (API model) to Category (DAO)
+func FromAPICreateCategory(c CreateCategoryDto) (*Category, error) {
+	// Generate new ID for creation
+	id := NewCategoryID()
+
+	// Parse UserID
+	userID, err := uuid.Parse(c.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format: %w", err)
+	}
+
+	// Parse GroupID
+	groupID, err := uuid.Parse(c.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID format: %w", err)
+	}
+
+	// Parse CategoryGroupId if provided
+	var categoryGroupId string
+	if c.CategoryGroupID != "" {
+		// Validate that it's a proper UUID format
+		_, err = uuid.Parse(c.CategoryGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+		categoryGroupId = c.CategoryGroupID
+	}
+
+	return &Category{
+		ID:              id,
+		UserId:          userID,
+		GroupId:         groupID,
+		CategoryGroupId: categoryGroupId,
+		Name:            c.Name,
+		Description:     c.Description,
+		Rank:            c.Rank,
+		ImageUrl:        c.ImageUrl,
 	}, nil
 }
 
@@ -244,13 +363,13 @@ func ToAPICreateTransactionEntry(te *TransactionEntry) CreateTransactionEntryDto
 		categoryID = te.CategoryID.String()
 	}
 
-	// Convert decimal to float64 for API response
-	amountFloat, _ := te.Amount.Float64()
+	// Amount is already in cents (int64), convert to int for API response
+	amountCents := int(te.Amount)
 
 	return CreateTransactionEntryDto{
 		ID:          te.ID.String(),
 		Description: desc,
-		Amount:      amountFloat,
+		Amount:      amountCents,
 		CategoryID:  categoryID,
 		CreatedAt:   te.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   te.UpdatedAt.Format(time.RFC3339),
@@ -269,7 +388,7 @@ func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID u
 			return nil, fmt.Errorf("invalid transaction entry ID format: %w", err)
 		}
 	} else {
-		id = uuid.New()
+		id = NewTransactionEntryID()
 	}
 
 	// Parse category ID if provided
@@ -291,7 +410,7 @@ func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID u
 		ID:            id,
 		TransactionID: transactionID,
 		Description:   desc,
-		Amount:        decimal.NewFromFloat(te.Amount),
+		Amount:        int64(te.Amount),
 		CategoryID:    categoryID,
 	}, nil
 }
@@ -344,32 +463,64 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 	}
 
 	// Get category info
+	categoryID := ""
 	categoryName := ""
 	categoryImageUrl := ""
+	categoryGroupID := ""
+	categoryGroupName := ""
+	categoryGroupImageUrl := ""
+	categoryIsDeleted := false
+	categoryGroupDeleted := false
 	if te.Category != nil {
-		categoryName = te.Category.CategoryName
+		categoryID = te.Category.ID.String()
+		categoryName = te.Category.Name
 		if te.Category.ImageUrl != nil {
 			categoryImageUrl = *te.Category.ImageUrl
 		}
+		// Get category group info
+		categoryGroupID = te.Category.CategoryGroupId
+		categoryGroupName = te.Category.Group
+		// Check if category is soft deleted
+		categoryIsDeleted = te.Category.DeletedAt != nil
+		// Check if category group is soft deleted
+		if te.Category.CategoryGroup != nil {
+			categoryGroupDeleted = te.Category.CategoryGroup.DeletedAt != nil
+		} else if te.Category.CategoryGroupId != "" {
+			// If category has a CategoryGroupId but CategoryGroup is nil,
+			// it means the category group is soft-deleted (due to preload filtering)
+			categoryGroupDeleted = true
+		}
+		// Note: To get categoryGroupImageUrl, we would need to look up the CategoryGroup by name
+		// This would require an additional database query or preloaded relationship
+		// For now, we'll leave it empty and could enhance this later
 	}
 
+	// Amount is already in cents (int64), use directly
+	amountCents := te.Amount
+
 	return TransactionEntryDto{
-		GroupID:            groupID,
-		UserID:             userID,
-		BalanceID:          balanceID,
-		TransactionID:      transactionID,
-		TransactionEntryID: te.ID.String(),
-		Type:               transactionType,
-		Amount:             te.Amount,
-		BalanceTitle:       balanceTitle,
-		BalanceCurrency:    balanceCurrency,
-		CategoryName:       categoryName,
-		CategoryImageUrl:   categoryImageUrl,
-		MerchantName:       merchantName,
-		MerchantImageUrl:   merchantImageUrl,
-		OperationID:        operationID,
-		ApprovedAt:         approvedAt,
-		TransactedAt:       transactedAt,
+		GroupID:               groupID,
+		UserID:                userID,
+		BalanceID:             balanceID,
+		TransactionID:         transactionID,
+		TransactionEntryID:    te.ID.String(),
+		Type:                  transactionType,
+		Amount:                int(amountCents),
+		BalanceTitle:          balanceTitle,
+		BalanceCurrency:       balanceCurrency,
+		CategoryID:            categoryID,
+		CategoryName:          categoryName,
+		CategoryImageUrl:      categoryImageUrl,
+		CategoryGroupName:     categoryGroupName,
+		CategoryGroupImageUrl: &categoryGroupImageUrl,
+		CategoryGroupID:       categoryGroupID,
+		CategoryIsDeleted:     categoryIsDeleted,
+		CategoryGroupDeleted:  categoryGroupDeleted,
+		MerchantName:          merchantName,
+		MerchantImageUrl:      merchantImageUrl,
+		OperationID:           operationID,
+		ApprovedAt:            approvedAt,
+		TransactedAt:          transactedAt,
 	}
 }
 
@@ -391,9 +542,12 @@ func ToAPIMerchant(m *Merchant) MerchantDto {
 
 	return MerchantDto{
 		MerchantID:  m.ID.String(),
+		GroupID:     m.GroupID.String(),
+		UserID:      m.UserID.String(),
 		Name:        m.Name,
 		Description: desc,
 		ImageUrl:    imageUrl,
+		Rank:        &m.Rank,
 		CreatedAt:   m.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:   m.UpdatedAt.Format(time.RFC3339),
 		DeletedAt:   formatTimePtr(m.DeletedAt),
@@ -405,7 +559,19 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 	// Parse UUID
 	id, err := parseUUID(m.MerchantID)
 	if err != nil {
-		id = uuid.New() // Generate new ID if not provided
+		id = NewMerchantID() // Generate new ID if not provided
+	}
+
+	// Parse GroupID
+	groupID, err := parseUUID(m.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID format: %w", err)
+	}
+
+	// Parse UserID
+	userID, err := parseUUID(m.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format: %w", err)
 	}
 
 	var desc *string
@@ -418,10 +584,159 @@ func FromAPIMerchant(m MerchantDto) (*Merchant, error) {
 		imageUrl = &m.ImageUrl
 	}
 
+	rank := 0
+	if m.Rank != nil {
+		rank = *m.Rank
+	}
+
 	return &Merchant{
 		ID:          id,
+		GroupID:     groupID,
+		UserID:      userID,
 		Name:        m.Name,
 		Description: desc,
 		ImageUrl:    imageUrl,
+		Rank:        rank,
 	}, nil
+}
+
+// FromAPIUpdateCategory converts UpdateCategoryDto (API model) to Category (DAO)
+func FromAPIUpdateCategory(c UpdateCategoryDto, categoryID string) (*Category, error) {
+	// Parse CategoryID
+	id, err := uuid.Parse(categoryID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid category ID format: %w", err)
+	}
+
+	// Parse UserID
+	userID, err := uuid.Parse(c.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID format: %w", err)
+	}
+
+	// Parse GroupID
+	groupID, err := uuid.Parse(c.GroupID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid group ID format: %w", err)
+	}
+
+	// Parse CategoryGroupId if provided
+	var categoryGroupId string
+	if c.CategoryGroupID != "" {
+		// Validate that it's a proper UUID format
+		_, err = uuid.Parse(c.CategoryGroupID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category group ID format: %w", err)
+		}
+		categoryGroupId = c.CategoryGroupID
+	}
+
+	return &Category{
+		ID:              id,
+		UserId:          userID,
+		GroupId:         groupID,
+		CategoryGroupId: categoryGroupId,
+		Name:            c.Name,
+		Description:     c.Description,
+		Rank:            c.Rank,
+		ImageUrl:        c.ImageUrl,
+	}, nil
+}
+
+// FromAPICreateTransactionsRequest converts CreateTransactionsRequestDto to slice of Transaction DAOs
+func FromAPICreateTransactionsRequest(req CreateTransactionsRequestDto) ([]Transaction, error) {
+	var transactions []Transaction
+	for _, txDto := range req.Transactions {
+		tx, err := FromAPICreateTransaction(txDto)
+		if err != nil {
+			return nil, fmt.Errorf("error converting transaction: %w", err)
+		}
+		transactions = append(transactions, *tx)
+	}
+	return transactions, nil
+}
+
+// ToAPICreateTransactionsResponse converts slice of Transaction DAOs to CreateTransactionsResponseDto
+func ToAPICreateTransactionsResponse(transactions []Transaction, operationID *string) CreateTransactionsResponseDto {
+	var txDtos []CreateTransactionDto
+	for _, tx := range transactions {
+		txDtos = append(txDtos, ToAPICreateTransaction(&tx))
+	}
+	return CreateTransactionsResponseDto{
+		Transactions: txDtos,
+		OperationID:  operationID,
+	}
+}
+
+// FromAPIUpdateTransaction converts UpdateTransactionDto (API model) to Transaction (DAO)
+func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
+	// Parse UUIDs
+	id, err := parseUUID(t.TransactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction ID is required for update")
+	}
+
+	userID, err := parseUUID(t.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	groupID, err := parseUUID(t.GroupID)
+	if err != nil {
+		return nil, err
+	}
+
+	balanceID, err := parseUUID(t.BalanceID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Parse operation ID if provided
+	var operationID *uuid.UUID
+	if t.OperationID != nil && *t.OperationID != "" {
+		opID, err := uuid.Parse(*t.OperationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid operation ID format: %w", err)
+		}
+		operationID = &opID
+	}
+
+	// Parse timestamps
+	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+	}
+
+	approvedAt := transactedAt // Default to transacted_at
+	if t.ApprovedAt != nil && *t.ApprovedAt != "" {
+		approvedAt, err = time.Parse(time.RFC3339, *t.ApprovedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid approved_at format: %w", err)
+		}
+	}
+
+	// Create transaction
+	transaction := &Transaction{
+		ID:           id,
+		GroupID:      groupID,
+		UserID:       userID,
+		BalanceID:    balanceID,
+		Type:         t.Type,
+		OperationID:  operationID,
+		ApprovedAt:   approvedAt,
+		TransactedAt: transactedAt,
+	}
+
+	// Create transaction entries
+	var entries []TransactionEntry
+	for _, entryDto := range t.TransactionEntries {
+		entry, err := FromAPICreateTransactionEntry(entryDto, id)
+		if err != nil {
+			return nil, fmt.Errorf("error converting transaction entry: %w", err)
+		}
+		entries = append(entries, *entry)
+	}
+
+	transaction.TransactionEntries = entries
+	return transaction, nil
 }
