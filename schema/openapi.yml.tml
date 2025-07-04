@@ -2539,6 +2539,7 @@ components:
         categoryIsDeleted:
           type: boolean
           description: "true if the linked category is deleted"
+          example: false
         categoryGroupName:
           type: string
           description: "Name of the category group"
@@ -2551,6 +2552,7 @@ components:
         categoryGroupDeleted:
           type: boolean
           description: "true if categoryGroup is deleted"
+          example: false
         merchantName:
           type: string
           description: "Name of the merchant"
@@ -2831,6 +2833,7 @@ components:
         isDeleted:
           type: boolean
           description: "true if category is deleted"
+          example: false
         categoryGroupId:
           type: string
           format: uuid
@@ -2975,6 +2978,7 @@ components:
         isDeleted:
           type: boolean
           description: "Returns true if categoryGroup is deleted"
+          example: false
         createdAt:
           type: string
           format: date-time
