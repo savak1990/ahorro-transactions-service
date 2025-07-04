@@ -24,6 +24,9 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 	db := r.getDB()
 	query := db.WithContext(ctx)
 
+	// Filter out soft-deleted merchants
+	query = query.Where("deleted_at IS NULL")
+
 	// Apply filters
 	if filter.GroupID != "" {
 		query = query.Where("group_id = ?", filter.GroupID)
@@ -69,7 +72,7 @@ func (r *PostgreSQLRepository) ListMerchants(ctx context.Context, filter models.
 func (r *PostgreSQLRepository) GetMerchant(ctx context.Context, merchantId string) (*models.Merchant, error) {
 	var merchant models.Merchant
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ?", merchantId).First(&merchant).Error; err != nil {
+	if err := db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", merchantId).First(&merchant).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("merchant not found: %s", merchantId)
 		}
