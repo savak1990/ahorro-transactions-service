@@ -170,7 +170,8 @@ func retryConnect(dsn string, maxRetries int) (*gorm.DB, error) {
 		)
 
 		db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-			Logger: customLogger,
+			Logger:                                   customLogger,
+			DisableForeignKeyConstraintWhenMigrating: true,
 		})
 
 		if err == nil {

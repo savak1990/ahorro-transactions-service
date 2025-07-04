@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/savak1990/transactions-service/app/models"
 	"gorm.io/gorm"
@@ -23,6 +24,9 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 	var categories []models.Category
 	db := r.getDB()
 	query := db.WithContext(ctx)
+
+	// Exclude soft-deleted categories by default
+	query = query.Where("deleted_at IS NULL")
 
 	// Apply ordering
 	orderBy := "name"
@@ -63,7 +67,7 @@ func (r *PostgreSQLRepository) ListCategories(ctx context.Context, input models.
 func (r *PostgreSQLRepository) GetCategory(ctx context.Context, categoryID string) (*models.Category, error) {
 	var category models.Category
 	db := r.getDB()
-	if err := db.WithContext(ctx).Preload("CategoryGroup").Where("id = ?", categoryID).First(&category).Error; err != nil {
+	if err := db.WithContext(ctx).Preload("CategoryGroup").Where("id = ? AND deleted_at IS NULL", categoryID).First(&category).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("category not found: %s", categoryID)
 		}
@@ -88,12 +92,24 @@ func (r *PostgreSQLRepository) UpdateCategory(ctx context.Context, category mode
 	return &updatedCategory, nil
 }
 
-// DeleteCategory deletes a category by ID
+// DeleteCategory deletes a category by ID using soft deletion
 func (r *PostgreSQLRepository) DeleteCategory(ctx context.Context, categoryID string) error {
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ?", categoryID).Delete(&models.Category{}).Error; err != nil {
-		return fmt.Errorf("failed to delete category: %w", err)
+
+	// Simply set deleted_at to current time - no foreign key constraints involved
+	now := time.Now()
+	result := db.WithContext(ctx).Model(&models.Category{}).
+		Where("id = ? AND deleted_at IS NULL", categoryID).
+		Update("deleted_at", now)
+
+	if result.Error != nil {
+		return fmt.Errorf("failed to soft delete category: %w", result.Error)
 	}
+
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("category not found or already deleted: %s", categoryID)
+	}
+
 	return nil
 }
 

@@ -134,7 +134,7 @@ type TransactionEntry struct {
 
 	// Relationships
 	Transaction *Transaction `gorm:"foreignKey:TransactionID"`
-	Category    *Category    `gorm:"foreignKey:CategoryID"`
+	Category    *Category    `gorm:"foreignKey:CategoryID;references:ID"`
 }
 
 // TableName specifies the table name for GORM

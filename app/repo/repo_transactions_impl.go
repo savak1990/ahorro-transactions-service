@@ -146,7 +146,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 
 	// Apply category group filter
 	if filter.CategoryGroupId != "" {
-		query = query.Where("category.\"group\" = ?", filter.CategoryGroupId)
+		query = query.Where("category.category_group_id = ?", filter.CategoryGroupId)
 	}
 
 	// Apply merchant filter

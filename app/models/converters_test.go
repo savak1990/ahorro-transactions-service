@@ -110,6 +110,11 @@ func TestToAPITransactionEntry(t *testing.T) {
 	} else if *result.CategoryGroupImageUrl != "" {
 		t.Errorf("Expected categoryGroupImageUrl to be empty string, got '%s'", *result.CategoryGroupImageUrl)
 	}
+
+	// Test categoryIsDeleted flag for non-deleted category
+	if result.CategoryIsDeleted {
+		t.Error("Expected categoryIsDeleted to be false for non-deleted category")
+	}
 }
 
 func TestToAPITransactionEntry_ZeroAmount(t *testing.T) {
@@ -147,6 +152,42 @@ func TestToAPITransactionEntry_NilCategory(t *testing.T) {
 	// Amount should still be converted correctly
 	if result.Amount != 1099 {
 		t.Errorf("Expected amount to be 1099 cents, got %d", result.Amount)
+	}
+
+	// Test categoryIsDeleted flag for nil category
+	if result.CategoryIsDeleted {
+		t.Error("Expected categoryIsDeleted to be false when category is nil")
+	}
+}
+
+func TestToAPITransactionEntry_SoftDeletedCategory(t *testing.T) {
+	// Test with soft-deleted category (deleted_at is not nil)
+	now := time.Now()
+	category := &Category{
+		ID:        uuid.New(),
+		Name:      "Deleted Category",
+		DeletedAt: &now, // Category is soft deleted
+	}
+
+	entry := &TransactionEntry{
+		ID:       uuid.New(),
+		Amount:   decimal.NewFromFloat(25.00),
+		Category: category,
+	}
+
+	result := ToAPITransactionEntry(entry)
+
+	if !result.CategoryIsDeleted {
+		t.Error("Expected categoryIsDeleted to be true for soft-deleted category")
+	}
+
+	if result.CategoryName != "Deleted Category" {
+		t.Errorf("Expected categoryName to be 'Deleted Category', got '%s'", result.CategoryName)
+	}
+
+	// Amount should still be converted correctly
+	if result.Amount != 2500 {
+		t.Errorf("Expected amount to be 2500 cents, got %d", result.Amount)
 	}
 }
 

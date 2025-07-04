@@ -22,6 +22,7 @@ func ToAPICategory(c *Category) CategoryDto {
 		Description: c.Description,
 		ImageUrl:    c.ImageUrl,
 		Rank:        c.Rank,
+		IsDeleted:   c.DeletedAt != nil,
 	}
 
 	// Add category group information if available
@@ -454,17 +455,24 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 	}
 
 	// Get category info
+	categoryID := ""
 	categoryName := ""
 	categoryImageUrl := ""
+	categoryGroupID := ""
 	categoryGroupName := ""
 	categoryGroupImageUrl := ""
+	categoryIsDeleted := false
 	if te.Category != nil {
+		categoryID = te.Category.ID.String()
 		categoryName = te.Category.Name
 		if te.Category.ImageUrl != nil {
 			categoryImageUrl = *te.Category.ImageUrl
 		}
-		// Get category group name from the category's Group field
+		// Get category group info
+		categoryGroupID = te.Category.CategoryGroupId
 		categoryGroupName = te.Category.Group
+		// Check if category is soft deleted
+		categoryIsDeleted = te.Category.DeletedAt != nil
 		// Note: To get categoryGroupImageUrl, we would need to look up the CategoryGroup by name
 		// This would require an additional database query or preloaded relationship
 		// For now, we'll leave it empty and could enhance this later
@@ -488,10 +496,13 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		Amount:                int(amountCents),
 		BalanceTitle:          balanceTitle,
 		BalanceCurrency:       balanceCurrency,
+		CategoryID:            categoryID,
 		CategoryName:          categoryName,
 		CategoryImageUrl:      categoryImageUrl,
 		CategoryGroupName:     categoryGroupName,
 		CategoryGroupImageUrl: &categoryGroupImageUrl,
+		CategoryGroupID:       categoryGroupID,
+		CategoryIsDeleted:     categoryIsDeleted,
 		MerchantName:          merchantName,
 		MerchantImageUrl:      merchantImageUrl,
 		OperationID:           operationID,

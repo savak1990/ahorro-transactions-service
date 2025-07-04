@@ -39,11 +39,13 @@ type TransactionEntryDto struct {
 	Amount                int     `json:"amount"`
 	BalanceTitle          string  `json:"balanceTitle"`
 	BalanceCurrency       string  `json:"balanceCurrency"`
+	CategoryID            string  `json:"categoryId,omitempty"`
 	CategoryName          string  `json:"categoryName"`
 	CategoryImageUrl      string  `json:"categoryImageUrl,omitempty"`
 	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
 	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
 	CategoryGroupID       string  `json:"categoryGroupId,omitempty"`
+	CategoryIsDeleted     bool    `json:"categoryIsDeleted,omitempty"`
 	MerchantName          string  `json:"merchantName,omitempty"`
 	MerchantImageUrl      string  `json:"merchantImageUrl,omitempty"`
 	OperationID           string  `json:"operationId,omitempty"`
@@ -107,6 +109,7 @@ type CategoryDto struct {
 	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
 	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
 	CategoryGroupRank     *int    `json:"categoryGroupRank,omitempty"`
+	IsDeleted             bool    `json:"isDeleted,omitempty"`
 }
 
 // CategoryGroupWithCategoriesDto represents a category group with its associated categories
