@@ -167,6 +167,11 @@ func (t *Transaction) BeforeCreate(tx *gorm.DB) error {
 }
 
 func (t *Transaction) validateType() error {
+	// Skip validation if type is empty (happens during partial updates like setting merchant_id to NULL)
+	if t.Type == "" {
+		return nil
+	}
+	
 	validTypes := []string{"income", "expense", "movement", "move_in", "move_out"}
 	for _, validType := range validTypes {
 		if t.Type == validType {
