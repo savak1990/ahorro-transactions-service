@@ -2536,6 +2536,9 @@ components:
           type: string
           description: "URL of the category image"
           example: "https://example.com/groceries-icon.png"
+        categoryIsDeleted:
+          type: boolean
+          description: "true if the linked category is deleted"
         categoryGroupName:
           type: string
           description: "Name of the category group"
@@ -2545,6 +2548,9 @@ components:
           nullable: true
           description: "URL of the category group image"
           example: "https://example.com/food-dining-icon.png"
+        categoryGroupDeleted:
+          type: boolean
+          description: "true if categoryGroup is deleted"
         merchantName:
           type: string
           description: "Name of the merchant"
@@ -2822,6 +2828,9 @@ components:
           minimum: 0
           description: "Display order rank for the category"
           example: 9800
+        isDeleted:
+          type: boolean
+          description: "true if category is deleted"
         categoryGroupId:
           type: string
           format: uuid
@@ -2836,6 +2845,10 @@ components:
           format: uri
           description: "URL of the category group image"
           example: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=100&h=100&fit=crop"
+        categoryGroupDeleted:
+          type: boolean
+          description: "true if the linked category group is deleted"
+          example: false
         categoryGroupRank:
           type: integer
           minimum: 0
@@ -2959,6 +2972,9 @@ components:
           type: integer
           description: "Display order rank for the category group"
           example: 500
+        isDeleted:
+          type: boolean
+          description: "Returns true if categoryGroup is deleted"
         createdAt:
           type: string
           format: date-time
