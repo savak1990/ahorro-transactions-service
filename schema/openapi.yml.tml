@@ -2710,7 +2710,7 @@ components:
     BalanceListResponse:
       type: object
       properties:
-        balances:
+        items:
           type: array
           description: "List of balances"
           items:
