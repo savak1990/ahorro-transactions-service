@@ -6,7 +6,7 @@ type CreateTransactionDto struct {
 	GroupID            string                      `json:"groupId"`
 	UserID             string                      `json:"userId"`
 	BalanceID          string                      `json:"balanceId"`
-	Type               string                      `json:"type"` // Supported: income, expense, movement, move_in, move_out
+	Type               string                      `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
 	Merchant           *string                     `json:"merchant,omitempty"`
 	OperationID        *string                     `json:"operationId,omitempty"`
 	ApprovedAt         *string                     `json:"approvedAt,omitempty"`
@@ -46,10 +46,11 @@ type TransactionEntryDto struct {
 	BalanceID             string  `json:"balanceId"`
 	TransactionID         string  `json:"transactionId"`
 	TransactionEntryID    string  `json:"transactionEntryId"`
-	Type                  string  `json:"type"` // Supported: income, expense, movement, move_in, move_out
+	Type                  string  `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
 	Amount                int     `json:"amount"`
 	BalanceTitle          string  `json:"balanceTitle"`
 	BalanceCurrency       string  `json:"balanceCurrency"`
+	BalanceDeleted        bool    `json:"balanceDeleted,omitempty"`
 	CategoryID            string  `json:"categoryId,omitempty"`
 	CategoryName          string  `json:"categoryName"`
 	CategoryImageUrl      string  `json:"categoryImageUrl,omitempty"`
@@ -167,7 +168,7 @@ type UpdateTransactionDto struct {
 	GroupID            string                      `json:"groupId"`
 	UserID             string                      `json:"userId"`
 	BalanceID          string                      `json:"balanceId"`
-	Type               string                      `json:"type"` // Supported: income, expense, movement, move_in, move_out
+	Type               string                      `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
 	Merchant           *string                     `json:"merchant,omitempty"`
 	OperationID        *string                     `json:"operationId,omitempty"`
 	ApprovedAt         *string                     `json:"approvedAt,omitempty"`

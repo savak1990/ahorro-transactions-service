@@ -131,13 +131,6 @@ paths:
         At least one of userId or groupId must be provided.
       tags: [transactions]
       parameters:
-        - name: userId
-          in: query
-          description: "Filter transactions by user ID. Required if groupId is not provided."
-          schema:
-            type: string
-            format: uuid
-          example: "99bb2200-0011-2233-4455-667788990011"
         - name: groupId
           in: query
           description: "Filter transactions by group ID. Required if userId is not provided."
@@ -145,6 +138,13 @@ paths:
             type: string
             format: uuid
           example: "88aa1100-0011-2233-4455-667788990011"
+        - name: userId
+          in: query
+          description: "Filter transactions by user ID. Required if groupId is not provided."
+          schema:
+            type: string
+            format: uuid
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: balanceId
           in: query
           description: | 
@@ -168,7 +168,7 @@ paths:
             type: array
             items:
               type: string
-              enum: [expense, income, move_in, move_out]
+              enum: [init, expense, income, move_in, move_out]
             example: [expense, income]
         - name: categoryId
           in: query
@@ -325,68 +325,116 @@ paths:
         Supports filtering by various parameters including date range, category, balance, etc.
       tags: [transactions]
       parameters:
-        - name: balanceId
-          in: query
-          description: "Filter by balance ID"
-          schema:
-            type: string
-            format: uuid
-          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
-        - name: categoryId
-          in: query
-          description: "Filter by category ID"
-          schema:
-            type: string
-            format: uuid
-          example: "550e8400-e29b-41d4-a716-446655440000"
-        - name: categoryGroupId
-          in: query
-          description: "Filter by category group ID"
-          schema:
-            type: string
-          example: "groceries"
-        - name: merchantId
-          in: query
-          description: "Filter by merchant ID"
-          schema:
-            type: string
-            format: uuid
-          example: "123e4567-e89b-12d3-a456-426614174000"
         - name: userId
           in: query
           description: "Filter by user ID"
           schema:
             type: string
             format: uuid
-          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+          example: "99bb2200-0011-2233-4455-667788990011"
         - name: groupId
           in: query
           description: "Filter by group ID"
           schema:
             type: string
             format: uuid
-          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+          example: "88aa1100-0011-2233-4455-667788990011"
+        - name: balanceId
+          in: query
+          description: | 
+            Filter transactions by balance/account ID
+          style: form
+          explode: false
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+          example: [ba001111-1111-1111-1111-111111111111]
         - name: type
           in: query
           description: "Filter by transaction type"
+          style: form
+          explode: false
+          required: false
           schema:
-            type: string
-            enum: [expense, income]
-          example: "expense"
+            type: array
+            items:
+              type: string
+              enum: [init, expense, income, move_in, move_out]
+            example: [expense, income]
+        - name: categoryId
+          in: query
+          description: | 
+            Filter by category ID. You can specify list of categoryIds in 
+            coma-separated and exploded formats. Note that if you specify
+            categoryGroupId it will return transactions using OR operations.
+            If you specify other filters, like merhants or balanceId or type
+            It will use AND operation.
+          style: form
+          explode: false
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: categoryGroupId
+          in: query
+          description: |
+            Filter by categoryGroupID. You can specify list of categoryGroupIds in
+            coma-separated and exploded formats. Note that if you specify
+            categoryId it will return transactions using OR operation.
+            If you specify other filters, like merchants or balanceId or type
+            It will use AND operation.
+          style: form
+          explode: false
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: merchantId
+          in: query
+          description: |
+            Filter transactions by merchant ID. You can specify list of merchantIds in
+            coma-separated and exploded formats. Note that if you specify
+            categoryId or categoryGroupId it will return transactions using AND operation.
+          style: form
+          explode: false
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+        - name: transactionId
+          in: query
+          description: "Filter transaction entries by specific transaction ID"
+          style: form
+          explode: false
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
         - name: startTime
           in: query
           description: "Filter transactions from this date (inclusive)"
           schema:
             type: string
             format: date-time
-          example: "2023-01-01T00:00:00Z"
+          example: "2025-01-01T00:00:00Z"
         - name: endTime
           in: query
           description: "Filter transactions until this date (inclusive)"
           schema:
             type: string
             format: date-time
-          example: "2023-12-31T23:59:59Z"
+          example: "2025-12-31T23:59:59Z"
       responses:
         '200':
           description: Transaction statistics retrieved successfully
@@ -1235,11 +1283,11 @@ paths:
             responseTemplates:
               application/json: '{}'
 
-  /category-groups:
+  /categoryGroups:
     post:
       summary: Create a new category group
       description: Creates a new category group
-      tags: [category-groups]
+      tags: [categoryGroups]
       requestBody:
         required: true
         content:
@@ -1273,7 +1321,7 @@ paths:
       summary: List category groups
       description: |
         Retrieves a list of category groups sorted by rank (descending by default).
-      tags: [category-groups]
+      tags: [categoryGroups]
       parameters:
         - name: sortBy
           in: query
@@ -1321,7 +1369,7 @@ paths:
 
     options:
       summary: CORS preflight for category groups endpoint
-      tags: [category-groups-cors]
+      tags: [categoryGroups-cors]
       security: []
       responses:
         '200':
@@ -1340,11 +1388,11 @@ paths:
             responseTemplates:
               application/json: '{}'
 
-  /category-groups/{category_group_id}:
+  /categoryGroups/{category_group_id}:
     get:
       summary: Get category group details
       description: Retrieves a specific category group by ID
-      tags: [category-groups]
+      tags: [categoryGroups]
       parameters:
         - name: category_group_id
           in: path
@@ -1376,7 +1424,7 @@ paths:
     put:
       summary: Update category group
       description: Updates an existing category group
-      tags: [category-groups]
+      tags: [categoryGroups]
       parameters:
         - name: category_group_id
           in: path
@@ -1420,7 +1468,7 @@ paths:
     delete:
       summary: Delete category group
       description: Soft deletes a category group
-      tags: [category-groups]
+      tags: [categoryGroups]
       parameters:
         - name: category_group_id
           in: path
@@ -1447,7 +1495,7 @@ paths:
 
     options:
       summary: CORS preflight for specific category group endpoint
-      tags: [category-groups-cors]
+      tags: [categoryGroups-cors]
       security: []
       parameters:
         - name: category_group_id
@@ -2221,7 +2269,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, movement, move_in, move_out]
+          enum: [init, expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -2349,7 +2397,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, move_in, move_out]
+          enum: [init, expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -2403,7 +2451,7 @@ components:
           example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
         type:
           type: string
-          enum: [expense, income, move_in, move_out]
+          enum: [init, expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         merchant:
@@ -2512,7 +2560,7 @@ components:
           example: "456e7890-e89b-12d3-a456-426614174000"
         type:
           type: string
-          enum: [expense, income, move_in, move_out]
+          enum: [init, expense, income, move_in, move_out]
           description: "Type of transaction"
           example: "expense"
         amount:
@@ -2528,6 +2576,9 @@ components:
           pattern: "^[A-Z]{3}$"
           description: "Currency of the balance"
           example: "EUR"
+        balanceDeleted:
+          type: boolean
+          description: "true if the linked balance is deleted"
         categoryName:
           type: string
           description: "Name of the category"

@@ -142,11 +142,11 @@ func main() {
 	router.HandleFunc("/categories/{category_id}", serviceHandler.DeleteCategory).Methods("DELETE") // Single delete by ID
 
 	// Category Groups APIs
-	router.HandleFunc("/category-groups", serviceHandler.CreateCategoryGroup).Methods("POST")
-	router.HandleFunc("/category-groups", serviceHandler.ListCategoryGroups).Methods("GET")
-	router.HandleFunc("/category-groups/{category_group_id}", serviceHandler.GetCategoryGroup).Methods("GET")
-	router.HandleFunc("/category-groups/{category_group_id}", serviceHandler.UpdateCategoryGroup).Methods("PUT")
-	router.HandleFunc("/category-groups/{category_group_id}", serviceHandler.DeleteCategoryGroup).Methods("DELETE")
+	router.HandleFunc("/categoryGroups", serviceHandler.CreateCategoryGroup).Methods("POST")
+	router.HandleFunc("/categoryGroups", serviceHandler.ListCategoryGroups).Methods("GET")
+	router.HandleFunc("/categoryGroups/{category_group_id}", serviceHandler.GetCategoryGroup).Methods("GET")
+	router.HandleFunc("/categoryGroups/{category_group_id}", serviceHandler.UpdateCategoryGroup).Methods("PUT")
+	router.HandleFunc("/categoryGroups/{category_group_id}", serviceHandler.DeleteCategoryGroup).Methods("DELETE")
 
 	// Merchants APIs
 	router.HandleFunc("/merchants", serviceHandler.CreateMerchant).Methods("POST")

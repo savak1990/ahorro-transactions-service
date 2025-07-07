@@ -238,10 +238,10 @@ func (h *HandlerImpl) validateMovementTransactions(transactions []models.CreateT
 		case "move_out":
 			moveOutCount++
 			hasMovementTypes = true
-		case "expense", "income", "movement":
+		case "init", "expense", "income":
 			// Regular transaction types are allowed in batch, but not mixed with move_in/move_out
 			if hasMovementTypes {
-				return fmt.Errorf("cannot mix movement types (move_in/move_out) with regular transaction types (expense/income/movement) in the same batch")
+				return fmt.Errorf("cannot mix movement types (move_in/move_out) with regular transaction types (init/expense/income) in the same batch")
 			}
 		default:
 			return fmt.Errorf("invalid transaction type: %s", tx.Type)

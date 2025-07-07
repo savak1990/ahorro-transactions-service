@@ -70,28 +70,6 @@ Authorization: Bearer {{authToken}}
     ]
 }
 
-### Create a movement transaction (transfer between accounts)
-POST {{baseUrl}}/transactions
-Content-Type: application/json
-Authorization: Bearer {{authToken}}
-
-{
-    "userId": "{{userId2}}",
-    "groupId": "{{groupId}}",
-    "balanceId": "{{balanceId}}",
-    "type": "movement",
-    "merchant": null,
-    "approvedAt": "2024-06-19T14:30:00Z",
-    "transactedAt": "2024-06-19T14:30:00Z",
-    "transactionEntries": [
-        {
-            "description": "Transfer to savings account",
-            "amount": 500.00,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
-        }
-    ]
-}
-
 ### ============================================================
 ### BATCH TRANSACTION OPERATIONS (Movement between accounts)
 ### ============================================================

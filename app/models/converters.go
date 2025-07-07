@@ -457,9 +457,11 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 	// Get balance info
 	balanceTitle := ""
 	balanceCurrency := ""
+	balanceDeleted := false
 	if te.Transaction != nil && te.Transaction.Balance != nil {
 		balanceTitle = te.Transaction.Balance.Title
 		balanceCurrency = te.Transaction.Balance.Currency
+		balanceDeleted = te.Transaction.Balance.DeletedAt != nil
 	}
 
 	// Get category info
@@ -508,6 +510,7 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		Amount:                int(amountCents),
 		BalanceTitle:          balanceTitle,
 		BalanceCurrency:       balanceCurrency,
+		BalanceDeleted:        balanceDeleted,
 		CategoryID:            categoryID,
 		CategoryName:          categoryName,
 		CategoryImageUrl:      categoryImageUrl,
