@@ -4,18 +4,34 @@
 
 # Authentication token - get this by running:
 # make get-cognito-token
-@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6ImIyYTM0ZDIyLWYxZWUtNDcwZC04NzJmLWVkYjllZGQyYzM0OSIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6ImU1YzA2MmMwLTYwNWUtNDU5Ny05ZGJmLTUyZWE2NDA0NmJiYiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMzkwNDg5LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTM5NDA4OSwiaWF0IjoxNzUxMzkwNDg5LCJqdGkiOiI1MmE5MWY3NS0yZDdjLTRlOWQtYmJkMi1hNmQ3MWUxMTY5NGMiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.0AvKlltzXWEdkRaYOn461Go-MLQ8MJZizwenKiaoYmGJ63KUmCYgyWXCyxjEDT5qg1xc1ShsSGUIVmfQPoDufIz8tGtZy4bxqSk01A4gUGLcjCe1-11qHa4RjS9oe7-ehRBfynGgjx5e3cIoj0nPtha4wV3ptow72RygtWhinvaojGIF2RqFlZ5Gr3tYxz4osXrwn6306mXLcanVLnsoigA_pHvGYtK2qvlwoz34e3yoZwH4Y0bkM8hvum93_MSDdu9Va0xYf-tKJ-X3Ly-NyC_KLTXaSGKpNaYmNAKEK7gWH1fzVI6RH4ifvrnpCGju-bYsVfOqs-9SNIL6ydO3Bw
+@authToken=test
 
-# Test data IDs
+# Test data IDs - Based on seed data
 @userId1=99bb2200-0011-2233-4455-667788990011
-@userId2=12c514a4-2021-708d-efff-ea6cd5e4eac8
+@userId2=99bb3300-0011-2233-4455-667788990022
 @groupId=88aa1100-0011-2233-4455-667788990011
 
-@balanceId=ba001111-1111-1111-1111-111111111111
-@balanceId2=ba004444-4444-4444-4444-444444444444
-@categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479
+# Balance IDs from seed data
+@balanceId=ba001111-1111-1111-1111-111111111111    # BBVA Main Account (EUR)
+@balanceId2=ba004444-4444-4444-4444-444444444444   # Cash Wallet (EUR)
+@balanceId3=ba002222-2222-2222-2222-222222222222   # Santander Savings (EUR)
+@balanceId4=ba005555-5555-5555-5555-555555555555   # USD Investment Account
+@balanceId5=ba007777-7777-7777-7777-777777777777   # Secondary user account
+
+# Merchant IDs from seed data
+@mercadonaId=4e001234-1234-5678-9abc-def012345678
+@starbucksId=4e007890-789a-bcde-f012-345678901234
+@uberId=4e00c0c0-cdef-0123-4567-890123456789
+@netflixId=4e001111-1234-5678-9abc-345678901234
+@zaraId=4e005678-5678-9abc-def0-123456789012
+@cortInglesId=4e002345-2345-6789-abcd-ef0123456789
+
+# Category IDs (using examples from seed data structure)
+@categoryId=ca001111-1111-1111-1111-111111111111     # Food & Groceries
+@categoryId2=ca002222-2222-2222-2222-222222222222    # Dining & Restaurants
+@categoryId3=ca003333-3333-3333-3333-333333333333    # Transportation
+@categoryId4=ca004444-4444-4444-4444-444444444444    # Income/Salary
 @categoryGroupName=Food & Dining
-@merchantId=d47ac10b-58cc-4372-a567-0e02b2c3d480
 
 ### Create a new transaction with multiple entries
 POST {{baseUrl}}/transactions
@@ -27,23 +43,23 @@ Authorization: Bearer {{authToken}}
     "groupId": "{{groupId}}",
     "balanceId": "{{balanceId}}",
     "type": "expense",
-    "merchant": "Mercadona",
+    "merchantID": "{{mercadonaId}}",
     "transactedAt": "2024-06-19T12:00:00Z",
     "transactionEntries": [
         {
             "description": "Organic vegetables and fruits",
             "amount": 45.50,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+            "categoryId": "{{categoryId}}"
         },
         {
             "description": "Household cleaning supplies",
             "amount": 28.75,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d487"
+            "categoryId": "{{categoryId}}"
         },
         {
             "description": "Personal care products",
             "amount": 15.25,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4a2"
+            "categoryId": "{{categoryId}}"
         }
     ]
 }
@@ -58,14 +74,13 @@ Authorization: Bearer {{authToken}}
     "groupId": "{{groupId}}",
     "balanceId": "{{balanceId}}",
     "type": "income",
-    "merchant": "Acme Corp Payroll",
     "approvedAt": "2024-06-19T09:00:00Z",
     "transactedAt": "2024-06-19T09:00:00Z",
     "transactionEntries": [
         {
             "description": "Monthly salary",
-            "amount": 350000,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d484"
+            "amount": 3500.00,
+            "categoryId": "{{categoryId4}}"
         }
     ]
 }
@@ -93,22 +108,22 @@ Authorization: Bearer {{authToken}}
             "transactionEntries": [
                 {
                     "description": "Transfer to savings account",
-                    "amount": 50000,
-                    "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                    "amount": 500.00,
+                    "categoryId": "{{categoryId}}"
                 }
             ]
         },
         {
             "userId": "{{userId1}}",
             "groupId": "{{groupId}}",
-            "balanceId": "{{balanceId2}}",
+            "balanceId": "{{balanceId3}}",
             "type": "move_in",
             "transactedAt": "2024-06-19T14:30:00Z",
             "transactionEntries": [
                 {
                     "description": "Transfer from checking account",
-                    "amount": 50000,
-                    "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+                    "amount": 500.00,
+                    "categoryId": "{{categoryId}}"
                 }
             ]
         }
@@ -125,13 +140,12 @@ Authorization: Bearer {{authToken}}
     "groupId": "{{groupId}}",
     "balanceId": "{{balanceId}}",
     "type": "move_out",
-    "merchant": null,
     "transactedAt": "2024-06-19T14:30:00Z",
     "transactionEntries": [
         {
             "description": "Outgoing transfer",
             "amount": 250.00,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+            "categoryId": "{{categoryId}}"
         }
     ]
 }
@@ -146,13 +160,12 @@ Authorization: Bearer {{authToken}}
     "groupId": "{{groupId}}",
     "balanceId": "{{balanceId2}}",
     "type": "move_in",
-    "merchant": null,
     "transactedAt": "2024-06-19T14:30:00Z",
     "transactionEntries": [
         {
             "description": "Incoming transfer",
             "amount": 250.00,
-            "categoryId": "c47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+            "categoryId": "{{categoryId}}"
         }
     ]
 }
@@ -199,6 +212,9 @@ Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 ### List transaction entries by multiple types (comma-separated)
+GET {{baseUrl}}/transactions?userId={{userId1}}&type=expense,income&limit=20
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
 GET {{baseUrl}}/transactions?userId={{userId1}}&type=expense,income
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
@@ -286,3 +302,290 @@ Authorization: Bearer {{authToken}}
 ### Delete a transaction
 DELETE {{baseUrl}}/transactions/REPLACE_WITH_TRANSACTION_ID
 Authorization: Bearer {{authToken}}
+
+### ============================================================
+### NEW TRANSACTION TYPE: INIT
+### ============================================================
+### Create an "init" transaction (for balance initialization)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "init",
+    "transactedAt": "2024-01-01T00:00:00Z",
+    "operationID": "INIT-BALANCE-001",
+    "approvedAt": "2024-01-01T00:00:00Z",
+    "transactionEntries": [
+        {
+            "description": "Initial balance setup",
+            "amount": 1000.00,
+            "categoryId": "{{categoryId4}}"
+        }
+    ]
+}
+
+### ============================================================
+### REALISTIC MERCHANT-BASED TRANSACTIONS
+### ============================================================
+### Starbucks coffee purchase
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "expense",
+    "merchantID": "{{starbucksId}}",
+    "transactedAt": "2024-07-07T08:30:00Z",
+    "operationID": "CARD-TXN-20240707-001",
+    "approvedAt": "2024-07-07T08:30:00Z",
+    "transactionEntries": [
+        {
+            "description": "Grande Cappuccino",
+            "amount": 4.50,
+            "categoryId": "{{categoryId2}}"
+        },
+        {
+            "description": "Blueberry muffin",
+            "amount": 3.25,
+            "categoryId": "{{categoryId2}}"
+        }
+    ]
+}
+
+### Uber ride expense
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "expense",
+    "merchantID": "{{uberId}}",
+    "transactedAt": "2024-07-06T18:45:00Z",
+    "operationID": "UBER-RIDE-20240706-001",
+    "approvedAt": "2024-07-06T18:45:00Z",
+    "transactionEntries": [
+        {
+            "description": "Ride from office to home",
+            "amount": 15.75,
+            "categoryId": "{{categoryId3}}"
+        }
+    ]
+}
+
+### Zara clothing purchase
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId3}}",
+    "type": "expense",
+    "merchantID": "{{zaraId}}",
+    "transactedAt": "2024-07-05T14:20:00Z",
+    "operationID": "CARD-TXN-20240705-002",
+    "approvedAt": "2024-07-05T14:20:00Z",
+    "transactionEntries": [
+        {
+            "description": "Summer dress",
+            "amount": 39.95,
+            "categoryId": "{{categoryId}}"
+        },
+        {
+            "description": "Cotton t-shirt",
+            "amount": 19.95,
+            "categoryId": "{{categoryId}}"
+        }
+    ]
+}
+
+### Netflix subscription (recurring)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "expense",
+    "merchantID": "{{netflixId}}",
+    "transactedAt": "2024-07-01T00:00:00Z",
+    "operationID": "SUBSCRIPTION-NETFLIX-202407",
+    "approvedAt": "2024-07-01T00:00:00Z",
+    "transactionEntries": [
+        {
+            "description": "Netflix Premium Monthly Subscription",
+            "amount": 15.99,
+            "categoryId": "{{categoryId}}"
+        }
+    ]
+}
+
+### ============================================================
+### MULTI-CURRENCY TRANSACTIONS
+### ============================================================
+### USD Investment income
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId4}}",
+    "type": "income",
+    "transactedAt": "2024-07-01T12:00:00Z",
+    "operationID": "DIVIDEND-Q2-2024",
+    "approvedAt": "2024-07-01T12:00:00Z",
+    "transactionEntries": [
+        {
+            "description": "Quarterly dividend payment",
+            "amount": 125.50,
+            "categoryId": "{{categoryId4}}"
+        }
+    ]
+}
+
+### ============================================================
+### SECONDARY USER TRANSACTIONS
+### ============================================================
+### Transaction for secondary user
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId2}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId5}}",
+    "type": "expense",
+    "merchantID": "4e00aa00-0000-1111-2222-333344445555",
+    "transactedAt": "2024-07-07T10:30:00Z",
+    "operationID": "CARD-TXN-20240707-003",
+    "approvedAt": "2024-07-07T10:30:00Z",
+    "transactionEntries": [
+        {
+            "description": "Weekly groceries",
+            "amount": 42.30,
+            "categoryId": "{{categoryId}}"
+        }
+    ]
+}
+
+### ============================================================
+### ADDITIONAL LISTING TESTS
+### ============================================================
+### List transactions for specific merchant (Mercadona)
+GET {{baseUrl}}/transactions?userId={{userId1}}&merchantId={{mercadonaId}}&limit=10
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transactions by init type
+GET {{baseUrl}}/transactions?userId={{userId1}}&type=init
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List recent transactions (last 30 days)
+GET {{baseUrl}}/transactions?userId={{userId1}}&sortedBy=transactedAt&order=DESC&limit=20
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transactions from USD account
+GET {{baseUrl}}/transactions?balanceId={{balanceId4}}&sortedBy=amount&order=DESC
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List group transactions (all users)
+GET {{baseUrl}}/transactions?groupId={{groupId}}&sortedBy=transactedAt&order=DESC&limit=50
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transactions for secondary user
+GET {{baseUrl}}/transactions?userId={{userId2}}&balanceId={{balanceId5}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List movement transactions (transfers)
+GET {{baseUrl}}/transactions?userId={{userId1}}&type=move_in,move_out&sortedBy=transactedAt&order=DESC
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### List transactions by category
+GET {{baseUrl}}/transactions?userId={{userId1}}&categoryId={{categoryId2}}&limit=15
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+### ============================================================
+### TRANSACTION UPDATE TESTS
+### ============================================================
+### Update transaction with new merchant and operation details
+PUT {{baseUrl}}/transactions/7a001111-1111-1111-1111-111111111111
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "expense",
+    "merchantID": "{{mercadonaId}}",
+    "operationID": "UPDATED-OP-001",
+    "approvedAt": "2024-07-07T15:00:00Z",
+    "transactedAt": "2024-07-07T15:00:00Z"
+}
+
+### ============================================================
+### ERROR TESTING
+### ============================================================
+### Test with invalid merchant ID (should fail validation)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "expense",
+    "merchantID": "invalid-merchant-id-12345",
+    "transactedAt": "2024-07-07T12:00:00Z",
+    "transactionEntries": [
+        {
+            "description": "This should fail",
+            "amount": 10.00,
+            "categoryId": "{{categoryId}}"
+        }
+    ]
+}
+
+### Test with unsupported transaction type (should fail)
+POST {{baseUrl}}/transactions
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+    "userId": "{{userId1}}",
+    "groupId": "{{groupId}}",
+    "balanceId": "{{balanceId}}",
+    "type": "invalid_type",
+    "transactedAt": "2024-07-07T12:00:00Z",
+    "transactionEntries": [
+        {
+            "description": "This should fail",
+            "amount": 10.00,
+            "categoryId": "{{categoryId}}"
+        }
+    ]
+}

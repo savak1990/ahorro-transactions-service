@@ -117,24 +117,22 @@ func ToAPICreateTransaction(t *Transaction) CreateTransactionDto {
 		entryDtos = append(entryDtos, ToAPICreateTransactionEntry(&entry))
 	}
 
-	// Get merchant name if available
-	var merchant *string
-	if t.Merchant != nil {
-		merchant = &t.Merchant.Name
+	// Get merchant ID if available
+	var merchantID string
+	if t.MerchantID != nil {
+		merchantID = t.MerchantID.String()
 	}
 
 	// Convert operation ID to string if available
-	var operationID *string
+	var operationID string
 	if t.OperationID != nil {
-		opID := t.OperationID.String()
-		operationID = &opID
+		operationID = t.OperationID.String()
 	}
 
-	// Convert approvedAt to pointer string for consistency
-	var approvedAt *string
+	// Convert approvedAt to string
+	var approvedAt string
 	if !t.ApprovedAt.IsZero() {
-		approvedAtStr := t.ApprovedAt.Format(time.RFC3339)
-		approvedAt = &approvedAtStr
+		approvedAt = t.ApprovedAt.Format(time.RFC3339)
 	}
 
 	return CreateTransactionDto{
@@ -143,7 +141,7 @@ func ToAPICreateTransaction(t *Transaction) CreateTransactionDto {
 		GroupID:            t.GroupID.String(),
 		BalanceID:          t.BalanceID.String(),
 		Type:               t.Type,
-		Merchant:           merchant,
+		MerchantID:         merchantID,
 		OperationID:        operationID,
 		ApprovedAt:         approvedAt,
 		TransactedAt:       t.TransactedAt.Format(time.RFC3339),
@@ -179,12 +177,23 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 
 	// Parse operation ID if provided
 	var operationID *uuid.UUID
-	if t.OperationID != nil && *t.OperationID != "" {
-		opID, err := uuid.Parse(*t.OperationID)
+	if t.OperationID != "" {
+		opID, err := uuid.Parse(t.OperationID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid operation ID format: %w", err)
 		}
 		operationID = &opID
+	}
+
+	// Parse merchant ID if provided
+	var merchantID *uuid.UUID
+	if t.MerchantID != "" {
+		// Validate merchant ID format
+		mID, err := uuid.Parse(t.MerchantID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid merchant ID format: %w", err)
+		}
+		merchantID = &mID
 	}
 
 	// Parse timestamps
@@ -194,8 +203,8 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	}
 
 	approvedAt := transactedAt // Default to transacted_at
-	if t.ApprovedAt != nil && *t.ApprovedAt != "" {
-		approvedAt, err = time.Parse(time.RFC3339, *t.ApprovedAt)
+	if t.ApprovedAt != "" {
+		approvedAt, err = time.Parse(time.RFC3339, t.ApprovedAt)
 		if err != nil {
 			return nil, fmt.Errorf("invalid approved_at format: %w", err)
 		}
@@ -208,13 +217,11 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 		GroupID:      groupID,
 		UserID:       userID,
 		BalanceID:    balanceID,
+		MerchantID:   merchantID,
 		Type:         t.Type,
 		OperationID:  operationID,
 		ApprovedAt:   approvedAt,
 		TransactedAt: transactedAt,
-		// Note: Merchant handling would require lookup/creation of Merchant entity
-		// For now, merchant information is not stored directly on transaction
-		// This could be implemented later with a merchant lookup/creation service
 	}
 
 	// Create transaction entries
@@ -696,12 +703,23 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 
 	// Parse operation ID if provided
 	var operationID *uuid.UUID
-	if t.OperationID != nil && *t.OperationID != "" {
-		opID, err := uuid.Parse(*t.OperationID)
+	if t.OperationID != "" {
+		opID, err := uuid.Parse(t.OperationID)
 		if err != nil {
 			return nil, fmt.Errorf("invalid operation ID format: %w", err)
 		}
 		operationID = &opID
+	}
+
+	// Parse merchant ID if provided
+	var merchantID *uuid.UUID
+	if t.MerchantID != "" {
+		// Validate merchant ID format
+		mID, err := uuid.Parse(t.MerchantID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid merchant ID format: %w", err)
+		}
+		merchantID = &mID
 	}
 
 	// Parse timestamps
@@ -711,8 +729,8 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 	}
 
 	approvedAt := transactedAt // Default to transacted_at
-	if t.ApprovedAt != nil && *t.ApprovedAt != "" {
-		approvedAt, err = time.Parse(time.RFC3339, *t.ApprovedAt)
+	if t.ApprovedAt != "" {
+		approvedAt, err = time.Parse(time.RFC3339, t.ApprovedAt)
 		if err != nil {
 			return nil, fmt.Errorf("invalid approved_at format: %w", err)
 		}
@@ -724,6 +742,7 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 		GroupID:      groupID,
 		UserID:       userID,
 		BalanceID:    balanceID,
+		MerchantID:   merchantID,
 		Type:         t.Type,
 		OperationID:  operationID,
 		ApprovedAt:   approvedAt,

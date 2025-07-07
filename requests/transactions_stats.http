@@ -4,17 +4,28 @@
 
 # Authentication token - get this by running:
 # make get-cognito-token
-@authToken=eyJraWQiOiJUUWxvK1Y2cFk5ajhTdmtVUGcwR2RiSnRlWkppMkx4TWJtZ2lOZk44T0ZRPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIwMmM1MTRhNC0yMDIxLTcwOGQtZWZmZi1lYTZjZDVlNGVhYzkiLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAuZXUtd2VzdC0xLmFtYXpvbmF3cy5jb21cL2V1LXdlc3QtMV9pUllGUFk1WHYiLCJjb2duaXRvOnVzZXJuYW1lIjoiMDJjNTE0YTQtMjAyMS03MDhkLWVmZmYtZWE2Y2Q1ZTRlYWM5Iiwib3JpZ2luX2p0aSI6ImIyYTM0ZDIyLWYxZWUtNDcwZC04NzJmLWVkYjllZGQyYzM0OSIsImF1ZCI6IjRqbmY1cGNmcjdndm8ydnNlaWYzNmJ1NmsiLCJldmVudF9pZCI6ImU1YzA2MmMwLTYwNWUtNDU5Ny05ZGJmLTUyZWE2NDA0NmJiYiIsInRva2VuX3VzZSI6ImlkIiwiYXV0aF90aW1lIjoxNzUxMzkwNDg5LCJuYW1lIjoiVmlhY2hlc2xhdiIsImV4cCI6MTc1MTM5NDA4OSwiaWF0IjoxNzUxMzkwNDg5LCJqdGkiOiI1MmE5MWY3NS0yZDdjLTRlOWQtYmJkMi1hNmQ3MWUxMTY5NGMiLCJlbWFpbCI6InNsYXZhLmtsb3ZhbkBnbWFpbC5jb20ifQ.0AvKlltzXWEdkRaYOn461Go-MLQ8MJZizwenKiaoYmGJ63KUmCYgyWXCyxjEDT5qg1xc1ShsSGUIVmfQPoDufIz8tGtZy4bxqSk01A4gUGLcjCe1-11qHa4RjS9oe7-ehRBfynGgjx5e3cIoj0nPtha4wV3ptow72RygtWhinvaojGIF2RqFlZ5Gr3tYxz4osXrwn6306mXLcanVLnsoigA_pHvGYtK2qvlwoz34e3yoZwH4Y0bkM8hvum93_MSDdu9Va0xYf-tKJ-X3Ly-NyC_KLTXaSGKpNaYmNAKEK7gWH1fzVI6RH4ifvrnpCGju-bYsVfOqs-9SNIL6ydO3Bw
+@authToken=test
 
-# Test data IDs
-@userId1=02c514a4-2021-708d-efff-ea6cd5e4eac9
-@userId2=12c514a4-2021-708d-efff-ea6cd5e4eac8
-@groupId=6a785a55-fced-4f13-af78-5c19a39c9abc
+# Test data IDs - Based on seed data
+@userId1=99bb2200-0011-2233-4455-667788990011
+@userId2=99bb3300-0011-2233-4455-667788990022
+@groupId=88aa1100-0011-2233-4455-667788990011
 
-@balanceId=28e2d53a-22e9-4c7e-9c06-0b91a9d091f4
-@categoryId=c47ac10b-58cc-4372-a567-0e02b2c3d479
-@merchantId=d47ac10b-58cc-4372-a567-0e02b2c3d480
-@categoryGroupId=gh7ac10b-58cc-4372-a567-0e02b2c3d480
+# Balance IDs from seed data
+@balanceId1=ba001111-1111-1111-1111-111111111111  # BBVA Main Account
+@balanceId2=ba002222-2222-2222-2222-222222222222  # Santander Savings
+@balanceId3=ba004444-4444-4444-4444-444444444444  # Cash Wallet
+@balanceId4=ba007777-7777-7777-7777-777777777777  # Secondary user account
+
+# Merchant IDs from seed data
+@mercadonaId=4e001234-1234-5678-9abc-def012345678
+@starbucksId=4e007890-789a-bcde-f012-345678901234
+@uberId=4e00c0c0-cdef-0123-4567-890123456789
+@netflixId=4e001111-1234-5678-9abc-345678901234
+
+# Category IDs from seed data
+@categoryId=ca001111-1111-1111-1111-111111111111  # Food & Groceries
+@categoryGroupId=cg001111-1111-1111-1111-111111111111
 
 ### Docs
 # This endpoint retrieves transaction statistics (expenses/income) for a specific balance within a given time range.
@@ -33,7 +44,7 @@
 # - endTime - date end (UTC)
 
 ### Get expenses by balanceId in a time range, expenses only
-GET {{baseUrl}}/transactions/stats?balanceId={{balanceId}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z&type=expense
+GET {{baseUrl}}/transactions/stats?balanceId={{balanceId1}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z&type=expense
 Authorization: Bearer {{authToken}}
 
 # The returned object can look like this
@@ -53,7 +64,8 @@ Authorization: Bearer {{authToken}}
 ### Get stats for user for expenses or/and incomes for specific 
 # category group and merchant (e.g. Mercadona) in a date range between 
 # start time and now
-GET {{baseUrl}}/transactions/stats?userId={{userId1}}&categoryGroupId={{categoryGroupId}}&merchantId={{merchantId}}&startTime=2024-01-01T00:00:00Z&currency=EUR
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&categoryGroupId={{categoryGroupId}}&merchantId={{mercadonaId}}&startTime=2024-01-01T00:00:00Z&currency=EUR
+Authorization: Bearer {{authToken}}
 
 # The returned object can look like this
 # {
@@ -74,3 +86,39 @@ GET {{baseUrl}}/transactions/stats?userId={{userId1}}&categoryGroupId={{category
 #      "totalTransactionEntriesCount" : 20
 #   }
 # }
+
+### Get stats for all transactions in a specific balance (BBVA Main Account)
+GET {{baseUrl}}/transactions/stats?balanceId={{balanceId1}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z
+Authorization: Bearer {{authToken}}
+
+### Get income-only stats for user across all balances
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&type=income&startTime=2024-01-01T00:00:00Z
+Authorization: Bearer {{authToken}}
+
+### Get stats for Starbucks transactions only
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&merchantId={{starbucksId}}&startTime=2024-01-01T00:00:00Z
+Authorization: Bearer {{authToken}}
+
+### Get stats for specific category (food & groceries)
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&categoryId={{categoryId}}&startTime=2024-01-01T00:00:00Z
+Authorization: Bearer {{authToken}}
+
+### Get stats for secondary user transactions
+GET {{baseUrl}}/transactions/stats?userId={{userId2}}&balanceId={{balanceId4}}&startTime=2024-01-01T00:00:00Z
+Authorization: Bearer {{authToken}}
+
+### Get group-wide stats (all users in the group)
+GET {{baseUrl}}/transactions/stats?groupId={{groupId}}&startTime=2024-01-01T00:00:00Z&endTime=2024-12-31T23:59:59Z
+Authorization: Bearer {{authToken}}
+
+### Get stats with new "init" transaction type (for balance initialization)
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&type=init&startTime=2024-01-01T00:00:00Z
+Authorization: Bearer {{authToken}}
+
+### Get stats for transportation-related expenses (Uber)
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&merchantId={{uberId}}&type=expense&startTime=2024-01-01T00:00:00Z
+Authorization: Bearer {{authToken}}
+
+### Get current month stats for subscription services (Netflix)
+GET {{baseUrl}}/transactions/stats?userId={{userId1}}&merchantId={{netflixId}}&startTime=2024-12-01T00:00:00Z&endTime=2024-12-31T23:59:59Z
+Authorization: Bearer {{authToken}}
