@@ -7,7 +7,7 @@ type CreateTransactionDto struct {
 	UserID             string                      `json:"userId"`
 	BalanceID          string                      `json:"balanceId"`
 	Type               string                      `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
-	MerchantID         string                      `json:"merchantID,omitempty"`
+	MerchantID         string                      `json:"merchantId,omitempty"`
 	OperationID        string                      `json:"operationId,omitempty"`
 	ApprovedAt         string                      `json:"approvedAt,omitempty"`
 	TransactedAt       string                      `json:"transactedAt"`
@@ -169,7 +169,7 @@ type UpdateTransactionDto struct {
 	UserID             string                      `json:"userId"`
 	BalanceID          string                      `json:"balanceId"`
 	Type               string                      `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
-	MerchantID         string                      `json:"merchantID,omitempty"`
+	MerchantID         string                      `json:"merchantId,omitempty"`
 	OperationID        string                      `json:"operationId,omitempty"`
 	ApprovedAt         string                      `json:"approvedAt,omitempty"`
 	TransactedAt       string                      `json:"transactedAt"`
