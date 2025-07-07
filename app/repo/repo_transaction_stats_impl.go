@@ -24,42 +24,73 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 		`).
 		Joins("JOIN transaction t ON te.transaction_id = t.id").
 		Joins("JOIN balance b ON t.balance_id = b.id").
-		Where("b.deleted_at IS NULL").
 		Group("t.type, b.currency")
 
 	// Apply filters
-	if filter.GroupID != nil && *filter.GroupID != "" {
-		query = query.Where("t.group_id = ?", *filter.GroupID)
+	if filter.GroupID != "" {
+		query = query.Where("t.group_id = ?", filter.GroupID)
 	}
 
-	if filter.UserID != nil && *filter.UserID != "" {
-		query = query.Where("t.user_id = ?", *filter.UserID)
+	if filter.UserID != "" {
+		query = query.Where("t.user_id = ?", filter.UserID)
 	}
 
-	if filter.BalanceID != nil && *filter.BalanceID != "" {
-		query = query.Where("t.balance_id = ?", *filter.BalanceID)
+	// Filter by multiple balance IDs (OR operation)
+	if len(filter.BalanceID) > 0 {
+		query = query.Where("t.balance_id IN ?", filter.BalanceID)
 	}
 
-	if filter.Type != nil && *filter.Type != "" {
-		query = query.Where("t.type = ?", *filter.Type)
+	// Filter by multiple transaction types (OR operation)
+	if len(filter.Type) > 0 {
+		query = query.Where("t.type IN ?", filter.Type)
 	}
 
-	if filter.CategoryId != nil && *filter.CategoryId != "" {
-		query = query.Where("te.category_id = ?", *filter.CategoryId)
+	// Filter by multiple transaction IDs (OR operation)
+	if len(filter.TransactionId) > 0 {
+		query = query.Where("t.id IN ?", filter.TransactionId)
 	}
 
-	if filter.CategoryGroupId != nil && *filter.CategoryGroupId != "" {
-		query = query.Joins("JOIN category c ON te.category_id = c.id").
-			Where("c.\"group\" = ?", *filter.CategoryGroupId)
-	}
-
-	if filter.MerchantId != nil && *filter.MerchantId != "" {
+	// Filter by multiple merchant IDs (OR operation)
+	if len(filter.MerchantId) > 0 {
 		query = query.Joins("JOIN merchant m ON t.merchant_id = m.id AND m.deleted_at IS NULL").
-			Where("t.merchant_id = ?", *filter.MerchantId)
+			Where("t.merchant_id IN ?", filter.MerchantId)
 	}
 
-	if filter.StartTime != nil {
-		query = query.Where("t.transacted_at >= ?", *filter.StartTime)
+	// Filter by multiple category IDs OR category group IDs (OR operation)
+	// This handles filtering by category or category group independently
+	var categoryConditions []string
+	var categoryArgs []interface{}
+
+	if len(filter.CategoryId) > 0 {
+		categoryConditions = append(categoryConditions, "te.category_id IN ?")
+		categoryArgs = append(categoryArgs, filter.CategoryId)
+	}
+
+	if len(filter.CategoryGroupId) > 0 {
+		categoryConditions = append(categoryConditions, "c.category_group_id IN ?")
+		categoryArgs = append(categoryArgs, filter.CategoryGroupId)
+	}
+
+	if len(categoryConditions) > 0 {
+		// Join with category table if we have category-related filters
+		query = query.Joins("JOIN category c ON te.category_id = c.id AND c.deleted_at IS NULL")
+
+		// Apply OR condition between category filters
+		if len(categoryConditions) == 1 {
+			query = query.Where(categoryConditions[0], categoryArgs...)
+		} else {
+			// Multiple conditions with OR
+			orCondition := fmt.Sprintf("(%s)", categoryConditions[0])
+			for i := 1; i < len(categoryConditions); i++ {
+				orCondition += fmt.Sprintf(" OR (%s)", categoryConditions[i])
+			}
+			query = query.Where(orCondition, categoryArgs...)
+		}
+	}
+
+	// Apply time filters
+	if !filter.StartTime.IsZero() {
+		query = query.Where("t.transacted_at >= ?", filter.StartTime)
 	}
 
 	if filter.EndTime != nil {

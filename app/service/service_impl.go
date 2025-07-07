@@ -23,6 +23,15 @@ func NewServiceImpl(repo repo.Repository) *ServiceImpl {
 
 func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
 	tx.ID = models.NewTransactionID()
+
+	// Validate merchant exists if merchantID is provided
+	if tx.MerchantID != nil {
+		_, err := s.repo.GetMerchant(ctx, tx.MerchantID.String())
+		if err != nil {
+			return nil, fmt.Errorf("merchant with ID %s not found: %w", tx.MerchantID.String(), err)
+		}
+	}
+
 	return s.repo.CreateTransaction(ctx, tx)
 }
 
@@ -36,6 +45,15 @@ func (s *ServiceImpl) ListTransactions(ctx context.Context, filter models.ListTr
 
 func (s *ServiceImpl) UpdateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
 	tx.UpdatedAt = time.Now().UTC()
+
+	// Validate merchant exists if merchantID is provided
+	if tx.MerchantID != nil {
+		_, err := s.repo.GetMerchant(ctx, tx.MerchantID.String())
+		if err != nil {
+			return nil, fmt.Errorf("merchant with ID %s not found: %w", tx.MerchantID.String(), err)
+		}
+	}
+
 	return s.repo.UpdateTransaction(ctx, tx)
 }
 
@@ -203,6 +221,14 @@ func (s *ServiceImpl) CreateTransactions(ctx context.Context, transactions []mod
 	// Generate transaction IDs and validate move operations
 	for i := range transactions {
 		transactions[i].ID = models.NewTransactionID()
+
+		// Validate merchant exists if merchantID is provided
+		if transactions[i].MerchantID != nil {
+			_, err := s.repo.GetMerchant(ctx, transactions[i].MerchantID.String())
+			if err != nil {
+				return nil, nil, fmt.Errorf("merchant with ID %s not found for transaction %d: %w", transactions[i].MerchantID.String(), i, err)
+			}
+		}
 
 		// Validate move operations have negative amounts for move_out and positive for move_in
 		if transactions[i].Type == "move_out" {

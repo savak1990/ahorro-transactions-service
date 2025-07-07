@@ -135,10 +135,9 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Preload("Category").
 		Preload("Category.CategoryGroup") // Load CategoryGroup without filtering to detect soft-deleted groups
 
-	// Always join with balance table to exclude soft-deleted balances
+	// Always join with balance table (include both deleted and non-deleted balances)
 	query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id").
-		Joins("JOIN balance ON transaction.balance_id = balance.id").
-		Where("balance.deleted_at IS NULL")
+		Joins("JOIN balance ON transaction.balance_id = balance.id")
 
 	// Join category table if we need to filter by category or category group
 	if len(filter.CategoryIds) > 0 || len(filter.CategoryGroupIds) > 0 {

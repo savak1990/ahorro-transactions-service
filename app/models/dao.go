@@ -171,8 +171,8 @@ func (t *Transaction) validateType() error {
 	if t.Type == "" {
 		return nil
 	}
-	
-	validTypes := []string{"income", "expense", "movement", "move_in", "move_out"}
+
+	validTypes := []string{"init", "income", "expense", "move_in", "move_out"}
 	for _, validType := range validTypes {
 		if t.Type == validType {
 			return nil
