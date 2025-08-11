@@ -48,7 +48,7 @@ func TestToAPITransactionEntry(t *testing.T) {
 		ID:           transactionID,
 		GroupID:      groupID,
 		UserID:       userID,
-		BalanceID:    balanceID,
+		BalanceID:    &balanceID,
 		MerchantID:   &merchantID,
 		Type:         "expense",
 		ApprovedAt:   time.Now(),
@@ -229,6 +229,133 @@ func TestToAPITransactionEntry_SoftDeletedCategoryGroup(t *testing.T) {
 	// Amount should still be converted correctly
 	if result.Amount != 3000 {
 		t.Errorf("Expected amount to be 3000 cents, got %d", result.Amount)
+	}
+}
+
+func TestFromAPICreateTransaction_OptionalTransactedAt(t *testing.T) {
+	// Create a transaction without transactedAt
+	createDto := CreateTransactionDto{
+		UserID:             uuid.New().String(),
+		GroupID:            uuid.New().String(),
+		Type:               "expense",
+		TransactionEntries: []CreateTransactionEntryDto{},
+		// TransactedAt is intentionally omitted
+	}
+
+	// Record time before conversion
+	beforeTime := time.Now()
+
+	// Convert to transaction
+	transaction, err := FromAPICreateTransaction(createDto)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Record time after conversion
+	afterTime := time.Now()
+
+	// Verify that transactedAt is between beforeTime and afterTime
+	if transaction.TransactedAt.Before(beforeTime) || transaction.TransactedAt.After(afterTime) {
+		t.Errorf("Expected transactedAt to be between %v and %v, got %v",
+			beforeTime, afterTime, transaction.TransactedAt)
+	}
+
+	// Verify that approvedAt equals transactedAt (default behavior)
+	if !transaction.ApprovedAt.Equal(transaction.TransactedAt) {
+		t.Errorf("Expected approvedAt to equal transactedAt when not provided, got approvedAt=%v, transactedAt=%v",
+			transaction.ApprovedAt, transaction.TransactedAt)
+	}
+}
+
+func TestFromAPICreateTransaction_OptionalBalanceId(t *testing.T) {
+	// Create a transaction without balanceId
+	createDto := CreateTransactionDto{
+		UserID:             uuid.New().String(),
+		GroupID:            uuid.New().String(),
+		Type:               "expense",
+		TransactionEntries: []CreateTransactionEntryDto{},
+		// BalanceID is intentionally omitted
+	}
+
+	// Convert to transaction
+	transaction, err := FromAPICreateTransaction(createDto)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify that BalanceID is nil
+	if transaction.BalanceID != nil {
+		t.Errorf("Expected BalanceID to be nil when not provided, got %v", transaction.BalanceID)
+	}
+}
+
+func TestToAPITransactionEntry_NilBalance(t *testing.T) {
+	// Create test data
+	transactionID := uuid.New()
+	entryID := uuid.New()
+	groupID := uuid.New()
+	userID := uuid.New()
+
+	// Create test transaction WITHOUT balance
+	transaction := &Transaction{
+		ID:           transactionID,
+		GroupID:      groupID,
+		UserID:       userID,
+		BalanceID:    nil, // No balance
+		Type:         "expense",
+		ApprovedAt:   time.Now(),
+		TransactedAt: time.Now(),
+		Balance:      nil, // No balance relationship
+	}
+
+	// Create test transaction entry
+	entry := &TransactionEntry{
+		ID:            entryID,
+		TransactionID: transactionID,
+		Amount:        int64(2500), // $25.00 in cents
+		Transaction:   transaction,
+	}
+
+	// Convert to API model
+	result := ToAPITransactionEntry(entry)
+
+	// Verify transaction fields are populated correctly
+	if result.TransactionID != transactionID.String() {
+		t.Errorf("Expected transactionID to be %s, got %s", transactionID.String(), result.TransactionID)
+	}
+
+	if result.Type != "expense" {
+		t.Errorf("Expected type to be 'expense', got '%s'", result.Type)
+	}
+
+	if result.Amount != 2500 {
+		t.Errorf("Expected amount to be 2500 cents, got %d", result.Amount)
+	}
+
+	// Verify balance fields are empty when balance is nil
+	if result.BalanceID != "" {
+		t.Errorf("Expected balanceID to be empty when balance is nil, got '%s'", result.BalanceID)
+	}
+
+	if result.BalanceTitle != "" {
+		t.Errorf("Expected balanceTitle to be empty when balance is nil, got '%s'", result.BalanceTitle)
+	}
+
+	if result.BalanceCurrency != "" {
+		t.Errorf("Expected balanceCurrency to be empty when balance is nil, got '%s'", result.BalanceCurrency)
+	}
+
+	if result.BalanceDeleted {
+		t.Error("Expected balanceDeleted to be false when balance is nil")
+	}
+
+	// Verify other required fields are still populated
+	if result.GroupID != groupID.String() {
+		t.Errorf("Expected groupID to be %s, got %s", groupID.String(), result.GroupID)
+	}
+
+	if result.UserID != userID.String() {
+		t.Errorf("Expected userID to be %s, got %s", userID.String(), result.UserID)
 	}
 }
 

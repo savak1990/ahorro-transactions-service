@@ -184,26 +184,38 @@ func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	transactionID := vars["transaction_id"]
-	var tx models.Transaction
-	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
+
+	var updateDto models.UpdateTransactionDto
+	if err := json.NewDecoder(r.Body).Decode(&updateDto); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
-	// Parse UUID from string
+
+	// Parse transaction ID and set it in DTO
 	id, err := uuid.Parse(transactionID)
 	if err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid transaction ID format")
 		return
 	}
-	tx.ID = id
+	updateDto.TransactionID = id.String()
 
-	updated, err := h.Service.UpdateTransaction(r.Context(), tx)
+	// Convert DTO to DAO model
+	transaction, err := models.FromAPIUpdateTransaction(updateDto)
+	if err != nil {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid transaction data: "+err.Error())
+		return
+	}
+
+	updated, err := h.Service.UpdateTransaction(r.Context(), *transaction, updateDto.TransactionEntries)
 	if err != nil {
 		h.handleServiceError(w, err, "UpdateTransaction")
 		return
 	}
+
+	// Convert back to DTO for response
+	responseDto := models.ToAPICreateTransaction(updated)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updated)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
 // DELETE /transactions/{transaction_id}

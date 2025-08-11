@@ -43,18 +43,81 @@ func (s *ServiceImpl) ListTransactions(ctx context.Context, filter models.ListTr
 	return s.repo.ListTransactions(ctx, filter)
 }
 
-func (s *ServiceImpl) UpdateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
-	tx.UpdatedAt = time.Now().UTC()
+func (s *ServiceImpl) UpdateTransaction(ctx context.Context, updatedTx models.Transaction, entryDtos []models.CreateTransactionEntryDto) (*models.Transaction, error) {
+	// First, fetch the existing transaction to preserve fields not being updated
+	existingTx, err := s.repo.GetTransaction(ctx, updatedTx.ID.String())
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch existing transaction: %w", err)
+	}
+
+	// Update only the fields that should be updated, preserving others
+	// For BalanceID: if provided in update, use it; if not provided, set to null
+	// For TransactedAt: preserve existing if not provided in update
+
+	if updatedTx.TransactedAt.IsZero() {
+		updatedTx.TransactedAt = existingTx.TransactedAt
+	}
+	if updatedTx.ApprovedAt.IsZero() {
+		updatedTx.ApprovedAt = existingTx.ApprovedAt
+	}
+
+	// Preserve CreatedAt
+	updatedTx.CreatedAt = existingTx.CreatedAt
+	updatedTx.UpdatedAt = time.Now().UTC()
 
 	// Validate merchant exists if merchantID is provided
-	if tx.MerchantID != nil {
-		_, err := s.repo.GetMerchant(ctx, tx.MerchantID.String())
+	if updatedTx.MerchantID != nil {
+		_, err := s.repo.GetMerchant(ctx, updatedTx.MerchantID.String())
 		if err != nil {
-			return nil, fmt.Errorf("merchant with ID %s not found: %w", tx.MerchantID.String(), err)
+			return nil, fmt.Errorf("merchant with ID %s not found: %w", updatedTx.MerchantID.String(), err)
 		}
 	}
 
-	return s.repo.UpdateTransaction(ctx, tx)
+	// Handle transaction entries - merge DTOs with existing entries
+	var updatedEntries []models.TransactionEntry
+	for i, entryDto := range entryDtos {
+		var entryID uuid.UUID
+		var createdAt time.Time
+
+		// If we have an existing entry at this position, preserve its ID and CreatedAt
+		if i < len(existingTx.TransactionEntries) {
+			entryID = existingTx.TransactionEntries[i].ID
+			createdAt = existingTx.TransactionEntries[i].CreatedAt
+		} else {
+			// New entry
+			entryID = models.NewTransactionEntryID()
+			createdAt = time.Now().UTC()
+		}
+
+		// Parse category ID if provided
+		var categoryID *uuid.UUID
+		if entryDto.CategoryID != "" {
+			catID, err := uuid.Parse(entryDto.CategoryID)
+			if err != nil {
+				return nil, fmt.Errorf("invalid category ID format: %w", err)
+			}
+			categoryID = &catID
+		}
+
+		var desc *string
+		if entryDto.Description != "" {
+			desc = &entryDto.Description
+		}
+
+		entry := models.TransactionEntry{
+			ID:            entryID,
+			TransactionID: updatedTx.ID,
+			Description:   desc,
+			Amount:        int64(entryDto.Amount),
+			CategoryID:    categoryID,
+			CreatedAt:     createdAt,
+			UpdatedAt:     time.Now().UTC(),
+		}
+		updatedEntries = append(updatedEntries, entry)
+	}
+
+	updatedTx.TransactionEntries = updatedEntries
+	return s.repo.UpdateTransaction(ctx, updatedTx)
 }
 
 func (s *ServiceImpl) DeleteTransaction(ctx context.Context, transactionID string) error {

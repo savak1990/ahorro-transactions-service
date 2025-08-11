@@ -135,11 +135,17 @@ func ToAPICreateTransaction(t *Transaction) CreateTransactionDto {
 		approvedAt = t.ApprovedAt.Format(time.RFC3339)
 	}
 
+	// Convert balanceID to string if available
+	var balanceID string
+	if t.BalanceID != nil {
+		balanceID = t.BalanceID.String()
+	}
+
 	return CreateTransactionDto{
 		TransactionID:      t.ID.String(),
 		UserID:             t.UserID.String(),
 		GroupID:            t.GroupID.String(),
-		BalanceID:          t.BalanceID.String(),
+		BalanceID:          balanceID,
 		Type:               t.Type,
 		MerchantID:         merchantID,
 		OperationID:        operationID,
@@ -171,8 +177,14 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	}
 
 	balanceID, err := parseUUID(t.BalanceID)
-	if err != nil {
-		return nil, err
+	if err != nil && t.BalanceID != "" {
+		return nil, fmt.Errorf("invalid balance ID format: %w", err)
+	}
+
+	// Convert to pointer for nullable field
+	var balanceIDPtr *uuid.UUID
+	if t.BalanceID != "" && balanceID != uuid.Nil {
+		balanceIDPtr = &balanceID
 	}
 
 	// Parse operation ID if provided
@@ -197,13 +209,18 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	}
 
 	// Parse timestamps
-	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
-	if err != nil {
-		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+	transactedAt := time.Now() // Default to current time
+	if t.TransactedAt != "" {
+		var err error
+		transactedAt, err = time.Parse(time.RFC3339, t.TransactedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+		}
 	}
 
 	approvedAt := transactedAt // Default to transacted_at
 	if t.ApprovedAt != "" {
+		var err error
 		approvedAt, err = time.Parse(time.RFC3339, t.ApprovedAt)
 		if err != nil {
 			return nil, fmt.Errorf("invalid approved_at format: %w", err)
@@ -216,7 +233,7 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 		ID:           transactionID,
 		GroupID:      groupID,
 		UserID:       userID,
-		BalanceID:    balanceID,
+		BalanceID:    balanceIDPtr,
 		MerchantID:   merchantID,
 		Type:         t.Type,
 		OperationID:  operationID,
@@ -444,7 +461,9 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		transactionID = te.Transaction.ID.String()
 		groupID = te.Transaction.GroupID.String()
 		userID = te.Transaction.UserID.String()
-		balanceID = te.Transaction.BalanceID.String()
+		if te.Transaction.BalanceID != nil {
+			balanceID = te.Transaction.BalanceID.String()
+		}
 		transactionType = te.Transaction.Type
 		if te.Transaction.Merchant != nil {
 			merchantName = te.Transaction.Merchant.Name
@@ -697,8 +716,14 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 	}
 
 	balanceID, err := parseUUID(t.BalanceID)
-	if err != nil {
-		return nil, err
+	if err != nil && t.BalanceID != "" {
+		return nil, fmt.Errorf("invalid balance ID format: %w", err)
+	}
+
+	// Convert to pointer for nullable field
+	var balanceIDPtr *uuid.UUID
+	if t.BalanceID != "" && balanceID != uuid.Nil {
+		balanceIDPtr = &balanceID
 	}
 
 	// Parse operation ID if provided
@@ -722,14 +747,19 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 		merchantID = &mID
 	}
 
-	// Parse timestamps
-	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
-	if err != nil {
-		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+	// Parse timestamps - only set if provided in the update request (don't default)
+	var transactedAt time.Time
+	if t.TransactedAt != "" {
+		var err error
+		transactedAt, err = time.Parse(time.RFC3339, t.TransactedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+		}
 	}
 
-	approvedAt := transactedAt // Default to transacted_at
+	var approvedAt time.Time
 	if t.ApprovedAt != "" {
+		var err error
 		approvedAt, err = time.Parse(time.RFC3339, t.ApprovedAt)
 		if err != nil {
 			return nil, fmt.Errorf("invalid approved_at format: %w", err)
@@ -741,7 +771,7 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 		ID:           id,
 		GroupID:      groupID,
 		UserID:       userID,
-		BalanceID:    balanceID,
+		BalanceID:    balanceIDPtr,
 		MerchantID:   merchantID,
 		Type:         t.Type,
 		OperationID:  operationID,
@@ -749,16 +779,7 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 		TransactedAt: transactedAt,
 	}
 
-	// Create transaction entries
-	var entries []TransactionEntry
-	for _, entryDto := range t.TransactionEntries {
-		entry, err := FromAPICreateTransactionEntry(entryDto, id)
-		if err != nil {
-			return nil, fmt.Errorf("error converting transaction entry: %w", err)
-		}
-		entries = append(entries, *entry)
-	}
-
-	transaction.TransactionEntries = entries
+	// For updates, don't create transaction entries here - let the service layer handle merging
+	// Just store the DTOs for the service layer to process
 	return transaction, nil
 }

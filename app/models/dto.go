@@ -5,12 +5,12 @@ type CreateTransactionDto struct {
 	TransactionID      string                      `json:"transactionId,omitempty"`
 	GroupID            string                      `json:"groupId"`
 	UserID             string                      `json:"userId"`
-	BalanceID          string                      `json:"balanceId"`
+	BalanceID          string                      `json:"balanceId,omitempty"`
 	Type               string                      `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
 	MerchantID         string                      `json:"merchantId,omitempty"`
 	OperationID        string                      `json:"operationId,omitempty"`
 	ApprovedAt         string                      `json:"approvedAt,omitempty"`
-	TransactedAt       string                      `json:"transactedAt"`
+	TransactedAt       string                      `json:"transactedAt,omitempty"`
 	CreatedAt          string                      `json:"createdAt,omitempty"`
 	UpdatedAt          string                      `json:"updatedAt,omitempty"`
 	DeletedAt          string                      `json:"deletedAt,omitempty"`
@@ -43,13 +43,13 @@ type CreateTransactionEntryDto struct {
 type TransactionEntryDto struct {
 	GroupID               string  `json:"groupId"`
 	UserID                string  `json:"userId"`
-	BalanceID             string  `json:"balanceId"`
+	BalanceID             string  `json:"balanceId,omitempty"`
 	TransactionID         string  `json:"transactionId"`
 	TransactionEntryID    string  `json:"transactionEntryId"`
 	Type                  string  `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
 	Amount                int     `json:"amount"`
-	BalanceTitle          string  `json:"balanceTitle"`
-	BalanceCurrency       string  `json:"balanceCurrency"`
+	BalanceTitle          string  `json:"balanceTitle,omitempty"`
+	BalanceCurrency       string  `json:"balanceCurrency,omitempty"`
 	BalanceDeleted        bool    `json:"balanceDeleted,omitempty"`
 	CategoryID            string  `json:"categoryId,omitempty"`
 	CategoryName          string  `json:"categoryName"`
@@ -63,7 +63,7 @@ type TransactionEntryDto struct {
 	MerchantImageUrl      string  `json:"merchantImageUrl,omitempty"`
 	OperationID           string  `json:"operationId,omitempty"`
 	ApprovedAt            string  `json:"approvedAt,omitempty"`
-	TransactedAt          string  `json:"transactedAt"`
+	TransactedAt          string  `json:"transactedAt,omitempty"`
 }
 
 // Balance represents a user's balance/account for API responses.
@@ -167,12 +167,12 @@ type UpdateTransactionDto struct {
 	TransactionID      string                      `json:"transactionId,omitempty"`
 	GroupID            string                      `json:"groupId"`
 	UserID             string                      `json:"userId"`
-	BalanceID          string                      `json:"balanceId"`
+	BalanceID          string                      `json:"balanceId,omitempty"`
 	Type               string                      `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
 	MerchantID         string                      `json:"merchantId,omitempty"`
 	OperationID        string                      `json:"operationId,omitempty"`
 	ApprovedAt         string                      `json:"approvedAt,omitempty"`
-	TransactedAt       string                      `json:"transactedAt"`
+	TransactedAt       string                      `json:"transactedAt,omitempty"`
 	CreatedAt          string                      `json:"createdAt,omitempty"`
 	UpdatedAt          string                      `json:"updatedAt,omitempty"`
 	DeletedAt          string                      `json:"deletedAt,omitempty"`

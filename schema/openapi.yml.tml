@@ -2245,9 +2245,7 @@ components:
       required:
         - userId
         - groupId
-        - balanceId
         - type
-        - transactedAt
         - transactionEntries
       properties:
         userId:
@@ -2371,9 +2369,7 @@ components:
       required:
         - userId
         - groupId
-        - balanceId
         - type
-        - transactedAt
         - transactionEntries
       properties:
         userId:
