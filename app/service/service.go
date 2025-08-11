@@ -11,7 +11,7 @@ type Service interface {
 	CreateTransaction(ctx context.Context, tx m.Transaction) (*m.Transaction, error)
 	CreateTransactions(ctx context.Context, transactions []m.Transaction) ([]m.Transaction, *string, error) // Returns transactions, operationID, error
 	GetTransaction(ctx context.Context, transactionID string) (*m.Transaction, error)
-	UpdateTransaction(ctx context.Context, tx m.Transaction) (*m.Transaction, error)
+	UpdateTransaction(ctx context.Context, tx m.Transaction, entryDtos []m.CreateTransactionEntryDto) (*m.Transaction, error)
 	DeleteTransaction(ctx context.Context, transactionID string) error
 	ListTransactions(ctx context.Context, filter m.ListTransactionsInput) ([]m.Transaction, error)
 	ListTransactionEntries(ctx context.Context, filter m.ListTransactionsInput) ([]m.TransactionEntry, error)

@@ -99,7 +99,7 @@ type Transaction struct {
 	ID           uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	GroupID      uuid.UUID  `gorm:"type:uuid;not null;index:idx_transaction_group_id"`
 	UserID       uuid.UUID  `gorm:"type:uuid;not null;index:idx_transaction_user_id"`
-	BalanceID    uuid.UUID  `gorm:"type:uuid;not null;index:idx_transaction_balance_id"`
+	BalanceID    *uuid.UUID `gorm:"type:uuid;index:idx_transaction_balance_id"`
 	MerchantID   *uuid.UUID `gorm:"type:uuid;index:idx_transaction_merchant_id"`
 	Type         string     `gorm:"type:varchar(20);not null;index:idx_transaction_type"`
 	OperationID  *uuid.UUID `gorm:"type:uuid;index:idx_transaction_operation_id"`
@@ -111,7 +111,7 @@ type Transaction struct {
 
 	// Relationships
 	Merchant           *Merchant          `gorm:"foreignKey:MerchantID;constraint:OnDelete:SET NULL"`
-	Balance            *Balance           `gorm:"foreignKey:BalanceID"`
+	Balance            *Balance           `gorm:"foreignKey:BalanceID;constraint:OnDelete:SET NULL"`
 	TransactionEntries []TransactionEntry `gorm:"foreignKey:TransactionID"`
 }
 

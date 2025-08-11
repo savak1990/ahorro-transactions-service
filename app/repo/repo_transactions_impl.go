@@ -79,11 +79,11 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 	var tx models.Transaction
 	if err := db.WithContext(ctx).
 		Preload("Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
+		Preload("Balance").                        // Load balance if it exists
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
 		Preload("TransactionEntries.Category.CategoryGroup"). // Load CategoryGroup without filtering to detect soft-deleted groups
-		Joins("JOIN balance ON transaction.balance_id = balance.id").
-		Where("transaction.id = ? AND balance.deleted_at IS NULL", transactionID).
+		Where("transaction.id = ?", transactionID).
 		First(&tx).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("transaction not found: %s", transactionID)
@@ -99,7 +99,7 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 
 	db := r.getDB()
 
-	if err := db.WithContext(ctx).Save(tx).Error; err != nil {
+	if err := db.WithContext(ctx).Save(&tx).Error; err != nil {
 		return nil, fmt.Errorf("failed to update transaction: %w", err)
 	}
 
@@ -135,9 +135,9 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Preload("Category").
 		Preload("Category.CategoryGroup") // Load CategoryGroup without filtering to detect soft-deleted groups
 
-	// Always join with balance table (include both deleted and non-deleted balances)
+	// Left join with balance table (include transactions even without balanceId)
 	query = query.Joins("JOIN transaction ON transaction_entry.transaction_id = transaction.id").
-		Joins("JOIN balance ON transaction.balance_id = balance.id")
+		Joins("LEFT JOIN balance ON transaction.balance_id = balance.id")
 
 	// Join category table if we need to filter by category or category group
 	if len(filter.CategoryIds) > 0 || len(filter.CategoryGroupIds) > 0 {
