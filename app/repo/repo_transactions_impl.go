@@ -79,12 +79,12 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 
 	var tx models.Transaction
 	if err := db.WithContext(ctx).
+		Preload("Balance").                        // Load balance regardless of deletion status
 		Preload("Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("TransactionEntries").
 		Preload("TransactionEntries.Category").
 		Preload("TransactionEntries.Category.CategoryGroup"). // Load CategoryGroup without filtering to detect soft-deleted groups
-		Joins("JOIN balance ON transaction.balance_id = balance.id").
-		Where("transaction.id = ? AND balance.deleted_at IS NULL", transactionID).
+		Where("transaction.id = ?", transactionID).
 		First(&tx).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("transaction not found: %s", transactionID)

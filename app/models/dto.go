@@ -41,7 +41,7 @@ type CreateTransactionEntryDto struct {
 
 // UpdateTransactionEntryDto represents a single entry within a transaction for update via PUT requests
 type UpdateTransactionEntryDto struct {
-	ID          string `json:"id"` // Required for updates to identify the entry
+	ID          string `json:"id"`
 	Description string `json:"description"`
 	Amount      int    `json:"amount"`
 	CategoryID  string `json:"categoryId"`
@@ -198,6 +198,7 @@ type SingleTransactionDto struct {
 	BalanceID          string                      `json:"balanceId"`
 	BalanceTitle       string                      `json:"balanceTitle"`
 	BalanceCurrency    string                      `json:"balanceCurrency"`
+	BalanceDeleted     bool                        `json:"balanceDeleted,omitempty"`
 	Type               string                      `json:"type"`
 	MerchantID         string                      `json:"merchantId,omitempty"`
 	MerchantName       string                      `json:"merchantName,omitempty"`

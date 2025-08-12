@@ -52,17 +52,14 @@ func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transacti
 }
 
 func (s *ServiceImpl) GetTransaction(ctx context.Context, transactionID string) (*models.SingleTransactionDto, error) {
-	// Get the base transaction
+	// Get the base transaction with preloaded balance
 	tx, err := s.repo.GetTransaction(ctx, transactionID)
 	if err != nil {
 		return nil, fmt.Errorf("transaction with ID %s not found: %w", transactionID, err)
 	}
 
-	// Get balance details - return error if balance not found
-	balance, err := s.repo.GetBalance(ctx, tx.BalanceID.String())
-	if err != nil {
-		return nil, fmt.Errorf("balance with ID %s not found: %w", tx.BalanceID.String(), err)
-	}
+	// Use the preloaded balance from the transaction
+	balance := tx.Balance
 
 	// Create the main DTO
 	dto := models.SingleTransactionDto{
@@ -72,6 +69,7 @@ func (s *ServiceImpl) GetTransaction(ctx context.Context, transactionID string) 
 		BalanceID:       tx.BalanceID.String(),
 		BalanceTitle:    balance.Title,
 		BalanceCurrency: balance.Currency,
+		BalanceDeleted:  balance.DeletedAt != nil,
 		Type:            tx.Type,
 		ApprovedAt:      tx.ApprovedAt.Format(time.RFC3339),
 		TransactedAt:    tx.TransactedAt.Format(time.RFC3339),

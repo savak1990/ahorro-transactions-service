@@ -18,11 +18,11 @@ func (r *PostgreSQLRepository) CreateBalance(ctx context.Context, balance models
 	return &balance, nil
 }
 
-// ListBalances retrieves all balances
+// ListBalances retrieves all balances including soft-deleted ones
 func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.ListBalancesInput) ([]models.Balance, error) {
 	var balances []models.Balance
 	db := r.getDB()
-	query := db.WithContext(ctx).Where("deleted_at IS NULL")
+	query := db.WithContext(ctx) // Remove the deleted_at IS NULL filter to include soft-deleted balances
 
 	// Apply filters
 	if filter.UserID != "" {
@@ -72,11 +72,11 @@ func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.L
 	return balances, nil
 }
 
-// GetBalance retrieves a balance by ID
+// GetBalance retrieves a balance by ID including soft-deleted ones
 func (r *PostgreSQLRepository) GetBalance(ctx context.Context, balanceID string) (*models.Balance, error) {
 	var balance models.Balance
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ? AND deleted_at IS NULL", balanceID).First(&balance).Error; err != nil {
+	if err := db.WithContext(ctx).Where("id = ?", balanceID).First(&balance).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, fmt.Errorf("balance not found: %s", balanceID)
 		}
