@@ -679,12 +679,13 @@ paths:
           schema:
             type: string
             format: uuid
-        - name: balanceId
+        - name: includeDeleted
           in: query
-          description: "Filter by specific balance ID"
+          description: "Include deleted balances in the response"
           schema:
-            type: string
-            format: uuid
+            type: boolean
+            default: false
+          example: false
         - name: sortBy
           in: query
           description: "Sort field"

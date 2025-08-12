@@ -48,13 +48,31 @@ func (h *HandlerImpl) ListBalances(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Parse includeDeleted (defaults to false)
+	includeDeleted := false
+	if includeDeletedStr := query.Get("includeDeleted"); includeDeletedStr != "" {
+		if parsedIncludeDeleted, err := strconv.ParseBool(includeDeletedStr); err == nil {
+			includeDeleted = parsedIncludeDeleted
+		}
+	}
+
+	// Extract and validate required parameters
+	userID := query.Get("userId")
+	groupID := query.Get("groupId")
+
+	// Require either groupId or userId to be provided
+	if userID == "" && groupID == "" {
+		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Either 'userId' or 'groupId' parameter is required")
+		return
+	}
+
 	filter := models.ListBalancesInput{
-		UserID:    query.Get("userId"),
-		GroupID:   query.Get("groupId"),
-		BalanceID: query.Get("balanceId"),
-		SortBy:    query.Get("sortBy"),
-		Order:     query.Get("order"),
-		Limit:     limit,
+		UserID:         userID,
+		GroupID:        groupID,
+		IncludeDeleted: includeDeleted,
+		SortBy:         query.Get("sortBy"),
+		Order:          query.Get("order"),
+		Limit:          limit,
 	}
 
 	results, err := h.Service.ListBalances(r.Context(), filter)

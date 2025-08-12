@@ -18,11 +18,16 @@ func (r *PostgreSQLRepository) CreateBalance(ctx context.Context, balance models
 	return &balance, nil
 }
 
-// ListBalances retrieves all balances including soft-deleted ones
+// ListBalances retrieves balances with optional inclusion of soft-deleted ones
 func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.ListBalancesInput) ([]models.Balance, error) {
 	var balances []models.Balance
 	db := r.getDB()
-	query := db.WithContext(ctx) // Remove the deleted_at IS NULL filter to include soft-deleted balances
+	query := db.WithContext(ctx)
+
+	// Filter out deleted balances unless explicitly requested
+	if !filter.IncludeDeleted {
+		query = query.Where("deleted_at IS NULL")
+	}
 
 	// Apply filters
 	if filter.UserID != "" {
@@ -30,9 +35,6 @@ func (r *PostgreSQLRepository) ListBalances(ctx context.Context, filter models.L
 	}
 	if filter.GroupID != "" {
 		query = query.Where("group_id = ?", filter.GroupID)
-	}
-	if filter.BalanceID != "" {
-		query = query.Where("id = ?", filter.BalanceID)
 	}
 
 	// Apply ordering

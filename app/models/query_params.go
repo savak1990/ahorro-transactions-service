@@ -40,12 +40,12 @@ type ListTransactionsInput struct {
 
 // ListBalancesInput defines the filter and pagination options for list of balances
 type ListBalancesInput struct {
-	GroupID   string
-	UserID    string
-	BalanceID string
-	SortBy    string
-	Order     string
-	Limit     int
+	GroupID        string
+	UserID         string
+	IncludeDeleted bool
+	SortBy         string
+	Order          string
+	Limit          int
 }
 
 // ListMerchantsInput defines the filter and pagination options for list of merchants
