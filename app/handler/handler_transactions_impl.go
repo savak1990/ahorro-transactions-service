@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/savak1990/transactions-service/app/helpers"
 	"github.com/savak1990/transactions-service/app/models"
@@ -184,26 +183,24 @@ func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 func (h *HandlerImpl) UpdateTransaction(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	transactionID := vars["transaction_id"]
-	var tx models.Transaction
-	if err := json.NewDecoder(r.Body).Decode(&tx); err != nil {
+
+	var updateDto models.UpdateTransactionDto
+	if err := json.NewDecoder(r.Body).Decode(&updateDto); err != nil {
 		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid request body: "+err.Error())
 		return
 	}
-	// Parse UUID from string
-	id, err := uuid.Parse(transactionID)
-	if err != nil {
-		WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid transaction ID format")
-		return
-	}
-	tx.ID = id
 
-	updated, err := h.Service.UpdateTransaction(r.Context(), tx)
+	updated, err := h.Service.UpdateTransaction(r.Context(), transactionID, updateDto)
 	if err != nil {
 		h.handleServiceError(w, err, "UpdateTransaction")
 		return
 	}
+
+	// Convert to DTO for response
+	responseDto := models.ToAPIUpdateTransaction(updated)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updated)
+	json.NewEncoder(w).Encode(responseDto)
 }
 
 // DELETE /transactions/{transaction_id}

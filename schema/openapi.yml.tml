@@ -2247,7 +2247,6 @@ components:
         - groupId
         - balanceId
         - type
-        - transactedAt
         - transactionEntries
       properties:
         userId:
@@ -2373,7 +2372,6 @@ components:
         - groupId
         - balanceId
         - type
-        - transactedAt
         - transactionEntries
       properties:
         userId:

@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/savak1990/transactions-service/app/models"
 	"gorm.io/gorm"
@@ -99,11 +100,88 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 
 	db := r.getDB()
 
-	if err := db.WithContext(ctx).Save(tx).Error; err != nil {
-		return nil, fmt.Errorf("failed to update transaction: %w", err)
+	// Use a database transaction to ensure atomicity
+	err := db.WithContext(ctx).Transaction(func(dbTx *gorm.DB) error {
+		// Update the main transaction record (without transaction entries to avoid GORM auto-management)
+		txWithoutEntries := tx
+		txWithoutEntries.TransactionEntries = nil
+
+		if err := dbTx.Save(&txWithoutEntries).Error; err != nil {
+			return fmt.Errorf("failed to update transaction: %w", err)
+		}
+
+		// Handle transaction entries separately if provided
+		if len(tx.TransactionEntries) > 0 {
+			// Get existing transaction entries
+			var existingEntries []models.TransactionEntry
+			if err := dbTx.Where("transaction_id = ?", tx.ID).Find(&existingEntries).Error; err != nil {
+				return fmt.Errorf("failed to get existing transaction entries: %w", err)
+			}
+
+			// Create a map of existing entries by ID for quick lookup
+			existingEntriesMap := make(map[string]models.TransactionEntry)
+			for _, entry := range existingEntries {
+				existingEntriesMap[entry.ID.String()] = entry
+			}
+
+			// Process each entry in the update request
+			updatedEntryIDs := make(map[string]bool)
+			for _, entry := range tx.TransactionEntries {
+				updatedEntryIDs[entry.ID.String()] = true
+
+				// Check if this entry already exists
+				if existingEntry, exists := existingEntriesMap[entry.ID.String()]; exists {
+					// Update existing entry
+					existingEntry.Description = entry.Description
+					existingEntry.Amount = entry.Amount
+					existingEntry.CategoryID = entry.CategoryID
+					existingEntry.UpdatedAt = time.Now().UTC()
+
+					if err := dbTx.Save(&existingEntry).Error; err != nil {
+						return fmt.Errorf("failed to update transaction entry %s: %w", entry.ID.String(), err)
+					}
+				} else {
+					// Create new entry
+					entry.TransactionID = tx.ID
+					entry.CreatedAt = time.Now().UTC()
+					entry.UpdatedAt = time.Now().UTC()
+
+					if err := dbTx.Create(&entry).Error; err != nil {
+						return fmt.Errorf("failed to create transaction entry %s: %w", entry.ID.String(), err)
+					}
+				}
+			}
+
+			// Delete entries that are not in the update request
+			for _, existingEntry := range existingEntries {
+				if !updatedEntryIDs[existingEntry.ID.String()] {
+					if err := dbTx.Delete(&existingEntry).Error; err != nil {
+						return fmt.Errorf("failed to delete transaction entry %s: %w", existingEntry.ID.String(), err)
+					}
+				}
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
 	}
 
-	return &tx, nil
+	// Reload the transaction with all relationships
+	var updatedTx models.Transaction
+	if err := db.WithContext(ctx).
+		Preload("Merchant", "deleted_at IS NULL").
+		Preload("TransactionEntries").
+		Preload("TransactionEntries.Category").
+		Preload("TransactionEntries.Category.CategoryGroup").
+		Where("id = ?", tx.ID).
+		First(&updatedTx).Error; err != nil {
+		return nil, fmt.Errorf("failed to reload updated transaction: %w", err)
+	}
+
+	return &updatedTx, nil
 }
 
 // DeleteTransaction soft deletes a transaction

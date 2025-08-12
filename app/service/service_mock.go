@@ -39,8 +39,8 @@ func (svc *MockService) GetTransaction(ctx context.Context, transactionID string
 	return args.Get(0).(*models.Transaction), args.Error(1)
 }
 
-func (svc *MockService) UpdateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
-	args := svc.Called(ctx, tx)
+func (svc *MockService) UpdateTransaction(ctx context.Context, transactionID string, updateDto models.UpdateTransactionDto) (*models.Transaction, error) {
+	args := svc.Called(ctx, transactionID, updateDto)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

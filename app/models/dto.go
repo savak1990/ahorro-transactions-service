@@ -10,7 +10,7 @@ type CreateTransactionDto struct {
 	MerchantID         string                      `json:"merchantId,omitempty"`
 	OperationID        string                      `json:"operationId,omitempty"`
 	ApprovedAt         string                      `json:"approvedAt,omitempty"`
-	TransactedAt       string                      `json:"transactedAt"`
+	TransactedAt       string                      `json:"transactedAt,omitempty"`
 	CreatedAt          string                      `json:"createdAt,omitempty"`
 	UpdatedAt          string                      `json:"updatedAt,omitempty"`
 	DeletedAt          string                      `json:"deletedAt,omitempty"`
@@ -172,7 +172,7 @@ type UpdateTransactionDto struct {
 	MerchantID         string                      `json:"merchantId,omitempty"`
 	OperationID        string                      `json:"operationId,omitempty"`
 	ApprovedAt         string                      `json:"approvedAt,omitempty"`
-	TransactedAt       string                      `json:"transactedAt"`
+	TransactedAt       string                      `json:"transactedAt,omitempty"`
 	CreatedAt          string                      `json:"createdAt,omitempty"`
 	UpdatedAt          string                      `json:"updatedAt,omitempty"`
 	DeletedAt          string                      `json:"deletedAt,omitempty"`

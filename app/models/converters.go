@@ -152,6 +152,53 @@ func ToAPICreateTransaction(t *Transaction) CreateTransactionDto {
 	}
 }
 
+// ToAPIUpdateTransaction converts Transaction (DAO) to UpdateTransactionDto (API model)
+func ToAPIUpdateTransaction(t *Transaction) UpdateTransactionDto {
+	if t == nil {
+		return UpdateTransactionDto{}
+	}
+
+	// Convert transaction entries to DTOs
+	var entryDtos []CreateTransactionEntryDto
+	for _, entry := range t.TransactionEntries {
+		entryDtos = append(entryDtos, ToAPICreateTransactionEntry(&entry))
+	}
+
+	// Get merchant ID if available
+	var merchantID string
+	if t.MerchantID != nil {
+		merchantID = t.MerchantID.String()
+	}
+
+	// Convert operation ID to string if available
+	var operationID string
+	if t.OperationID != nil {
+		operationID = t.OperationID.String()
+	}
+
+	// Convert approvedAt to string
+	var approvedAt string
+	if !t.ApprovedAt.IsZero() {
+		approvedAt = t.ApprovedAt.Format(time.RFC3339)
+	}
+
+	return UpdateTransactionDto{
+		TransactionID:      t.ID.String(),
+		UserID:             t.UserID.String(),
+		GroupID:            t.GroupID.String(),
+		BalanceID:          t.BalanceID.String(),
+		Type:               t.Type,
+		MerchantID:         merchantID,
+		OperationID:        operationID,
+		ApprovedAt:         approvedAt,
+		TransactedAt:       t.TransactedAt.Format(time.RFC3339),
+		CreatedAt:          t.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:          t.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:          formatTimePtr(t.DeletedAt),
+		TransactionEntries: entryDtos,
+	}
+}
+
 // FromAPICreateTransaction converts CreateTransactionDto (API model) to Transaction (DAO)
 func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	// Parse UUIDs
@@ -197,9 +244,16 @@ func FromAPICreateTransaction(t CreateTransactionDto) (*Transaction, error) {
 	}
 
 	// Parse timestamps
-	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
-	if err != nil {
-		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+	var transactedAt time.Time
+	if t.TransactedAt != "" {
+		var err error
+		transactedAt, err = time.Parse(time.RFC3339, t.TransactedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+		}
+	} else {
+		// Use current time if transactedAt is not provided
+		transactedAt = time.Now().UTC()
 	}
 
 	approvedAt := transactedAt // Default to transacted_at
@@ -723,9 +777,16 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 	}
 
 	// Parse timestamps
-	transactedAt, err := time.Parse(time.RFC3339, t.TransactedAt)
-	if err != nil {
-		return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+	var transactedAt time.Time
+	if t.TransactedAt != "" {
+		var err error
+		transactedAt, err = time.Parse(time.RFC3339, t.TransactedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+		}
+	} else {
+		// Use current time if transactedAt is not provided
+		transactedAt = time.Now().UTC()
 	}
 
 	approvedAt := transactedAt // Default to transacted_at

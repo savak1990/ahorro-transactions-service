@@ -53,7 +53,6 @@ require (
 	github.com/aws/aws-lambda-go v1.49.0
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/getkin/kin-openapi v0.132.0
-	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.10.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
