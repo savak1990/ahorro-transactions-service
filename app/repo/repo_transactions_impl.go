@@ -102,26 +102,87 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 
 	// Use a database transaction to ensure atomicity
 	err := db.WithContext(ctx).Transaction(func(dbTx *gorm.DB) error {
-		// Update the main transaction record (without transaction entries to avoid GORM auto-management)
-		txWithoutEntries := tx
-		txWithoutEntries.TransactionEntries = nil
+		// First, get the existing transaction to compare changes
+		var existingTx models.Transaction
+		if err := dbTx.Where("id = ?", tx.ID).First(&existingTx).Error; err != nil {
+			return fmt.Errorf("failed to get existing transaction: %w", err)
+		}
 
-		if err := dbTx.Save(&txWithoutEntries).Error; err != nil {
-			return fmt.Errorf("failed to update transaction: %w", err)
+		// Check if any main transaction fields have changed
+		needsMainUpdate := false
+		updatedTx := existingTx // Copy existing transaction
+
+		// Check balance ID
+		if tx.BalanceID != existingTx.BalanceID {
+			updatedTx.BalanceID = tx.BalanceID
+			needsMainUpdate = true
+		}
+
+		// Check merchant ID
+		if (tx.MerchantID == nil && existingTx.MerchantID != nil) ||
+			(tx.MerchantID != nil && existingTx.MerchantID == nil) ||
+			(tx.MerchantID != nil && existingTx.MerchantID != nil && *tx.MerchantID != *existingTx.MerchantID) {
+			updatedTx.MerchantID = tx.MerchantID
+			needsMainUpdate = true
+		}
+
+		// Check operation ID
+		if (tx.OperationID == nil && existingTx.OperationID != nil) ||
+			(tx.OperationID != nil && existingTx.OperationID == nil) ||
+			(tx.OperationID != nil && existingTx.OperationID != nil && *tx.OperationID != *existingTx.OperationID) {
+			updatedTx.OperationID = tx.OperationID
+			needsMainUpdate = true
+		}
+
+		// Check type
+		if tx.Type != existingTx.Type {
+			updatedTx.Type = tx.Type
+			needsMainUpdate = true
+		}
+
+		// Check approved at
+		if !tx.ApprovedAt.Equal(existingTx.ApprovedAt) {
+			updatedTx.ApprovedAt = tx.ApprovedAt
+			needsMainUpdate = true
+		}
+
+		// Check transacted at
+		if !tx.TransactedAt.Equal(existingTx.TransactedAt) {
+			updatedTx.TransactedAt = tx.TransactedAt
+			needsMainUpdate = true
+		}
+
+		// Only update the main transaction if something actually changed
+		if needsMainUpdate {
+			updatedTx.UpdatedAt = time.Now().UTC()
+			// Create a copy without transaction entries to avoid GORM auto-management
+			txWithoutEntries := updatedTx
+			txWithoutEntries.TransactionEntries = nil
+
+			if err := dbTx.Save(&txWithoutEntries).Error; err != nil {
+				return fmt.Errorf("failed to update transaction: %w", err)
+			}
 		}
 
 		// Handle transaction entries separately if provided
+		// If TransactionEntries is nil or empty, we skip entry updates entirely
 		if len(tx.TransactionEntries) > 0 {
-			// Get existing transaction entries
-			var existingEntries []models.TransactionEntry
-			if err := dbTx.Where("transaction_id = ?", tx.ID).Find(&existingEntries).Error; err != nil {
+			// Get all existing transaction entries (including soft-deleted ones for potential undelete)
+			var allExistingEntries []models.TransactionEntry
+			if err := dbTx.Where("transaction_id = ?", tx.ID).Find(&allExistingEntries).Error; err != nil {
 				return fmt.Errorf("failed to get existing transaction entries: %w", err)
 			}
 
-			// Create a map of existing entries by ID for quick lookup
-			existingEntriesMap := make(map[string]models.TransactionEntry)
-			for _, entry := range existingEntries {
-				existingEntriesMap[entry.ID.String()] = entry
+			// Get only non-deleted entries for the soft-delete logic
+			var activeExistingEntries []models.TransactionEntry
+			if err := dbTx.Where("transaction_id = ? AND deleted_at IS NULL", tx.ID).Find(&activeExistingEntries).Error; err != nil {
+				return fmt.Errorf("failed to get active transaction entries: %w", err)
+			}
+
+			// Create maps for quick lookup
+			allExistingEntriesMap := make(map[string]models.TransactionEntry)
+			for _, entry := range allExistingEntries {
+				allExistingEntriesMap[entry.ID.String()] = entry
 			}
 
 			// Process each entry in the update request
@@ -129,16 +190,46 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 			for _, entry := range tx.TransactionEntries {
 				updatedEntryIDs[entry.ID.String()] = true
 
-				// Check if this entry already exists
-				if existingEntry, exists := existingEntriesMap[entry.ID.String()]; exists {
-					// Update existing entry
-					existingEntry.Description = entry.Description
-					existingEntry.Amount = entry.Amount
-					existingEntry.CategoryID = entry.CategoryID
-					existingEntry.UpdatedAt = time.Now().UTC()
+				// Check if this entry already exists (including soft-deleted ones)
+				if existingEntry, exists := allExistingEntriesMap[entry.ID.String()]; exists {
+					// Check if any fields have actually changed to avoid unnecessary updates
+					needsUpdate := false
+					updatedEntry := existingEntry // Copy existing entry
 
-					if err := dbTx.Save(&existingEntry).Error; err != nil {
-						return fmt.Errorf("failed to update transaction entry %s: %w", entry.ID.String(), err)
+					// Check description
+					if (entry.Description == nil && existingEntry.Description != nil) ||
+						(entry.Description != nil && existingEntry.Description == nil) ||
+						(entry.Description != nil && existingEntry.Description != nil && *entry.Description != *existingEntry.Description) {
+						updatedEntry.Description = entry.Description
+						needsUpdate = true
+					}
+
+					// Check amount
+					if entry.Amount != existingEntry.Amount {
+						updatedEntry.Amount = entry.Amount
+						needsUpdate = true
+					}
+
+					// Check category ID
+					if (entry.CategoryID == nil && existingEntry.CategoryID != nil) ||
+						(entry.CategoryID != nil && existingEntry.CategoryID == nil) ||
+						(entry.CategoryID != nil && existingEntry.CategoryID != nil && *entry.CategoryID != *existingEntry.CategoryID) {
+						updatedEntry.CategoryID = entry.CategoryID
+						needsUpdate = true
+					}
+
+					// Check if it was soft-deleted and needs to be undeleted
+					if existingEntry.DeletedAt != nil {
+						updatedEntry.DeletedAt = nil // Undelete
+						needsUpdate = true
+					}
+
+					// Only update if something actually changed
+					if needsUpdate {
+						updatedEntry.UpdatedAt = time.Now().UTC()
+						if err := dbTx.Save(&updatedEntry).Error; err != nil {
+							return fmt.Errorf("failed to update transaction entry %s: %w", entry.ID.String(), err)
+						}
 					}
 				} else {
 					// Create new entry
@@ -152,11 +243,16 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 				}
 			}
 
-			// Delete entries that are not in the update request
-			for _, existingEntry := range existingEntries {
+			// Soft delete active entries that are not in the update request
+			for _, existingEntry := range activeExistingEntries {
 				if !updatedEntryIDs[existingEntry.ID.String()] {
-					if err := dbTx.Delete(&existingEntry).Error; err != nil {
-						return fmt.Errorf("failed to delete transaction entry %s: %w", existingEntry.ID.String(), err)
+					// Soft delete by setting deleted_at timestamp
+					now := time.Now().UTC()
+					existingEntry.DeletedAt = &now
+					existingEntry.UpdatedAt = now
+
+					if err := dbTx.Save(&existingEntry).Error; err != nil {
+						return fmt.Errorf("failed to soft delete transaction entry %s: %w", existingEntry.ID.String(), err)
 					}
 				}
 			}
@@ -169,11 +265,11 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 		return nil, err
 	}
 
-	// Reload the transaction with all relationships
+	// Reload the transaction with all relationships (including soft-deleted entries)
 	var updatedTx models.Transaction
 	if err := db.WithContext(ctx).
 		Preload("Merchant", "deleted_at IS NULL").
-		Preload("TransactionEntries").
+		Preload("TransactionEntries"). // Include all entries (deleted and non-deleted)
 		Preload("TransactionEntries.Category").
 		Preload("TransactionEntries.Category.CategoryGroup").
 		Where("id = ?", tx.ID).

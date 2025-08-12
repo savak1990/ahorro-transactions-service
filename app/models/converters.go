@@ -476,6 +476,68 @@ func FromAPICreateTransactionEntry(te CreateTransactionEntryDto, transactionID u
 	}, nil
 }
 
+// FromAPIUpdateTransactionEntry converts UpdateTransactionEntryDto (API model) to TransactionEntry (DAO)
+func FromAPIUpdateTransactionEntry(te UpdateTransactionEntryDto, transactionID uuid.UUID) (*TransactionEntry, error) {
+	// Parse entry ID (required for updates)
+	id, err := uuid.Parse(te.ID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid transaction entry ID format: %w", err)
+	}
+
+	// Parse category ID if provided
+	var categoryID *uuid.UUID
+	if te.CategoryID != "" {
+		catID, err := uuid.Parse(te.CategoryID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid category ID format: %w", err)
+		}
+		categoryID = &catID
+	}
+
+	var desc *string
+	if te.Description != "" {
+		desc = &te.Description
+	}
+
+	return &TransactionEntry{
+		ID:            id,
+		TransactionID: transactionID,
+		Description:   desc,
+		Amount:        int64(te.Amount),
+		CategoryID:    categoryID,
+	}, nil
+}
+
+// ToAPIUpdateTransactionEntry converts TransactionEntry (DAO) to UpdateTransactionEntryDto (API model)
+func ToAPIUpdateTransactionEntry(te *TransactionEntry) UpdateTransactionEntryDto {
+	if te == nil {
+		return UpdateTransactionEntryDto{}
+	}
+
+	desc := ""
+	if te.Description != nil {
+		desc = *te.Description
+	}
+
+	categoryID := ""
+	if te.CategoryID != nil {
+		categoryID = te.CategoryID.String()
+	}
+
+	// Amount is already in cents (int64), convert to int for API response
+	amountCents := int(te.Amount)
+
+	return UpdateTransactionEntryDto{
+		ID:          te.ID.String(),
+		Description: desc,
+		Amount:      amountCents,
+		CategoryID:  categoryID,
+		CreatedAt:   te.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:   te.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:   formatTimePtr(te.DeletedAt),
+	}
+}
+
 // ToAPITransactionEntry converts TransactionEntry (DAO) to TransactionEntryDto (API model for GET responses)
 func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 	if te == nil {

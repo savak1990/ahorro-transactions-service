@@ -192,7 +192,7 @@ func (s *ServiceImpl) UpdateTransaction(ctx context.Context, transactionID strin
 
 	// Handle transaction entries
 	if len(updateDto.TransactionEntries) > 0 {
-		// Convert DTO entries to DAO entries
+		// Convert DTO entries to DAO entries with intelligent update logic
 		var newEntries []models.TransactionEntry
 		for i, entryDto := range updateDto.TransactionEntries {
 			// Validate category if provided
@@ -212,15 +212,17 @@ func (s *ServiceImpl) UpdateTransaction(ctx context.Context, transactionID strin
 				categoryID = &catUUID
 			}
 
-			// Create new entry (preserve existing ID if updating)
+			// Parse entry ID - if not provided, generate new ID for creation
 			var entryID uuid.UUID
 			if entryDto.ID != "" {
-				parsedID, err := uuid.Parse(entryDto.ID)
+				// Update existing entry
+				var err error
+				entryID, err = uuid.Parse(entryDto.ID)
 				if err != nil {
 					return nil, fmt.Errorf("invalid entry ID format for entry %d: %w", i, err)
 				}
-				entryID = parsedID
 			} else {
+				// Create new entry
 				entryID = models.NewTransactionEntryID()
 			}
 
@@ -241,6 +243,10 @@ func (s *ServiceImpl) UpdateTransaction(ctx context.Context, transactionID strin
 		}
 
 		existingTx.TransactionEntries = newEntries
+	} else {
+		// If no transaction entries provided, clear the entries slice to avoid
+		// the repository thinking they need to be created/updated
+		existingTx.TransactionEntries = nil
 	}
 
 	// Set updated timestamp

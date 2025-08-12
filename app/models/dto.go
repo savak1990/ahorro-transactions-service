@@ -39,6 +39,17 @@ type CreateTransactionEntryDto struct {
 	DeletedAt   string `json:"deletedAt,omitempty"`
 }
 
+// UpdateTransactionEntryDto represents a single entry within a transaction for update via PUT requests
+type UpdateTransactionEntryDto struct {
+	ID          string `json:"id"` // Required for updates to identify the entry
+	Description string `json:"description"`
+	Amount      int    `json:"amount"`
+	CategoryID  string `json:"categoryId"`
+	CreatedAt   string `json:"createdAt,omitempty"`
+	UpdatedAt   string `json:"updatedAt,omitempty"`
+	DeletedAt   string `json:"deletedAt,omitempty"`
+}
+
 // TransactionDto represents a financial transaction for API responses.
 type TransactionEntryDto struct {
 	GroupID               string  `json:"groupId"`
