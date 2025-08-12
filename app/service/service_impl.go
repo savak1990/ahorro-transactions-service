@@ -24,11 +24,27 @@ func NewServiceImpl(repo repo.Repository) *ServiceImpl {
 func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
 	tx.ID = models.NewTransactionID()
 
+	// Validate balance exists (required)
+	_, err := s.repo.GetBalance(ctx, tx.BalanceID.String())
+	if err != nil {
+		return nil, fmt.Errorf("balance with ID %s not found: %w", tx.BalanceID.String(), err)
+	}
+
 	// Validate merchant exists if merchantID is provided
 	if tx.MerchantID != nil {
 		_, err := s.repo.GetMerchant(ctx, tx.MerchantID.String())
 		if err != nil {
 			return nil, fmt.Errorf("merchant with ID %s not found: %w", tx.MerchantID.String(), err)
+		}
+	}
+
+	// Validate categories exist for all transaction entries
+	for i, entry := range tx.TransactionEntries {
+		if entry.CategoryID != nil {
+			_, err := s.repo.GetCategory(ctx, entry.CategoryID.String())
+			if err != nil {
+				return nil, fmt.Errorf("category with ID %s not found for transaction entry %d: %w", entry.CategoryID.String(), i, err)
+			}
 		}
 	}
 
@@ -43,18 +59,136 @@ func (s *ServiceImpl) ListTransactions(ctx context.Context, filter models.ListTr
 	return s.repo.ListTransactions(ctx, filter)
 }
 
-func (s *ServiceImpl) UpdateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
-	tx.UpdatedAt = time.Now().UTC()
-
-	// Validate merchant exists if merchantID is provided
-	if tx.MerchantID != nil {
-		_, err := s.repo.GetMerchant(ctx, tx.MerchantID.String())
-		if err != nil {
-			return nil, fmt.Errorf("merchant with ID %s not found: %w", tx.MerchantID.String(), err)
-		}
+func (s *ServiceImpl) UpdateTransaction(ctx context.Context, transactionID string, updateDto models.UpdateTransactionDto) (*models.Transaction, error) {
+	// First, fetch the existing transaction
+	existingTx, err := s.repo.GetTransaction(ctx, transactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction with ID %s not found: %w", transactionID, err)
 	}
 
-	return s.repo.UpdateTransaction(ctx, tx)
+	// Validate and update BalanceID if provided (cannot be null)
+	if updateDto.BalanceID != "" {
+		balanceUUID, err := uuid.Parse(updateDto.BalanceID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid balance ID format: %w", err)
+		}
+
+		// Validate balance exists
+		_, err = s.repo.GetBalance(ctx, updateDto.BalanceID)
+		if err != nil {
+			return nil, fmt.Errorf("balance with ID %s not found: %w", updateDto.BalanceID, err)
+		}
+
+		existingTx.BalanceID = balanceUUID
+	}
+
+	// Validate and update MerchantID (can be null)
+	if updateDto.MerchantID == "" {
+		// Set merchant to null
+		existingTx.MerchantID = nil
+	} else {
+		merchantUUID, err := uuid.Parse(updateDto.MerchantID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid merchant ID format: %w", err)
+		}
+
+		// Validate merchant exists
+		_, err = s.repo.GetMerchant(ctx, updateDto.MerchantID)
+		if err != nil {
+			return nil, fmt.Errorf("merchant with ID %s not found: %w", updateDto.MerchantID, err)
+		}
+
+		existingTx.MerchantID = &merchantUUID
+	}
+
+	// Update other fields if provided
+	if updateDto.Type != "" {
+		existingTx.Type = updateDto.Type
+	}
+
+	if updateDto.OperationID != "" {
+		operationUUID, err := uuid.Parse(updateDto.OperationID)
+		if err != nil {
+			return nil, fmt.Errorf("invalid operation ID format: %w", err)
+		}
+		existingTx.OperationID = &operationUUID
+	}
+
+	// Update dates only if provided
+	if updateDto.ApprovedAt != "" {
+		approvedAt, err := time.Parse(time.RFC3339, updateDto.ApprovedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid approved_at format: %w", err)
+		}
+		existingTx.ApprovedAt = approvedAt
+	}
+
+	if updateDto.TransactedAt != "" {
+		transactedAt, err := time.Parse(time.RFC3339, updateDto.TransactedAt)
+		if err != nil {
+			return nil, fmt.Errorf("invalid transacted_at format: %w", err)
+		}
+		existingTx.TransactedAt = transactedAt
+	}
+
+	// Handle transaction entries
+	if len(updateDto.TransactionEntries) > 0 {
+		// Convert DTO entries to DAO entries
+		var newEntries []models.TransactionEntry
+		for i, entryDto := range updateDto.TransactionEntries {
+			// Validate category if provided
+			var categoryID *uuid.UUID
+			if entryDto.CategoryID != "" {
+				catUUID, err := uuid.Parse(entryDto.CategoryID)
+				if err != nil {
+					return nil, fmt.Errorf("invalid category ID format for entry %d: %w", i, err)
+				}
+
+				// Validate category exists
+				_, err = s.repo.GetCategory(ctx, entryDto.CategoryID)
+				if err != nil {
+					return nil, fmt.Errorf("category with ID %s not found for entry %d: %w", entryDto.CategoryID, i, err)
+				}
+
+				categoryID = &catUUID
+			}
+
+			// Create new entry (preserve existing ID if updating)
+			var entryID uuid.UUID
+			if entryDto.ID != "" {
+				parsedID, err := uuid.Parse(entryDto.ID)
+				if err != nil {
+					return nil, fmt.Errorf("invalid entry ID format for entry %d: %w", i, err)
+				}
+				entryID = parsedID
+			} else {
+				entryID = models.NewTransactionEntryID()
+			}
+
+			var description *string
+			if entryDto.Description != "" {
+				description = &entryDto.Description
+			}
+
+			entry := models.TransactionEntry{
+				ID:            entryID,
+				TransactionID: existingTx.ID,
+				Description:   description,
+				Amount:        int64(entryDto.Amount),
+				CategoryID:    categoryID,
+			}
+
+			newEntries = append(newEntries, entry)
+		}
+
+		existingTx.TransactionEntries = newEntries
+	}
+
+	// Set updated timestamp
+	existingTx.UpdatedAt = time.Now().UTC()
+
+	// Update the transaction
+	return s.repo.UpdateTransaction(ctx, *existingTx)
 }
 
 func (s *ServiceImpl) DeleteTransaction(ctx context.Context, transactionID string) error {
@@ -222,11 +356,27 @@ func (s *ServiceImpl) CreateTransactions(ctx context.Context, transactions []mod
 	for i := range transactions {
 		transactions[i].ID = models.NewTransactionID()
 
+		// Validate balance exists (required)
+		_, err := s.repo.GetBalance(ctx, transactions[i].BalanceID.String())
+		if err != nil {
+			return nil, nil, fmt.Errorf("balance with ID %s not found for transaction %d: %w", transactions[i].BalanceID.String(), i, err)
+		}
+
 		// Validate merchant exists if merchantID is provided
 		if transactions[i].MerchantID != nil {
 			_, err := s.repo.GetMerchant(ctx, transactions[i].MerchantID.String())
 			if err != nil {
 				return nil, nil, fmt.Errorf("merchant with ID %s not found for transaction %d: %w", transactions[i].MerchantID.String(), i, err)
+			}
+		}
+
+		// Validate categories exist for all transaction entries
+		for j, entry := range transactions[i].TransactionEntries {
+			if entry.CategoryID != nil {
+				_, err := s.repo.GetCategory(ctx, entry.CategoryID.String())
+				if err != nil {
+					return nil, nil, fmt.Errorf("category with ID %s not found for transaction %d entry %d: %w", entry.CategoryID.String(), i, j, err)
+				}
 			}
 		}
 
