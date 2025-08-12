@@ -10,7 +10,7 @@ import (
 type Service interface {
 	CreateTransaction(ctx context.Context, tx m.Transaction) (*m.Transaction, error)
 	CreateTransactions(ctx context.Context, transactions []m.Transaction) ([]m.Transaction, *string, error) // Returns transactions, operationID, error
-	GetTransaction(ctx context.Context, transactionID string) (*m.Transaction, error)
+	GetTransaction(ctx context.Context, transactionID string) (*m.SingleTransactionDto, error)
 	UpdateTransaction(ctx context.Context, transactionID string, updateDto m.UpdateTransactionDto) (*m.Transaction, error)
 	DeleteTransaction(ctx context.Context, transactionID string) error
 	ListTransactions(ctx context.Context, filter m.ListTransactionsInput) ([]m.Transaction, error)

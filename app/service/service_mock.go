@@ -31,12 +31,12 @@ func (svc *MockService) CreateTransactions(ctx context.Context, transactions []m
 	return args.Get(0).([]models.Transaction), operationID, args.Error(2)
 }
 
-func (svc *MockService) GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error) {
+func (svc *MockService) GetTransaction(ctx context.Context, transactionID string) (*models.SingleTransactionDto, error) {
 	args := svc.Called(ctx, transactionID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*models.Transaction), args.Error(1)
+	return args.Get(0).(*models.SingleTransactionDto), args.Error(1)
 }
 
 func (svc *MockService) UpdateTransaction(ctx context.Context, transactionID string, updateDto models.UpdateTransactionDto) (*models.Transaction, error) {

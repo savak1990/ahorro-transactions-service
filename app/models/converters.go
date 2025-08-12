@@ -823,3 +823,43 @@ func FromAPIUpdateTransaction(t UpdateTransactionDto) (*Transaction, error) {
 	transaction.TransactionEntries = entries
 	return transaction, nil
 }
+
+// ToAPISingleTransactionEntry converts TransactionEntry (DAO) to SingleTransactionEntryDto with category details
+func ToAPISingleTransactionEntry(te *TransactionEntry, category *Category) SingleTransactionEntryDto {
+	if te == nil {
+		return SingleTransactionEntryDto{}
+	}
+
+	dto := SingleTransactionEntryDto{
+		TransactionEntryID: te.ID.String(),
+		Amount:             int(te.Amount),
+		CreatedAt:          te.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:          te.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:          formatTimePtr(te.DeletedAt),
+	}
+
+	// Set description
+	if te.Description != nil {
+		dto.Description = *te.Description
+	}
+
+	// Add category information if available
+	if category != nil {
+		dto.CategoryID = category.ID.String()
+		dto.CategoryName = category.Name
+		if category.ImageUrl != nil && *category.ImageUrl != "" {
+			dto.CategoryIcon = *category.ImageUrl
+		}
+
+		// Add category group information if available
+		if category.CategoryGroup != nil {
+			dto.CategoryGroupID = category.CategoryGroup.ID.String()
+			dto.CategoryGroupName = category.CategoryGroup.Name
+			if category.CategoryGroup.ImageUrl != nil && *category.CategoryGroup.ImageUrl != "" {
+				dto.CategoryGroupIcon = *category.CategoryGroup.ImageUrl
+			}
+		}
+	}
+
+	return dto
+}

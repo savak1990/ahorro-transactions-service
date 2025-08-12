@@ -55,7 +55,7 @@ type TransactionEntryDto struct {
 	CategoryName          string  `json:"categoryName"`
 	CategoryImageUrl      string  `json:"categoryImageUrl,omitempty"`
 	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
-	CategoryGroupImageUrl *string `json:"cattegoryGroupImageUrl,omitempty"`
+	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
 	CategoryGroupID       string  `json:"categoryGroupId,omitempty"`
 	CategoryIsDeleted     bool    `json:"categoryIsDeleted,omitempty"`
 	CategoryGroupDeleted  bool    `json:"categoryGroupDeleted,omitempty"`
@@ -177,4 +177,40 @@ type UpdateTransactionDto struct {
 	UpdatedAt          string                      `json:"updatedAt,omitempty"`
 	DeletedAt          string                      `json:"deletedAt,omitempty"`
 	TransactionEntries []CreateTransactionEntryDto `json:"transactionEntries"`
+}
+
+// SingleTransactionDto represents a single transaction with detailed information for GET requests.
+type SingleTransactionDto struct {
+	TransactionID      string                      `json:"transactionId"`
+	GroupID            string                      `json:"groupId"`
+	UserID             string                      `json:"userId"`
+	BalanceID          string                      `json:"balanceId"`
+	BalanceTitle       string                      `json:"balanceTitle"`
+	BalanceCurrency    string                      `json:"balanceCurrency"`
+	Type               string                      `json:"type"`
+	MerchantID         string                      `json:"merchantId,omitempty"`
+	MerchantName       string                      `json:"merchantName,omitempty"`
+	MerchantLogo       string                      `json:"merchantLogo,omitempty"`
+	OperationID        string                      `json:"operationId,omitempty"`
+	ApprovedAt         string                      `json:"approvedAt"`
+	TransactedAt       string                      `json:"transactedAt"`
+	CreatedAt          string                      `json:"createdAt"`
+	UpdatedAt          string                      `json:"updatedAt"`
+	TransactionEntries []SingleTransactionEntryDto `json:"transactionEntries"`
+}
+
+// SingleTransactionEntryDto represents a single transaction entry with detailed information.
+type SingleTransactionEntryDto struct {
+	TransactionEntryID string `json:"transactionEntryId"`
+	Description        string `json:"description"`
+	Amount             int    `json:"amount"`
+	CategoryID         string `json:"categoryId,omitempty"`
+	CategoryName       string `json:"categoryName,omitempty"`
+	CategoryIcon       string `json:"categoryIcon,omitempty"`
+	CategoryGroupID    string `json:"categoryGroupId,omitempty"`
+	CategoryGroupName  string `json:"categoryGroupName,omitempty"`
+	CategoryGroupIcon  string `json:"categoryGroupIcon,omitempty"`
+	CreatedAt          string `json:"createdAt"`
+	UpdatedAt          string `json:"updatedAt"`
+	DeletedAt          string `json:"deletedAt,omitempty"`
 }

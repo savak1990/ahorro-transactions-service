@@ -51,8 +51,67 @@ func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transacti
 	return s.repo.CreateTransaction(ctx, tx)
 }
 
-func (s *ServiceImpl) GetTransaction(ctx context.Context, transactionID string) (*models.Transaction, error) {
-	return s.repo.GetTransaction(ctx, transactionID)
+func (s *ServiceImpl) GetTransaction(ctx context.Context, transactionID string) (*models.SingleTransactionDto, error) {
+	// Get the base transaction
+	tx, err := s.repo.GetTransaction(ctx, transactionID)
+	if err != nil {
+		return nil, fmt.Errorf("transaction with ID %s not found: %w", transactionID, err)
+	}
+
+	// Get balance details - return error if balance not found
+	balance, err := s.repo.GetBalance(ctx, tx.BalanceID.String())
+	if err != nil {
+		return nil, fmt.Errorf("balance with ID %s not found: %w", tx.BalanceID.String(), err)
+	}
+
+	// Create the main DTO
+	dto := models.SingleTransactionDto{
+		TransactionID:   tx.ID.String(),
+		GroupID:         tx.GroupID.String(),
+		UserID:          tx.UserID.String(),
+		BalanceID:       tx.BalanceID.String(),
+		BalanceTitle:    balance.Title,
+		BalanceCurrency: balance.Currency,
+		Type:            tx.Type,
+		ApprovedAt:      tx.ApprovedAt.Format(time.RFC3339),
+		TransactedAt:    tx.TransactedAt.Format(time.RFC3339),
+		CreatedAt:       tx.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       tx.UpdatedAt.Format(time.RFC3339),
+	}
+
+	// Add merchant details if available
+	if tx.MerchantID != nil {
+		merchant, err := s.repo.GetMerchant(ctx, tx.MerchantID.String())
+		if err == nil && merchant != nil {
+			dto.MerchantID = merchant.ID.String()
+			dto.MerchantName = merchant.Name
+			if merchant.ImageUrl != nil && *merchant.ImageUrl != "" {
+				dto.MerchantLogo = *merchant.ImageUrl
+			}
+		}
+	}
+
+	// Add operation ID if available
+	if tx.OperationID != nil {
+		dto.OperationID = tx.OperationID.String()
+	}
+
+	// Convert transaction entries with category details - return error if any category not found
+	var entryDtos []models.SingleTransactionEntryDto
+	for _, entry := range tx.TransactionEntries {
+		var category *models.Category
+		if entry.CategoryID != nil {
+			category, err = s.repo.GetCategory(ctx, entry.CategoryID.String())
+			if err != nil {
+				return nil, fmt.Errorf("category with ID %s not found for transaction entry: %w", entry.CategoryID.String(), err)
+			}
+		}
+		entryDto := models.ToAPISingleTransactionEntry(&entry, category)
+		entryDtos = append(entryDtos, entryDto)
+	}
+	dto.TransactionEntries = entryDtos
+
+	return &dto, nil
 }
 
 func (s *ServiceImpl) ListTransactions(ctx context.Context, filter models.ListTransactionsInput) ([]models.Transaction, error) {

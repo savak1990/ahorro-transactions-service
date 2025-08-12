@@ -512,7 +512,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CreateTransactionResponse'
+                $ref: '#/components/schemas/SingleTransactionDto'
         '404':
           $ref: '#/components/responses/NotFoundError'
         '401':
@@ -2420,6 +2420,143 @@ components:
           description: "List of transaction entries"
           items:
             $ref: '#/components/schemas/CreateTransactionEntry'
+    
+    SingleTransactionDto:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the created transaction"
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        groupId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user's group"
+          example: "6a785a55-fced-4f13-af78-5c19a39c9abc"
+        userId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the user"
+          example: "02c514a4-2021-708d-efff-ea6cd5e4eac9"
+        balanceId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the balance/account"
+          example: "847ac10b-58cc-4372-a567-0e02b2c3d479"
+        balanceTitle:
+          type: string
+          description: "Title of the balance/account"
+          example: "Main Checking Account"
+        balanceCurrency:
+          type: string
+          description: "Currency of the balance/account"
+          example: "EUR"
+        type:
+          type: string
+          enum: [init, expense, income, move_in, move_out]
+          description: "Type of transaction"
+          example: "expense"
+        merchantId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the merchant"
+          example: "d47ac10b-58cc-4372-a567-0e02b2c3d479"
+        merchantName:
+          type: string
+          description: "Name of the merchant"
+          example: "Mercadona"
+        merchantLogo:
+          type: string
+          description: "URL of the merchant's logo"
+          example: "https://example.com/merchants/mercadona-logo.png"
+        operationId:
+          type: string
+          format: uuid
+          description: "Operation ID for tracking"
+        approvedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was approved (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactedAt:
+          type: string
+          format: date-time
+          description: "When the transaction occurred (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the transaction was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the transaction was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        transactionEntries:
+          type: array
+          description: "List of transaction entries"
+          items:
+            $ref: '#/components/schemas/SingleTransactionEntryDto'
+    
+    SingleTransactionEntryDto:
+      type: object
+      properties:
+        transactionEntryId:
+          type: string
+          format: uuid
+          description: "Unique identifier for the transaction entry"
+          example: "456e7890-e89b-12d3-a456-426614174000"
+        description:
+          type: string
+          description: "Description of the transaction entry"
+          example: "Organic vegetables and fruits"
+        amount:
+          type: integer
+          description: "Amount for this entry"
+          example: 4550
+        categoryId:
+          type: string
+          format: uuid
+          description: "Category ID for this entry"
+          example: "c47ac10b-58cc-4372-a567-0e02b2c3d479"
+        categoryName:
+          type: string
+          description: "Name of the category"
+          example: "Groceries"
+        categoryIcon:
+          type: string
+          description: "URL of the category icon"
+          example: "https://example.com/categories/groceries-icon.png"
+        categoryGroupId:
+          type: string
+          format: uuid
+          description: "Category group ID for this entry"
+          example: "b47ac10b-58cc-4372-a567-0e02b2c3d4b1"
+        categoryGroupName:
+          type: string
+          description: "Name of the category group"
+          example: "Food and Beverages"
+        categoryGroupIcon:
+          type: string
+          description: "URL of the category group icon"
+          example: "https://example.com/category-groups/food-icon.png"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the entry was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the entry was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        deletedAt:
+          type: string
+          format: date-time
+          description: "When the entry was soft deleted (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
 
     CreateTransactionResponse:
       type: object

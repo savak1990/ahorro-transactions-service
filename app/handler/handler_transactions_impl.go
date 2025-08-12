@@ -164,7 +164,7 @@ func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tx, err := h.Service.GetTransaction(r.Context(), transactionID)
+	singleTransactionDto, err := h.Service.GetTransaction(r.Context(), transactionID)
 	if err != nil {
 		// Try to handle as "not found" error first
 		if h.handleNotFoundError(w, err, "transaction", transactionID) {
@@ -176,7 +176,7 @@ func (h *HandlerImpl) GetTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tx)
+	json.NewEncoder(w).Encode(singleTransactionDto)
 }
 
 // PUT /transactions/{transaction_id}
