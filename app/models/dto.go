@@ -75,6 +75,9 @@ type TransactionEntryDto struct {
 	OperationID           string  `json:"operationId,omitempty"`
 	ApprovedAt            string  `json:"approvedAt,omitempty"`
 	TransactedAt          string  `json:"transactedAt"`
+	CreatedAt             string  `json:"createdAt"`
+	UpdatedAt             string  `json:"updatedAt"`
+	DeletedAt             string  `json:"deletedAt,omitempty"`
 }
 
 // Balance represents a user's balance/account for API responses.

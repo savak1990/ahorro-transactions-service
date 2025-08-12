@@ -250,6 +250,13 @@ paths:
             type: string
             format: date-time
           example: "2025-12-31T23:59:59Z"
+        - name: includeDeleted
+          in: query
+          description: "Include soft-deleted transactions"
+          schema:
+            type: boolean
+            default: false
+          example: false
         - name: sortedBy
           in: query
           description: "Field to sort by"
@@ -2759,6 +2766,21 @@ components:
           type: string
           format: date-time
           description: "When the transaction occurred (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: "When the transaction entry was created (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: "When the transaction entry was last updated (ISO 8601)"
+          example: "2024-06-19T12:00:00Z"
+        deletedAt:
+          type: string
+          format: date-time
+          description: "When the transaction entry was soft deleted (ISO 8601, null if not deleted)"
           example: "2024-06-19T12:00:00Z"
 
     CreateBalanceRequest:

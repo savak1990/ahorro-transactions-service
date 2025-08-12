@@ -376,6 +376,11 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		query = query.Where("transaction.merchant_id IN ?", filter.MerchantIds)
 	}
 
+	// Apply includeDeleted filter for transaction entries
+	if !filter.IncludeDeleted {
+		query = query.Where("transaction_entry.deleted_at IS NULL")
+	}
+
 	// Apply sorting
 	orderBy := "transaction_entry.created_at"
 	if filter.SortBy != "" {

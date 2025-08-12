@@ -647,6 +647,14 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		OperationID:           operationID,
 		ApprovedAt:            approvedAt,
 		TransactedAt:          transactedAt,
+		CreatedAt:             te.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:             te.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:             func() string {
+			if te.DeletedAt != nil {
+				return te.DeletedAt.Format(time.RFC3339)
+			}
+			return ""
+		}(),
 	}
 }
 

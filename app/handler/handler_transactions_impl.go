@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -129,6 +130,16 @@ func (h *HandlerImpl) ListTransactions(w http.ResponseWriter, r *http.Request) {
 	if endTimeStr := r.URL.Query().Get("endTime"); endTimeStr != "" {
 		if endTime, err := time.Parse(time.RFC3339, endTimeStr); err == nil {
 			filter.EndTime = endTime
+		}
+	}
+
+	// Parse includeDeleted parameter
+	if includeDeletedStr := r.URL.Query().Get("includeDeleted"); includeDeletedStr != "" {
+		if includeDeleted, err := strconv.ParseBool(includeDeletedStr); err == nil {
+			filter.IncludeDeleted = includeDeleted
+		} else {
+			WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid parameter 'includeDeleted': "+err.Error())
+			return
 		}
 	}
 

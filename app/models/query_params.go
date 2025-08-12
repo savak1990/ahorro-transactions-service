@@ -33,6 +33,7 @@ type ListTransactionsInput struct {
 	Types            []string
 	StartTime        time.Time
 	EndTime          time.Time
+	IncludeDeleted   bool
 	SortBy           string
 	Order            string
 	Limit            int
