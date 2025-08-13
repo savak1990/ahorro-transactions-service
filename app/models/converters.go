@@ -424,7 +424,7 @@ func ToAPICreateTransactionEntry(te *TransactionEntry) CreateTransactionEntryDto
 		categoryID = te.CategoryID.String()
 	}
 
-	// Amount is already in cents (int64), convert to int for API response
+	// Amount is already in cents (int64), use directly
 	amountCents := int(te.Amount)
 
 	return CreateTransactionEntryDto{
@@ -524,7 +524,7 @@ func ToAPIUpdateTransactionEntry(te *TransactionEntry) UpdateTransactionEntryDto
 		categoryID = te.CategoryID.String()
 	}
 
-	// Amount is already in cents (int64), convert to int for API response
+	// Amount is already in cents (int64), use directly
 	amountCents := int(te.Amount)
 
 	return UpdateTransactionEntryDto{
@@ -649,7 +649,7 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		TransactedAt:          transactedAt,
 		CreatedAt:             te.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:             te.UpdatedAt.Format(time.RFC3339),
-		DeletedAt:             func() string {
+		DeletedAt: func() string {
 			if te.DeletedAt != nil {
 				return te.DeletedAt.Format(time.RFC3339)
 			}

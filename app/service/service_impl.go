@@ -442,15 +442,6 @@ func (s *ServiceImpl) CreateTransactions(ctx context.Context, transactions []mod
 				}
 			}
 		}
-
-		// Validate move operations have negative amounts for move_out and positive for move_in
-		if transactions[i].Type == "move_out" {
-			for j := range transactions[i].TransactionEntries {
-				if transactions[i].TransactionEntries[j].Amount > 0 {
-					transactions[i].TransactionEntries[j].Amount = -transactions[i].TransactionEntries[j].Amount
-				}
-			}
-		}
 	}
 
 	// Validate move operations come in pairs

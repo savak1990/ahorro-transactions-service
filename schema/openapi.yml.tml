@@ -2319,6 +2319,7 @@ components:
           example: "Organic vegetables and fruits"
         amount:
           type: integer
+          minimum: 0
           description: "Amount for this entry"
           example: 4550
         categoryId:
@@ -2643,8 +2644,9 @@ components:
           example: "Organic vegetables and fruits"
         amount:
           type: integer
+          minimum: 0
           description: "Amount for this entry"
-          example: -4550
+          example: 4550
         categoryId:
           type: string
           format: uuid
@@ -3389,14 +3391,17 @@ components:
       properties:
         amount:
           type: integer
+          minimum: 0
           description: "Total amount in cents"
           example: 125043
         transactionsCount:
           type: integer
+          minimum: 0
           description: "Number of unique transactions"
           example: 15
         transactionEntriesCount:
           type: integer
+          minimum: 0
           description: "Total number of transaction entries"
           example: 23
 
