@@ -376,12 +376,12 @@ func (m *MockRepository) ExpectCreateCategoryGroup(ctx context.Context, category
 	return m.On("CreateCategoryGroup", ctx, categoryGroup).Return(result, err)
 }
 
-func (m *MockRepository) GetTransactionStats(ctx context.Context, input models.TransactionStatsInput) (map[string]map[string]models.CurrencyStatsDto, error) {
+func (m *MockRepository) GetTransactionStats(ctx context.Context, input models.TransactionStatsInput) ([]models.TransactionStatsItemDto, error) {
 	args := m.Called(ctx, input)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(map[string]map[string]models.CurrencyStatsDto), args.Error(1)
+	return args.Get(0).([]models.TransactionStatsItemDto), args.Error(1)
 }
 
 // ExpectListCategoryGroups sets up an expectation for ListCategoryGroups method
@@ -405,7 +405,7 @@ func (m *MockRepository) ExpectDeleteCategoryGroup(ctx context.Context, category
 }
 
 // ExpectGetTransactionStats sets up an expectation for GetTransactionStats method
-func (m *MockRepository) ExpectGetTransactionStats(ctx context.Context, input models.TransactionStatsInput, result map[string]map[string]models.CurrencyStatsDto, err error) *mock.Call {
+func (m *MockRepository) ExpectGetTransactionStats(ctx context.Context, input models.TransactionStatsInput, result []models.TransactionStatsItemDto, err error) *mock.Call {
 	return m.On("GetTransactionStats", ctx, input).Return(result, err)
 }
 

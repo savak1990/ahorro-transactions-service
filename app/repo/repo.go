@@ -50,5 +50,5 @@ type Repository interface {
 	DeleteMerchantsByUserId(ctx context.Context, userId string) error
 
 	// Transaction statistics methods
-	GetTransactionStats(ctx context.Context, filter models.TransactionStatsInput) (map[string]map[string]models.CurrencyStatsDto, error)
+	GetTransactionStats(ctx context.Context, filter models.TransactionStatsInput) ([]models.TransactionStatsItemDto, error)
 }

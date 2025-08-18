@@ -44,5 +44,5 @@ type Service interface {
 	ListMerchants(ctx context.Context, filter m.ListMerchantsInput) ([]m.Merchant, error)
 
 	// Transaction statistics
-	GetTransactionStats(ctx context.Context, filter m.TransactionStatsInput) (*m.TransactionStatsResponseDto, error)
+	GetTransactionStats(ctx context.Context, filter m.TransactionStatsInput) ([]m.TransactionStatsItemDto, error)
 }

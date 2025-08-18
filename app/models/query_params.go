@@ -60,17 +60,34 @@ type ListMerchantsInput struct {
 	Limit      int
 }
 
+const (
+	GroupingCategoryGroup string = "categoryGroup"
+	GroupingCategory      string = "category"
+	GroupingMerchant      string = "merchant"
+	GroupingBalance       string = "balance"
+	GroupingCurrency      string = "currency"
+	GroupingQuarter       string = "quarter"
+	GroupingYear          string = "year"
+	GroupingMonth         string = "month"
+	GroupingWeek          string = "week"
+	GroupingDay           string = "day"
+)
+
 // TransactionStatsInput defines the filter options for transaction statistics
 type TransactionStatsInput struct {
+	Type            string
 	GroupID         string
 	UserID          string
 	BalanceID       []string
-	Type            []string
 	CategoryId      []string
 	CategoryGroupId []string
 	MerchantId      []string
 	TransactionId   []string
-	Currency        string // Future feature, not implemented yet
+	Grouping        string
+	Limit           int
+	Sort            string
+	Order           string
+	DisplayCurrency string
 	StartTime       time.Time
 	EndTime         *time.Time
 }

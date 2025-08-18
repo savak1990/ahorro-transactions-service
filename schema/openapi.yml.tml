@@ -362,13 +362,11 @@ paths:
           description: "Filter by transaction type"
           style: form
           explode: false
-          required: false
+          required: true
           schema:
-            type: array
-            items:
-              type: string
-              enum: [init, expense, income, move_in, move_out]
-            example: [expense, income]
+            type: string
+            enum: [init, expense, income, move_in, move_out]
+          example: expense
         - name: categoryId
           in: query
           description: | 
@@ -415,17 +413,6 @@ paths:
             items:
               type: string
               format: uuid
-        - name: transactionId
-          in: query
-          description: "Filter transaction entries by specific transaction ID"
-          style: form
-          explode: false
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
-              format: uuid
         - name: startTime
           in: query
           description: "Filter transactions from this date (inclusive)"
@@ -440,6 +427,57 @@ paths:
             type: string
             format: date-time
           example: "2025-12-31T23:59:59Z"
+        - name: grouping
+          in: query
+          description: "Group results by this field"
+          schema:
+            type: string
+            enum: [
+              balance, 
+              category, 
+              categoryGroup, 
+              currency, 
+              merchant,
+              month,
+              quarter,
+              year,
+              week,
+              day
+            ]
+            default: currency
+          example: currency
+        - name: displayCurrency
+          in: query
+          description: "Currency to display results in (case insensitive). Supported: EUR, USD, GBP, JPY, UAH, BYN"
+          schema:
+            type: string
+            default: usd
+          example: EUR
+        - name: limit
+          in: query
+          description: "Maximum number of items to return"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+          example: 50
+        - name: sort
+          in: query
+          description: "Field to sort results by"
+          schema:
+            type: string
+            enum: [amount, count, label]
+            default: amount
+          example: amount
+        - name: order
+          in: query
+          description: "Sort order"
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          example: desc
       responses:
         '200':
           description: Transaction statistics retrieved successfully
@@ -451,21 +489,21 @@ paths:
                 monthly_stats:
                   summary: "Monthly transaction statistics"
                   value:
-                    totals:
-                      expense:
-                        EUR:
-                          amount: 125043
-                          transactionsCount: 15
-                          transactionEntriesCount: 23
-                        USD:
-                          amount: 85000
-                          transactionsCount: 8
-                          transactionEntriesCount: 12
-                      income:
-                        EUR:
-                          amount: 300000
-                          transactionsCount: 2
-                          transactionEntriesCount: 2
+                    items:
+                      - label: "Food & Dining"
+                        amount: 125043
+                        currency: "EUR"
+                        count: 15
+                        icon: "https://example.com/icons/food.png"
+                      - label: "Transportation"
+                        amount: 85000
+                        currency: "EUR"
+                        count: 8
+                        icon: "https://example.com/icons/transport.png"
+                      - label: "Salary"
+                        amount: 300000
+                        currency: "EUR"
+                        count: 2
         '400':
           $ref: '#/components/responses/BadRequestError'
         '401':
@@ -3350,37 +3388,45 @@ components:
     TransactionStatsResponse:
       type: object
       required:
-        - totals
+        - items
       properties:
-        totals:
-          type: object
-          description: "Aggregated transaction statistics by type"
-          properties:
-            expense:
-              type: object
-              description: "Expense statistics grouped by currency"
-              additionalProperties:
-                $ref: '#/components/schemas/CurrencyStats'
-            income:
-              type: object
-              description: "Income statistics grouped by currency"
-              additionalProperties:
-                $ref: '#/components/schemas/CurrencyStats'
-          example:
-            expense:
-              EUR:
-                amount: 125043
-                transactionsCount: 15
-                transactionEntriesCount: 23
-              USD:
-                amount: 85000
-                transactionsCount: 8
-                transactionEntriesCount: 12
-            income:
-              EUR:
-                amount: 300000
-                transactionsCount: 2
-                transactionEntriesCount: 2
+        items:
+          type: array
+          description: "List of transaction statistics"
+          items:
+            $ref: '#/components/schemas/TransactionStatsItem'
+    
+    TransactionStatsItem:
+      type: object
+      required:
+        - label
+        - amount
+        - currency
+        - count
+      properties:
+        label:
+          type: string
+          description: "Label for the statistic item"
+          example: "Groceries"
+        icon:
+          type: string
+          format: uri
+          description: "URL of the icon for the statistic item"
+          example: "https://example.com/icons/groceries.png"
+        amount:
+          type: integer
+          minimum: 0
+          description: "Total amount in cents"
+          example: 125043
+        currency:
+          type: string
+          description: "Currency code (ISO 4217)"
+          example: "EUR"
+        count:
+          type: integer
+          minimum: 0
+          description: "Number of transactions in the group"
+          example: 15
 
     CurrencyStats:
       type: object
