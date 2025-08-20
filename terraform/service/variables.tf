@@ -80,6 +80,11 @@ variable "db_password" {
   sensitive   = true
 }
 
+variable "exchange_rate_db_name" {
+  description = "The name of the Exchange Rate DynamoDB table."
+  type        = string
+}
+
 variable "log_level" {
   description = "Log level for the application (debug, info, warn, error)"
   type        = string

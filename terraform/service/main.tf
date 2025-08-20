@@ -38,6 +38,9 @@ resource "aws_lambda_function" "app" {
       DB_PASSWORD = var.db_password
       DB_PORT     = "5432"
 
+      # Exchange Rate Source (API Key and Cache Dynamo DB)
+      EXCHANGE_RATE_DB_NAME = var.exchange_rate_db_name
+
       # SSL Configuration
       SSL_MODE = "require"
 

@@ -444,7 +444,7 @@ paths:
               week,
               day
             ]
-            default: currency
+            default: category
           example: currency
         - name: displayCurrency
           in: query
@@ -3427,29 +3427,6 @@ components:
           minimum: 0
           description: "Number of transactions in the group"
           example: 15
-
-    CurrencyStats:
-      type: object
-      required:
-        - amount
-        - transactionsCount
-        - transactionEntriesCount
-      properties:
-        amount:
-          type: integer
-          minimum: 0
-          description: "Total amount in cents"
-          example: 125043
-        transactionsCount:
-          type: integer
-          minimum: 0
-          description: "Number of unique transactions"
-          example: 15
-        transactionEntriesCount:
-          type: integer
-          minimum: 0
-          description: "Total number of transaction entries"
-          example: 23
 
 x-amazon-apigateway-request-validators:
   validate-all:

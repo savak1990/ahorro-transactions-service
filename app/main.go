@@ -87,8 +87,26 @@ func main() {
 
 	// Initialize repositories and services with lazy DB connection
 	// These will only connect when first used
-	repo := repo.NewPostgreSQLRepositoryWithConfig(appCfg)
-	service := service.NewServiceImpl(repo)
+	repository := repo.NewPostgreSQLRepositoryWithConfig(appCfg)
+
+	// Initialize exchange rates database based on environment
+	var exchangeRatesDb repo.ExchangeRatesDb
+	if os.Getenv("AWS_LAMBDA_FUNCTION_NAME") != "" || os.Getenv("_LAMBDA_SERVER_PORT") != "" {
+		// Running locally or in ECS - use DynamoDB implementation
+		awsConfig := aws.LoadAWSConfig(appCfg.AWSRegion, appCfg.AWSProfile)
+		exchangeRateDbName := os.Getenv("EXCHANGE_RATE_DB_NAME")
+		if exchangeRateDbName == "" {
+			exchangeRateDbName = "ahorro-exchangerate-stable-db" // Default for local dev
+		}
+		exchangeRatesDb = repo.NewExchangeRatesDb(exchangeRateDbName, awsConfig)
+		log.WithField("exchange_rate_db_name", exchangeRateDbName).Info("Using DynamoDB exchange rates implementation")
+	} else {
+		// Running in Lambda - use static implementation for faster cold starts
+		exchangeRatesDb = repo.NewExchangeRatesStaticDb()
+		log.Info("Using static exchange rates implementation for Lambda environment")
+	}
+
+	service := service.NewServiceImpl(repository, exchangeRatesDb)
 	serviceHandler := handler.NewHandlerImpl(service)
 
 	commonHandler := handler.NewCommonHandlerImplWithConfig(appCfg)

@@ -12,6 +12,7 @@ DB_USERNAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAM
 DB_PASSWORD=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.transactions_db_password')
 DOMAIN_NAME=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.domain_name')
 GITHUB_TOKEN=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.github_token')
+EXCHANGE_RATE_API_KEY=$(shell aws secretsmanager get-secret-value --secret-id $(SECRET_NAME) --query 'SecretString' --output text --region $(AWS_REGION) | jq -r '.exchange_rate_api_key')
 
 # Cognito configuration (fetched from AWS Cognito by name)
 COGNITO_USER_POOL_NAME=ahorro-app-stable-user-pool
@@ -202,6 +203,7 @@ run: app-build-local get-db-config
 	DB_NAME=$(shell $(MAKE) -s get-db-name) \
 	DB_USER=$(DB_USERNAME) \
 	DB_PASSWORD=$(DB_PASSWORD) \
+	EXCHANGE_RATE_API_KEY=$(EXCHANGE_RATE_API_KEY) \
 	SSL_MODE=require \
 	LOG_LEVEL=$(LOG_LEVEL) \
 	./$(APP_BINARY)
@@ -294,6 +296,7 @@ show-db-config: get-db-config
 	@echo "Database Name: $(shell $(MAKE) -s get-db-name)"
 	@echo "Database Username: $(DB_USERNAME)"
 	@echo "Database Password: [HIDDEN]"
+	@echo "Exchange Rate API Key: $(EXCHANGE_RATE_API_KEY)"
 
 # Cognito authentication helper
 get-cognito-token:
@@ -649,6 +652,7 @@ local-cleanup-port:
 local-run: app-build-local local-db-create local-cleanup-port
 	@echo "Running service locally with local PostgreSQL database..."
 	@echo "Database: $(LOCAL_DB_HOST):$(LOCAL_DB_PORT)/$(LOCAL_DB_NAME)"
+	@echo "Exchange Rate API Key: $(EXCHANGE_RATE_API_KEY)"
 	@echo "Service will be available at: http://localhost:8080"
 	@echo ""
 	DB_HOST=$(LOCAL_DB_HOST) \
@@ -656,6 +660,7 @@ local-run: app-build-local local-db-create local-cleanup-port
 	DB_NAME=$(LOCAL_DB_NAME) \
 	DB_USER=$(LOCAL_DB_USER) \
 	DB_PASSWORD=$(LOCAL_DB_PASSWORD) \
+	EXCHANGE_RATE_API_KEY=$(EXCHANGE_RATE_API_KEY) \
 	SSL_MODE=$(LOCAL_SSL_MODE) \
 	LOG_LEVEL=$(LOG_LEVEL) \
 	./$(APP_BINARY)
