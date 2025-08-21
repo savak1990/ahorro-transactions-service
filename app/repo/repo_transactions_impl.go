@@ -24,6 +24,7 @@ func (r *PostgreSQLRepository) CreateTransaction(ctx context.Context, tx models.
 	if err := db.WithContext(ctx).
 		Preload("Merchant").
 		Preload("TransactionEntries").
+		Preload("TransactionEntries.TransactionEntryAmounts"). // Load multi-currency amounts
 		Preload("TransactionEntries.Category").
 		Preload("TransactionEntries.Category.CategoryGroup"). // Load CategoryGroup without filtering to detect soft-deleted groups
 		Where("id = ?", tx.ID).
@@ -53,6 +54,7 @@ func (r *PostgreSQLRepository) CreateTransactions(ctx context.Context, transacti
 			if err := tx.
 				Preload("Merchant").
 				Preload("TransactionEntries").
+				Preload("TransactionEntries.TransactionEntryAmounts"). // Load multi-currency amounts
 				Preload("TransactionEntries.Category").
 				Preload("TransactionEntries.Category.CategoryGroup").
 				Where("id = ?", transaction.ID).
@@ -82,6 +84,7 @@ func (r *PostgreSQLRepository) GetTransaction(ctx context.Context, transactionID
 		Preload("Balance").                        // Load balance regardless of deletion status
 		Preload("Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("TransactionEntries").
+		Preload("TransactionEntries.TransactionEntryAmounts"). // Load multi-currency amounts
 		Preload("TransactionEntries.Category").
 		Preload("TransactionEntries.Category.CategoryGroup"). // Load CategoryGroup without filtering to detect soft-deleted groups
 		Where("transaction.id = ?", transactionID).
@@ -227,8 +230,28 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 					// Only update if something actually changed
 					if needsUpdate {
 						updatedEntry.UpdatedAt = time.Now().UTC()
-						if err := dbTx.Save(&updatedEntry).Error; err != nil {
+
+						// First delete existing TransactionEntryAmounts for this entry
+						if err := dbTx.Where("transaction_entry_id = ?", entry.ID).Delete(&models.TransactionEntryAmount{}).Error; err != nil {
+							return fmt.Errorf("failed to delete existing transaction entry amounts for entry %s: %w", entry.ID.String(), err)
+						}
+
+						// Create the updated entry without TransactionEntryAmounts to avoid GORM conflicts
+						entryWithoutAmounts := updatedEntry
+						entryWithoutAmounts.TransactionEntryAmounts = nil
+						if err := dbTx.Save(&entryWithoutAmounts).Error; err != nil {
 							return fmt.Errorf("failed to update transaction entry %s: %w", entry.ID.String(), err)
+						}
+
+						// Create new TransactionEntryAmounts if provided
+						if len(entry.TransactionEntryAmounts) > 0 {
+							for _, amount := range entry.TransactionEntryAmounts {
+								amount.CreatedAt = time.Now().UTC()
+								amount.UpdatedAt = time.Now().UTC()
+								if err := dbTx.Create(&amount).Error; err != nil {
+									return fmt.Errorf("failed to create transaction entry amount for entry %s, currency %s: %w", entry.ID.String(), amount.Currency, err)
+								}
+							}
 						}
 					}
 				} else {
@@ -237,8 +260,22 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 					entry.CreatedAt = time.Now().UTC()
 					entry.UpdatedAt = time.Now().UTC()
 
-					if err := dbTx.Create(&entry).Error; err != nil {
+					// Create the entry without TransactionEntryAmounts to avoid GORM conflicts
+					entryWithoutAmounts := entry
+					entryWithoutAmounts.TransactionEntryAmounts = nil
+					if err := dbTx.Create(&entryWithoutAmounts).Error; err != nil {
 						return fmt.Errorf("failed to create transaction entry %s: %w", entry.ID.String(), err)
+					}
+
+					// Create TransactionEntryAmounts if provided
+					if len(entry.TransactionEntryAmounts) > 0 {
+						for _, amount := range entry.TransactionEntryAmounts {
+							amount.CreatedAt = time.Now().UTC()
+							amount.UpdatedAt = time.Now().UTC()
+							if err := dbTx.Create(&amount).Error; err != nil {
+								return fmt.Errorf("failed to create transaction entry amount for entry %s, currency %s: %w", entry.ID.String(), amount.Currency, err)
+							}
+						}
 					}
 				}
 			}
@@ -246,6 +283,11 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 			// Soft delete active entries that are not in the update request
 			for _, existingEntry := range activeExistingEntries {
 				if !updatedEntryIDs[existingEntry.ID.String()] {
+					// First, soft delete all TransactionEntryAmounts for this entry
+					if err := dbTx.Where("transaction_entry_id = ?", existingEntry.ID).Delete(&models.TransactionEntryAmount{}).Error; err != nil {
+						return fmt.Errorf("failed to delete transaction entry amounts for entry %s: %w", existingEntry.ID.String(), err)
+					}
+
 					// Soft delete by setting deleted_at timestamp
 					now := time.Now().UTC()
 					existingEntry.DeletedAt = &now
@@ -269,7 +311,8 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 	var updatedTx models.Transaction
 	if err := db.WithContext(ctx).
 		Preload("Merchant", "deleted_at IS NULL").
-		Preload("TransactionEntries"). // Include all entries (deleted and non-deleted)
+		Preload("TransactionEntries").                         // Include all entries (deleted and non-deleted)
+		Preload("TransactionEntries.TransactionEntryAmounts"). // Load multi-currency amounts
 		Preload("TransactionEntries.Category").
 		Preload("TransactionEntries.Category.CategoryGroup").
 		Where("id = ?", tx.ID).
@@ -280,13 +323,37 @@ func (r *PostgreSQLRepository) UpdateTransaction(ctx context.Context, tx models.
 	return &updatedTx, nil
 }
 
-// DeleteTransaction soft deletes a transaction
+// DeleteTransaction soft deletes a transaction and all related data
 func (r *PostgreSQLRepository) DeleteTransaction(ctx context.Context, transactionID string) error {
 	db := r.getDB()
-	if err := db.WithContext(ctx).Where("id = ?", transactionID).Delete(&models.Transaction{}).Error; err != nil {
-		return fmt.Errorf("failed to delete transaction: %w", err)
-	}
-	return nil
+
+	// Use a database transaction to ensure atomicity
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// First, get all transaction entries for this transaction
+		var transactionEntries []models.TransactionEntry
+		if err := tx.Where("transaction_id = ?", transactionID).Find(&transactionEntries).Error; err != nil {
+			return fmt.Errorf("failed to get transaction entries for deletion: %w", err)
+		}
+
+		// Delete all TransactionEntryAmounts for each transaction entry
+		for _, entry := range transactionEntries {
+			if err := tx.Where("transaction_entry_id = ?", entry.ID).Delete(&models.TransactionEntryAmount{}).Error; err != nil {
+				return fmt.Errorf("failed to delete transaction entry amounts for entry %s: %w", entry.ID.String(), err)
+			}
+		}
+
+		// Soft delete all transaction entries
+		if err := tx.Where("transaction_id = ?", transactionID).Delete(&models.TransactionEntry{}).Error; err != nil {
+			return fmt.Errorf("failed to delete transaction entries: %w", err)
+		}
+
+		// Finally, soft delete the transaction
+		if err := tx.Where("id = ?", transactionID).Delete(&models.Transaction{}).Error; err != nil {
+			return fmt.Errorf("failed to delete transaction: %w", err)
+		}
+
+		return nil
+	})
 }
 
 // ListTransactions retrieves transaction entries based on the filter
@@ -306,6 +373,7 @@ func (r *PostgreSQLRepository) ListTransactionEntries(ctx context.Context, filte
 		Preload("Transaction").
 		Preload("Transaction.Merchant", "deleted_at IS NULL"). // Only load non-deleted merchants
 		Preload("Transaction.Balance").
+		Preload("TransactionEntryAmounts"). // Load multi-currency amounts
 		Preload("Category").
 		Preload("Category.CategoryGroup") // Load CategoryGroup without filtering to detect soft-deleted groups
 

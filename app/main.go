@@ -98,7 +98,8 @@ func main() {
 		if exchangeRateDbName == "" {
 			exchangeRateDbName = "ahorro-exchangerate-stable-db" // Default for local dev
 		}
-		exchangeRatesDb = repo.NewExchangeRatesDb(exchangeRateDbName, awsConfig)
+		baseExchangeRatesDb := repo.NewExchangeRatesDb(exchangeRateDbName, awsConfig)
+		exchangeRatesDb = repo.NewCachedExchangeRatesDb(baseExchangeRatesDb, 60*60)
 		log.WithField("exchange_rate_db_name", exchangeRateDbName).Info("Using DynamoDB exchange rates implementation")
 	} else {
 		// Running in Lambda - use static implementation for faster cold starts

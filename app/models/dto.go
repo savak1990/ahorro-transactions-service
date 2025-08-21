@@ -30,13 +30,14 @@ type CreateTransactionsResponseDto struct {
 
 // CreateTransactionEntryDto represents a single entry within a transaction for creation
 type CreateTransactionEntryDto struct {
-	ID          string `json:"id,omitempty"`
-	Description string `json:"description"`
-	Amount      int    `json:"amount"`
-	CategoryID  string `json:"categoryId"`
-	CreatedAt   string `json:"createdAt,omitempty"`
-	UpdatedAt   string `json:"updatedAt,omitempty"`
-	DeletedAt   string `json:"deletedAt,omitempty"`
+	ID              string         `json:"id,omitempty"`
+	Description     string         `json:"description"`
+	Amount          int            `json:"amount"`
+	CategoryID      string         `json:"categoryId"`
+	CurrencyAmounts map[string]int `json:"currencyAmounts,omitempty"` // Map of currency code to amount in that currency (output only)
+	CreatedAt       string         `json:"createdAt,omitempty"`
+	UpdatedAt       string         `json:"updatedAt,omitempty"`
+	DeletedAt       string         `json:"deletedAt,omitempty"`
 }
 
 // UpdateTransactionEntryDto represents a single entry within a transaction for update via PUT requests
@@ -52,32 +53,33 @@ type UpdateTransactionEntryDto struct {
 
 // TransactionDto represents a financial transaction for API responses.
 type TransactionEntryDto struct {
-	GroupID               string  `json:"groupId"`
-	UserID                string  `json:"userId"`
-	BalanceID             string  `json:"balanceId"`
-	TransactionID         string  `json:"transactionId"`
-	TransactionEntryID    string  `json:"transactionEntryId"`
-	Type                  string  `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
-	Amount                int     `json:"amount"`
-	BalanceTitle          string  `json:"balanceTitle"`
-	BalanceCurrency       string  `json:"balanceCurrency"`
-	BalanceDeleted        bool    `json:"balanceDeleted,omitempty"`
-	CategoryID            string  `json:"categoryId,omitempty"`
-	CategoryName          string  `json:"categoryName"`
-	CategoryImageUrl      string  `json:"categoryImageUrl,omitempty"`
-	CategoryGroupName     string  `json:"categoryGroupName,omitempty"`
-	CategoryGroupImageUrl *string `json:"categoryGroupImageUrl,omitempty"`
-	CategoryGroupID       string  `json:"categoryGroupId,omitempty"`
-	CategoryIsDeleted     bool    `json:"categoryIsDeleted,omitempty"`
-	CategoryGroupDeleted  bool    `json:"categoryGroupDeleted,omitempty"`
-	MerchantName          string  `json:"merchantName,omitempty"`
-	MerchantImageUrl      string  `json:"merchantImageUrl,omitempty"`
-	OperationID           string  `json:"operationId,omitempty"`
-	ApprovedAt            string  `json:"approvedAt,omitempty"`
-	TransactedAt          string  `json:"transactedAt"`
-	CreatedAt             string  `json:"createdAt"`
-	UpdatedAt             string  `json:"updatedAt"`
-	DeletedAt             string  `json:"deletedAt,omitempty"`
+	GroupID               string         `json:"groupId"`
+	UserID                string         `json:"userId"`
+	BalanceID             string         `json:"balanceId"`
+	TransactionID         string         `json:"transactionId"`
+	TransactionEntryID    string         `json:"transactionEntryId"`
+	Type                  string         `json:"type"` // Supported: init, income, expense, movement, move_in, move_out
+	Amount                int            `json:"amount"`
+	CurrencyAmounts       map[string]int `json:"currencyAmounts,omitempty"` // Map of currency code to amount in that currency
+	BalanceTitle          string         `json:"balanceTitle"`
+	BalanceCurrency       string         `json:"balanceCurrency"`
+	BalanceDeleted        bool           `json:"balanceDeleted,omitempty"`
+	CategoryID            string         `json:"categoryId,omitempty"`
+	CategoryName          string         `json:"categoryName"`
+	CategoryImageUrl      string         `json:"categoryImageUrl,omitempty"`
+	CategoryGroupName     string         `json:"categoryGroupName,omitempty"`
+	CategoryGroupImageUrl *string        `json:"categoryGroupImageUrl,omitempty"`
+	CategoryGroupID       string         `json:"categoryGroupId,omitempty"`
+	CategoryIsDeleted     bool           `json:"categoryIsDeleted,omitempty"`
+	CategoryGroupDeleted  bool           `json:"categoryGroupDeleted,omitempty"`
+	MerchantName          string         `json:"merchantName,omitempty"`
+	MerchantImageUrl      string         `json:"merchantImageUrl,omitempty"`
+	OperationID           string         `json:"operationId,omitempty"`
+	ApprovedAt            string         `json:"approvedAt,omitempty"`
+	TransactedAt          string         `json:"transactedAt"`
+	CreatedAt             string         `json:"createdAt"`
+	UpdatedAt             string         `json:"updatedAt"`
+	DeletedAt             string         `json:"deletedAt,omitempty"`
 }
 
 // Balance represents a user's balance/account for API responses.
@@ -213,16 +215,17 @@ type SingleTransactionDto struct {
 
 // SingleTransactionEntryDto represents a single transaction entry with detailed information.
 type SingleTransactionEntryDto struct {
-	TransactionEntryID string `json:"transactionEntryId"`
-	Description        string `json:"description"`
-	Amount             int    `json:"amount"`
-	CategoryID         string `json:"categoryId,omitempty"`
-	CategoryName       string `json:"categoryName,omitempty"`
-	CategoryIcon       string `json:"categoryIcon,omitempty"`
-	CategoryGroupID    string `json:"categoryGroupId,omitempty"`
-	CategoryGroupName  string `json:"categoryGroupName,omitempty"`
-	CategoryGroupIcon  string `json:"categoryGroupIcon,omitempty"`
-	CreatedAt          string `json:"createdAt"`
-	UpdatedAt          string `json:"updatedAt"`
-	DeletedAt          string `json:"deletedAt,omitempty"`
+	TransactionEntryID string         `json:"transactionEntryId"`
+	Description        string         `json:"description"`
+	Amount             int            `json:"amount"`
+	CurrencyAmounts    map[string]int `json:"currencyAmounts,omitempty"` // Map of currency code to amount in that currency
+	CategoryID         string         `json:"categoryId,omitempty"`
+	CategoryName       string         `json:"categoryName,omitempty"`
+	CategoryIcon       string         `json:"categoryIcon,omitempty"`
+	CategoryGroupID    string         `json:"categoryGroupId,omitempty"`
+	CategoryGroupName  string         `json:"categoryGroupName,omitempty"`
+	CategoryGroupIcon  string         `json:"categoryGroupIcon,omitempty"`
+	CreatedAt          string         `json:"createdAt"`
+	UpdatedAt          string         `json:"updatedAt"`
+	DeletedAt          string         `json:"deletedAt,omitempty"`
 }

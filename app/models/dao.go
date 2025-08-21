@@ -125,20 +125,39 @@ type TransactionEntry struct {
 	ID            uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	TransactionID uuid.UUID `gorm:"type:uuid;not null;index:idx_transaction_entry_transaction_id"`
 	Description   *string
-	Amount        int64      `gorm:"type:bigint;not null"` // Amount in cents
+	Amount        int64      `gorm:"type:bigint;not null"` // Amount in cents (base currency)
 	CategoryID    *uuid.UUID `gorm:"type:uuid;index:idx_transaction_entry_category_id"`
 	CreatedAt     time.Time  `gorm:"default:now()"`
 	UpdatedAt     time.Time  `gorm:"default:now()"`
 	DeletedAt     *time.Time `gorm:"index"`
 
 	// Relationships
-	Transaction *Transaction `gorm:"foreignKey:TransactionID"`
-	Category    *Category    `gorm:"foreignKey:CategoryID;references:ID"`
+	Transaction             *Transaction             `gorm:"foreignKey:TransactionID"`
+	Category                *Category                `gorm:"foreignKey:CategoryID;references:ID"`
+	TransactionEntryAmounts []TransactionEntryAmount `gorm:"foreignKey:TransactionEntryID"`
+}
+
+// TransactionEntryAmount represents amounts in different currencies for a transaction entry
+type TransactionEntryAmount struct {
+	TransactionEntryID uuid.UUID `gorm:"type:uuid;not null;primaryKey;index:idx_transaction_entry_amount_entry_id"`
+	Currency           string    `gorm:"type:varchar(3);not null;primaryKey"` // ISO 4217 currency codes (3 chars)
+	Amount             int64     `gorm:"type:bigint;not null"`                // Amount in cents for the specific currency
+	ExchangeRate       float64   `gorm:"type:decimal(10,6);not null"`         // Exchange rate used for conversion
+	CreatedAt          time.Time `gorm:"default:now()"`
+	UpdatedAt          time.Time `gorm:"default:now()"`
+
+	// Relationships
+	TransactionEntry *TransactionEntry `gorm:"foreignKey:TransactionEntryID"`
 }
 
 // TableName specifies the table name for GORM
 func (TransactionEntry) TableName() string {
 	return "transaction_entry"
+}
+
+// TableName specifies the table name for GORM
+func (TransactionEntryAmount) TableName() string {
+	return "transaction_entry_amount"
 }
 
 // GORM Hooks for automatic timestamp updates
@@ -183,6 +202,11 @@ func (t *Transaction) validateType() error {
 
 func (te *TransactionEntry) BeforeUpdate(tx *gorm.DB) error {
 	te.UpdatedAt = time.Now()
+	return nil
+}
+
+func (tea *TransactionEntryAmount) BeforeUpdate(tx *gorm.DB) error {
+	tea.UpdatedAt = time.Now()
 	return nil
 }
 

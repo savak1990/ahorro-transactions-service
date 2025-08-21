@@ -53,6 +53,9 @@ execute_sql_file "$SQL_DIR/seed_transactions.sql"
 # 6. Transaction Entries (depends on transactions and categories)
 execute_sql_file "$SQL_DIR/seed_transaction_entries.sql"
 
+# 7. Transaction Entry Amounts (depends on transaction entries)
+execute_sql_file "$SQL_DIR/seed_transaction_entry_amounts.sql"
+
 echo "Database seeding completed successfully!"
 
 # Verify the data
@@ -69,6 +72,8 @@ UNION ALL
 SELECT 'Transactions' as table_name, COUNT(*) as record_count FROM transaction
 UNION ALL
 SELECT 'Transaction Entries' as table_name, COUNT(*) as record_count FROM transaction_entry
+UNION ALL
+SELECT 'Transaction Entry Amounts' as table_name, COUNT(*) as record_count FROM transaction_entry_amount
 ORDER BY table_name;
 "
 

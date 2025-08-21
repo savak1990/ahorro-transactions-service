@@ -3,8 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/savak1990/transactions-service/app/models"
 )
@@ -13,7 +11,6 @@ import (
 type TransactionStatsRawGrouped struct {
 	GroupKey                string  `gorm:"column:group_key"`
 	GroupLabel              string  `gorm:"column:group_label"`
-	Currency                string  `gorm:"column:currency"`
 	TotalAmount             int64   `gorm:"column:total_amount"` // Amount in cents
 	TransactionsCount       int64   `gorm:"column:transactions_count"`
 	TransactionEntriesCount int64   `gorm:"column:transaction_entries_count"`
@@ -25,10 +22,17 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 	var results []TransactionStatsRawGrouped
 	db := r.getDB()
 
-	// Build the base query
+	// Set default display currency if not provided
+	displayCurrency := filter.DisplayCurrency
+	if displayCurrency == "" {
+		displayCurrency = "EUR" // Default to EUR
+	}
+
+	// Build the base query with transaction_entry_amount join for display currency
 	query := db.WithContext(ctx).Table("transaction_entry te").
 		Joins("JOIN transaction t ON te.transaction_id = t.id").
 		Joins("JOIN balance b ON t.balance_id = b.id").
+		Joins("LEFT JOIN transaction_entry_amount tea ON te.id = tea.transaction_entry_id AND tea.currency = ?", displayCurrency).
 		Where("te.deleted_at IS NULL AND t.deleted_at IS NULL AND b.deleted_at IS NULL")
 
 	// Apply filters
@@ -99,7 +103,7 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 	}
 
 	// Add grouping-specific SELECT and GROUP BY clauses
-	selectClause, groupByClause, joinClause := r.buildGroupingQuery(filter.Grouping)
+	selectClause, groupByClause, joinClause := r.buildGroupingQuery(filter.Grouping, displayCurrency)
 
 	// Add additional joins if needed
 	if joinClause != "" {
@@ -119,23 +123,22 @@ func (r *PostgreSQLRepository) GetTransactionStats(ctx context.Context, filter m
 		statsItems = append(statsItems, models.TransactionStatsItemDto{
 			Label:    result.GroupLabel,
 			Amount:   int(result.TotalAmount),
-			Currency: result.Currency, // Keep original currency from DB
+			Currency: displayCurrency, // Use display currency instead of original currency from DB
 			Count:    int(result.TransactionsCount),
 			Icon:     result.Icon,
 		})
 	}
 
-	// Note: Sorting and limiting will be done in service layer after currency conversion
+	// Note: Sorting and limiting will be done in service layer
 	return statsItems, nil
 }
 
 // buildGroupingQuery returns the SELECT clause, GROUP BY clause, and additional JOIN clause for the specified grouping
-func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, string, string) {
+func (r *PostgreSQLRepository) buildGroupingQuery(grouping string, displayCurrency string) (string, string, string) {
 	baseSelect := `
-		COALESCE(SUM(te.amount), 0) as total_amount,
+		COALESCE(SUM(COALESCE(tea.amount, te.amount)), 0) as total_amount,
 		COUNT(DISTINCT t.id) as transactions_count,
-		COUNT(te.id) as transaction_entries_count,
-		b.currency as currency`
+		COUNT(te.id) as transaction_entries_count`
 
 	switch grouping {
 	case models.GroupingCategory:
@@ -143,7 +146,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			COALESCE(c.id::text, 'Unknown') as group_key,
 			COALESCE(c.name, 'Unknown') as group_label,
 			c.image_url as icon`,
-			"c.id, c.name, c.image_url, b.currency",
+			"c.id, c.name, c.image_url",
 			"LEFT JOIN category c ON te.category_id = c.id AND c.deleted_at IS NULL"
 
 	case models.GroupingCategoryGroup:
@@ -151,7 +154,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			COALESCE(cg.id::text, 'Unknown') as group_key,
 			COALESCE(cg.name, 'Unknown') as group_label,
 			cg.image_url as icon`,
-			"cg.id, cg.name, cg.image_url, b.currency",
+			"cg.id, cg.name, cg.image_url",
 			`LEFT JOIN category c ON te.category_id = c.id AND c.deleted_at IS NULL
 			 LEFT JOIN category_group cg ON c.category_group_id = cg.id AND cg.deleted_at IS NULL`
 
@@ -160,7 +163,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			COALESCE(m.id::text, 'Unknown') as group_key,
 			COALESCE(m.name, 'Unknown') as group_label,
 			m.image_url as icon`,
-			"m.id, m.name, m.image_url, b.currency",
+			"m.id, m.name, m.image_url",
 			"LEFT JOIN merchant m ON t.merchant_id = m.id AND m.deleted_at IS NULL"
 
 	case models.GroupingBalance:
@@ -168,15 +171,15 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			b.id::text as group_key,
 			b.title as group_label,
 			NULL as icon`,
-			"b.id, b.title, b.currency",
+			"b.id, b.title",
 			""
 
 	case models.GroupingCurrency:
 		return baseSelect + `,
-			b.currency as group_key,
-			b.currency as group_label,
+			'` + displayCurrency + `' as group_key,
+			'` + displayCurrency + `' as group_label,
 			NULL as icon`,
-			"b.currency",
+			"",
 			""
 
 	case models.GroupingMonth:
@@ -184,7 +187,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			TO_CHAR(t.transacted_at, 'YYYY-MM') as group_key,
 			TRIM(TO_CHAR(t.transacted_at, 'Month')) || ' ' || TO_CHAR(t.transacted_at, 'YYYY') as group_label,
 			NULL as icon`,
-			"TO_CHAR(t.transacted_at, 'YYYY-MM'), TRIM(TO_CHAR(t.transacted_at, 'Month')) || ' ' || TO_CHAR(t.transacted_at, 'YYYY'), b.currency",
+			"TO_CHAR(t.transacted_at, 'YYYY-MM'), TRIM(TO_CHAR(t.transacted_at, 'Month')) || ' ' || TO_CHAR(t.transacted_at, 'YYYY')",
 			""
 
 	case models.GroupingQuarter:
@@ -192,7 +195,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			EXTRACT(YEAR FROM t.transacted_at)::text || '-Q' || EXTRACT(QUARTER FROM t.transacted_at)::text as group_key,
 			'Year ' || EXTRACT(YEAR FROM t.transacted_at)::text || ' Q' || EXTRACT(QUARTER FROM t.transacted_at)::text as group_label,
 			NULL as icon`,
-			"EXTRACT(YEAR FROM t.transacted_at), EXTRACT(QUARTER FROM t.transacted_at), b.currency",
+			"EXTRACT(YEAR FROM t.transacted_at), EXTRACT(QUARTER FROM t.transacted_at)",
 			""
 
 	case models.GroupingYear:
@@ -200,7 +203,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			EXTRACT(YEAR FROM t.transacted_at)::text as group_key,
 			'Year ' || EXTRACT(YEAR FROM t.transacted_at)::text as group_label,
 			NULL as icon`,
-			"EXTRACT(YEAR FROM t.transacted_at), b.currency",
+			"EXTRACT(YEAR FROM t.transacted_at)",
 			""
 
 	case models.GroupingWeek:
@@ -208,7 +211,7 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			EXTRACT(YEAR FROM t.transacted_at)::text || '-W' || EXTRACT(WEEK FROM t.transacted_at)::text as group_key,
 			'Week ' || EXTRACT(WEEK FROM t.transacted_at)::text as group_label,
 			NULL as icon`,
-			"EXTRACT(YEAR FROM t.transacted_at), EXTRACT(WEEK FROM t.transacted_at), b.currency",
+			"EXTRACT(YEAR FROM t.transacted_at), EXTRACT(WEEK FROM t.transacted_at)",
 			""
 
 	case models.GroupingDay:
@@ -216,36 +219,16 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string) (string, stri
 			TO_CHAR(t.transacted_at, 'YYYY-MM-DD') as group_key,
 			TO_CHAR(t.transacted_at, 'DD Mon YYYY') as group_label,
 			NULL as icon`,
-			"TO_CHAR(t.transacted_at, 'YYYY-MM-DD'), TO_CHAR(t.transacted_at, 'DD Mon YYYY'), b.currency",
+			"TO_CHAR(t.transacted_at, 'YYYY-MM-DD'), TO_CHAR(t.transacted_at, 'DD Mon YYYY')",
 			""
 
 	default:
 		// Default to currency grouping
 		return baseSelect + `,
-			b.currency as group_key,
-			b.currency as group_label,
+			'` + displayCurrency + `' as group_key,
+			'` + displayCurrency + `' as group_label,
 			NULL as icon`,
-			"b.currency",
+			"",
 			""
 	}
-}
-
-// sortTransactionStatsItems sorts the transaction stats items based on the provided sort field and order
-func (r *PostgreSQLRepository) sortTransactionStatsItems(items []models.TransactionStatsItemDto, sortBy, order string) {
-	sort.Slice(items, func(i, j int) bool {
-		var less bool
-		switch sortBy {
-		case "count":
-			less = items[i].Count < items[j].Count
-		case "label":
-			less = strings.ToLower(items[i].Label) < strings.ToLower(items[j].Label)
-		default: // "amount"
-			less = items[i].Amount < items[j].Amount
-		}
-
-		if order == "asc" {
-			return less
-		}
-		return !less
-	})
 }

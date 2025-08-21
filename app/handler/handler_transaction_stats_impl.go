@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -179,7 +180,7 @@ func (h *HandlerImpl) GetTransactionStats(w http.ResponseWriter, r *http.Request
 			WriteJSONError(w, http.StatusBadRequest, models.ErrorCodeBadRequest, "Invalid displayCurrency format")
 			return
 		}
-		input.DisplayCurrency = displayCurrency
+		input.DisplayCurrency = strings.ToUpper(displayCurrency)
 	} else {
 		input.DisplayCurrency = ""
 	}

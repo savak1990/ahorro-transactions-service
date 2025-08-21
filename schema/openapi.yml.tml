@@ -2594,6 +2594,15 @@ components:
           format: date-time
           description: "When the entry was created (ISO 8601)"
           example: "2024-06-19T12:00:00Z"
+        currencyAmounts:
+          type: object
+          additionalProperties:
+            type: integer
+          description: "Map of currency code to amount in that currency (e.g., {\"USD\": 4550, \"EUR\": 4200})"
+          example:
+            USD: 4550
+            EUR: 4200
+            GBP: 3650
         updatedAt:
           type: string
           format: date-time
@@ -2748,6 +2757,15 @@ components:
           type: integer
           description: "Amount for this entry in cents (e.g., $45.50 = 4550)"
           example: -4550
+        currencyAmounts:
+          type: object
+          additionalProperties:
+            type: integer
+          description: "Map of currency code to amount in that currency (e.g., {\"USD\": 4550, \"EUR\": 4200})"
+          example:
+            USD: 4550
+            EUR: 4200
+            GBP: 3650
         balanceTitle:
           type: string
           description: "Title of the balance/account"

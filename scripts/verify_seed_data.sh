@@ -82,6 +82,20 @@ verify_relationships() {
     else
         echo "FAIL Found $orphaned_entries transaction entries with invalid transaction references"
     fi
+    
+    # Check transaction entry amounts have valid transaction entry references
+    local orphaned_amounts=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+        SELECT COUNT(*) 
+        FROM transaction_entry_amount tea 
+        WHERE NOT EXISTS (
+            SELECT 1 FROM transaction_entry te WHERE te.id = tea.transaction_entry_id
+        );" | tr -d ' ')
+    
+    if [ "$orphaned_amounts" -eq 0 ]; then
+        echo "OK All transaction entry amounts have valid transaction entry references"
+    else
+        echo "FAIL Found $orphaned_amounts transaction entry amounts with invalid transaction entry references"
+    fi
 }
 
 # Function to check data quality
@@ -116,6 +130,39 @@ verify_data_quality() {
     else
         echo "WARNING Found $empty_transactions transactions without entries"
     fi
+    
+    # Check transaction entries without currency amounts
+    local entries_without_amounts=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+        SELECT COUNT(*) 
+        FROM transaction_entry te 
+        WHERE NOT EXISTS (
+            SELECT 1 FROM transaction_entry_amount tea WHERE tea.transaction_entry_id = te.id
+        );" | tr -d ' ')
+    
+    if [ "$entries_without_amounts" -eq 0 ]; then
+        echo "OK All transaction entries have currency amounts"
+    else
+        echo "WARNING Found $entries_without_amounts transaction entries without currency amounts"
+    fi
+    
+    # Check if all entries have amounts in supported currencies (EUR, USD, GBP)
+    local entries_with_full_currencies=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "
+        SELECT COUNT(DISTINCT te.id)
+        FROM transaction_entry te
+        WHERE (
+            SELECT COUNT(DISTINCT currency) 
+            FROM transaction_entry_amount tea 
+            WHERE tea.transaction_entry_id = te.id 
+            AND currency IN ('EUR', 'USD', 'GBP')
+        ) = 3;" | tr -d ' ')
+    
+    local total_entries=$(PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM transaction_entry;" | tr -d ' ')
+    
+    if [ "$entries_with_full_currencies" -eq "$total_entries" ]; then
+        echo "OK All transaction entries have amounts in all supported currencies (EUR, USD, GBP)"
+    else
+        echo "WARNING Found $((total_entries - entries_with_full_currencies)) transaction entries missing some currency amounts"
+    fi
 }
 
 # Main verification
@@ -128,6 +175,7 @@ verify_table "merchant" 20 "Merchants" || ((error_count++))
 verify_table "balance" 4 "Balances" || ((error_count++))
 verify_table "transaction" 8 "Transactions" || ((error_count++))
 verify_table "transaction_entry" 10 "Transaction Entries" || ((error_count++))
+verify_table "transaction_entry_amount" 60 "Transaction Entry Amounts" || ((error_count++))
 
 echo ""
 
