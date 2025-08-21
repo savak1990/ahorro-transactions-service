@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,19 +12,21 @@ import (
 )
 
 type ServiceImpl struct {
-	repo repo.Repository
+	repo                repo.Repository
+	exchangeRatesClient repo.ExchangeRatesDb
 }
 
-func NewServiceImpl(repo repo.Repository) *ServiceImpl {
+func NewServiceImpl(repo repo.Repository, exchangeRatesDb repo.ExchangeRatesDb) *ServiceImpl {
 	return &ServiceImpl{
-		repo: repo,
+		repo:                repo,
+		exchangeRatesClient: exchangeRatesDb,
 	}
 }
 
 func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transaction) (*models.Transaction, error) {
 	tx.ID = models.NewTransactionID()
 
-	// Validate balance exists (required)
+	// Validate balance exists (requidred)
 	_, err := s.repo.GetBalance(ctx, tx.BalanceID.String())
 	if err != nil {
 		return nil, fmt.Errorf("balance with ID %s not found: %w", tx.BalanceID.String(), err)
@@ -373,150 +373,6 @@ func (s *ServiceImpl) UpdateCategoryGroup(ctx context.Context, categoryGroup mod
 
 func (s *ServiceImpl) DeleteCategoryGroup(ctx context.Context, categoryGroupID string) error {
 	return s.repo.DeleteCategoryGroup(ctx, categoryGroupID)
-}
-
-// GetTransactionStats retrieves aggregated transaction statistics
-func (s *ServiceImpl) GetTransactionStats(ctx context.Context, filter models.TransactionStatsInput) ([]models.TransactionStatsItemDto, error) {
-	// Get raw stats from repository
-	statsList, err := s.repo.GetTransactionStats(ctx, filter)
-	if err != nil {
-		return nil, err
-	}
-
-	// Set default display currency if not provided
-	displayCurrency := filter.DisplayCurrency
-	if displayCurrency == "" {
-		displayCurrency = "EUR" // Default to EUR
-	}
-	displayCurrency = strings.ToUpper(displayCurrency)
-
-	// Convert currencies and merge items with same labels
-	mergedStats := s.convertAndMergeStats(statsList, displayCurrency)
-
-	// Sort the results after merging
-	s.sortTransactionStatsItems(mergedStats, filter.Sort, filter.Order)
-
-	// Apply limit with "Other" category aggregation
-	finalStats := s.applyLimitWithOther(mergedStats, filter.Limit, displayCurrency)
-
-	return finalStats, nil
-}
-
-// convertAndMergeStats converts all amounts to the display currency and merges items with the same label
-func (s *ServiceImpl) convertAndMergeStats(stats []models.TransactionStatsItemDto, displayCurrency string) []models.TransactionStatsItemDto {
-	// Group by label and merge amounts after currency conversion
-	labelGroups := make(map[string]*models.TransactionStatsItemDto)
-
-	for _, stat := range stats {
-		// Convert amount to display currency (for now, using 1:1 rate as requested)
-		convertedAmount := s.convertCurrency(stat.Amount, stat.Currency, displayCurrency)
-
-		if existing, exists := labelGroups[stat.Label]; exists {
-			// Merge with existing item
-			existing.Amount += convertedAmount
-			existing.Count += stat.Count
-		} else {
-			// Create new item with converted currency
-			labelGroups[stat.Label] = &models.TransactionStatsItemDto{
-				Label:    stat.Label,
-				Amount:   convertedAmount,
-				Currency: displayCurrency, // Always use display currency
-				Count:    stat.Count,
-				Icon:     stat.Icon,
-			}
-		}
-	}
-
-	// Convert map back to slice
-	result := make([]models.TransactionStatsItemDto, 0, len(labelGroups))
-	for _, item := range labelGroups {
-		result = append(result, *item)
-	}
-
-	return result
-}
-
-// convertCurrency converts an amount from source currency to target currency
-// For now, using 1:1 conversion rate as requested
-func (s *ServiceImpl) convertCurrency(amount int, fromCurrency, toCurrency string) int {
-	// TODO: In the future, integrate with external exchange rate service
-	// For now, return the same amount (1:1 conversion)
-	return amount
-}
-
-// sortTransactionStatsItems sorts the transaction stats items based on the provided sort field and order
-func (s *ServiceImpl) sortTransactionStatsItems(items []models.TransactionStatsItemDto, sortBy, order string) {
-	sort.Slice(items, func(i, j int) bool {
-		var less bool
-		switch sortBy {
-		case "count":
-			less = items[i].Count < items[j].Count
-		case "label":
-			less = strings.ToLower(items[i].Label) < strings.ToLower(items[j].Label)
-		default: // "amount"
-			less = items[i].Amount < items[j].Amount
-		}
-
-		if order == "asc" {
-			return less
-		}
-		return !less
-	})
-}
-
-// applyLimitWithOther applies limit and creates an "Other" category for remaining items
-func (s *ServiceImpl) applyLimitWithOther(items []models.TransactionStatsItemDto, limit int, displayCurrency string) []models.TransactionStatsItemDto {
-	// If no limit or limit is greater than items, return all items
-	if limit <= 0 || len(items) <= limit {
-		return items
-	}
-
-	// If limit is 1, return only "Other" with all items combined
-	if limit == 1 {
-		otherAmount := 0
-		otherCount := 0
-		for _, item := range items {
-			otherAmount += item.Amount
-			otherCount += item.Count
-		}
-		return []models.TransactionStatsItemDto{
-			{
-				Label:    "Other",
-				Amount:   otherAmount,
-				Currency: displayCurrency,
-				Count:    otherCount,
-				Icon:     nil,
-			},
-		}
-	}
-
-	// Take top (limit-1) items and aggregate the rest into "Other"
-	topItems := items[:limit-1]
-	remainingItems := items[limit-1:]
-
-	// Calculate aggregated values for "Other"
-	otherAmount := 0
-	otherCount := 0
-	for _, item := range remainingItems {
-		otherAmount += item.Amount
-		otherCount += item.Count
-	}
-
-	// Create "Other" item
-	otherItem := models.TransactionStatsItemDto{
-		Label:    "Other",
-		Amount:   otherAmount,
-		Currency: displayCurrency,
-		Count:    otherCount,
-		Icon:     nil,
-	}
-
-	// Combine top items with "Other"
-	result := make([]models.TransactionStatsItemDto, 0, limit)
-	result = append(result, topItems...)
-	result = append(result, otherItem)
-
-	return result
 }
 
 // CreateTransactions creates multiple transactions atomically and generates operation ID if needed

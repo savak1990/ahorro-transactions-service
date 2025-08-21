@@ -52,6 +52,17 @@ data "terraform_remote_state" "db" {
   }
 }
 
+data "terraform_remote_state" "exchange_rate_db" {
+  backend = "s3"
+  config = {
+    bucket         = "ahorro-app-state"
+    key            = "stable/exchangerate-cooker/terraform.tfstate"
+    region         = "eu-west-1"
+    dynamodb_table = "ahorro-app-state-lock"
+    encrypt        = true
+  }
+}
+
 data "aws_vpc" "default" {
   default = true
 }
@@ -92,8 +103,11 @@ module "ahorro_transactions_service" {
   db_username = local.transactions_db_username
   db_password = local.transactions_db_password
 
+  # Exchange Rate Dynamo DB
+  exchange_rate_db_name = data.terraform_remote_state.exchange_rate_db.outputs.dynamodb_table_name
+
   # Application Configuration
-  log_level = "info"
+  log_level = "debug"
 
   # API Gateway Configuration
   api_name                    = local.full_api_name

@@ -20,6 +20,10 @@ type AppConfig struct {
 	DBUser     string
 	DBPassword string
 
+	// Exchange Rate Configuration
+	ExchangeRateApiKey string
+	ExchangeRateDbName string
+
 	// Application Configuration
 	LogLevel string
 }
@@ -40,6 +44,9 @@ func LoadConfig() AppConfig {
 		DBName:     os.Getenv("DB_NAME"),
 		DBUser:     os.Getenv("DB_USER"),
 		DBPassword: os.Getenv("DB_PASSWORD"),
+
+		// Currency Exchange Rate Db
+		ExchangeRateDbName: os.Getenv("EXCHANGE_RATE_DB_NAME"),
 
 		// Application Configuration
 		LogLevel: getEnv("LOG_LEVEL", "info"),
