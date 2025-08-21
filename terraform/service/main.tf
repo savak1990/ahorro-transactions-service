@@ -63,6 +63,23 @@ resource "aws_security_group" "lambda_sg" {
   }
 }
 
+# VPC Endpoint for DynamoDB
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = var.vpc_id
+  service_name      = "com.amazonaws.eu-west-1.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = data.aws_route_tables.vpc_route_tables.ids
+
+  tags = {
+    Name = "${var.base_name}-dynamodb-endpoint"
+  }
+}
+
+# Get route tables for the VPC
+data "aws_route_tables" "vpc_route_tables" {
+  vpc_id = var.vpc_id
+}
+
 resource "aws_iam_role" "lambda_role" {
   name        = "${local.lambda_name}-role"
   description = "IAM Role for ${local.lambda_name}"
@@ -142,6 +159,29 @@ resource "aws_iam_role_policy" "lambda_s3_access" {
           "s3:GetObject"
         ],
         Resource = "arn:aws:s3:::ahorro-artifacts/*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "lambda_dynamodb_access" {
+  name = "${local.lambda_name}-dynamodb-access"
+  role = aws_iam_role.lambda_role.name
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem"
+        ],
+        Resource = "arn:aws:dynamodb:*:*:table/${var.exchange_rate_db_name}"
       }
     ]
   })
