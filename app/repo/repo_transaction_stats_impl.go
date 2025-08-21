@@ -3,8 +3,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 
 	"github.com/savak1990/transactions-service/app/models"
 )
@@ -233,24 +231,4 @@ func (r *PostgreSQLRepository) buildGroupingQuery(grouping string, displayCurren
 			"",
 			""
 	}
-}
-
-// sortTransactionStatsItems sorts the transaction stats items based on the provided sort field and order
-func (r *PostgreSQLRepository) sortTransactionStatsItems(items []models.TransactionStatsItemDto, sortBy, order string) {
-	sort.Slice(items, func(i, j int) bool {
-		var less bool
-		switch sortBy {
-		case "count":
-			less = items[i].Count < items[j].Count
-		case "label":
-			less = strings.ToLower(items[i].Label) < strings.ToLower(items[j].Label)
-		default: // "amount"
-			less = items[i].Amount < items[j].Amount
-		}
-
-		if order == "asc" {
-			return less
-		}
-		return !less
-	})
 }

@@ -35,6 +35,9 @@ LOCAL_DB_PASSWORD=local_password
 LOCAL_POSTGRES_CONTAINER=ahorro-postgres-local
 LOCAL_SSL_MODE=disable
 
+# Go build container configuration
+GOLANG_BUILD_CONTAINER=ahorro-golang-builder-$(SERVICE_NAME)
+
 # Main app arguments
 APP_DIR=app
 APP_BUILD_DIR=./build/service-handler
@@ -60,7 +63,7 @@ GITHUB_TAG_NAME=$(TIMESTAMP)
 SCHEMA_TEMPLATE=schema/openapi.yml.tml
 SCHEMA_OUTPUT=$(APP_DIR)/schema/openapi.yml
 
-.PHONY: all build app-build-local app-build-lambda run package test clean deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag local-db-start local-db-stop local-db-status local-db-create local-db-destroy local-db-connect local-drop-tables local-cleanup-port local-seed local-verify-seed local-run local-full-start local-full-stop help
+.PHONY: all build app-build-local app-build-lambda run package test clean clean-docker clean-all deploy undeploy plan get-db-config get-db-endpoint get-db-port get-db-name show-db-config get-my-ip db-connect seed verify-seed pull-postgres deploy-public-custom drop-tables generate-schema generate-build-info db-start db-stop db-status db-get-identifier get-cognito-token show-cognito-config git-tag upload-and-tag local-db-start local-db-stop local-db-status local-db-create local-db-destroy local-db-connect local-drop-tables local-cleanup-port local-seed local-verify-seed local-run local-full-start local-full-stop help
 
 # Default target
 all: build
@@ -81,7 +84,9 @@ help:
 	@echo "🧪 Testing & Running:"
 	@echo "  test                  - Run Go tests"
 	@echo "  run                   - Run service locally"
-	@echo "  clean                 - Clean build artifacts"
+	@echo "  clean                 - Clean build artifacts and build containers"
+	@echo "  clean-docker          - Clean Docker containers and images"
+	@echo "  clean-all             - Complete cleanup (build + Docker system)"
 	@echo ""
 	@echo "🚀 Deployment:"
 	@echo "  deploy                - Deploy infrastructure and service"
@@ -168,7 +173,10 @@ generate-build-info:
 $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUTPUT) generate-build-info
 	@echo "Building Lambda binary using Docker (ensures compatibility)..."
 	@mkdir -p $(APP_BUILD_DIR)
-	@docker run \
+	@echo "Cleaning up any existing build container..."
+	@docker rm $(GOLANG_BUILD_CONTAINER) 2>/dev/null || true
+	@echo "Building with optimized Go container..."
+	@docker run --name $(GOLANG_BUILD_CONTAINER) --rm \
 		-v $(PWD)/$(APP_DIR):/src \
 		-v $(PWD)/$(APP_BUILD_DIR):/build \
 		-v $(PWD)/.git:/src/.git \
@@ -178,6 +186,7 @@ $(APP_LAMBDA_BINARY): $(shell find $(APP_DIR) -type f -name '*.go') $(SCHEMA_OUT
 		       CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
 		       go build -ldflags='-s -w -extldflags=-static' -tags netgo -a \
 		       -o /build/bootstrap main.go"
+	@echo "Lambda binary built successfully with container reuse optimization"
 
 $(APP_BINARY): $(APP_DIR)/main.go $(SCHEMA_OUTPUT) $(BUILD_INFO_FILE)
 	@mkdir -p $(APP_BUILD_DIR)
@@ -455,7 +464,27 @@ db-quick-stop: db-stop db-wait-stopped
 # Clean up build artifacts and virtual environments
 
 clean:
+	@echo "Cleaning build artifacts..."
 	rm -rf ./build ./app/schema/openapi.yml ./app/buildinfo/build-info.json .timestamp
+	@echo "Cleaning up build containers..."
+	@docker rm $(GOLANG_BUILD_CONTAINER) 2>/dev/null || true
+	@echo "Clean completed"
+
+# Clean up all Docker build containers and unused images
+clean-docker:
+	@echo "Cleaning up Docker build containers..."
+	@docker rm $(GOLANG_BUILD_CONTAINER) 2>/dev/null || true
+	@echo "Cleaning up unused Docker containers..."
+	@docker container prune -f
+	@echo "Cleaning up unused Docker images..."
+	@docker image prune -f
+	@echo "Docker cleanup completed"
+
+# Complete cleanup including Docker system cleanup
+clean-all: clean clean-docker
+	@echo "Performing complete Docker system cleanup..."
+	@docker system prune -f
+	@echo "Complete cleanup finished"
 
 # ================================
 # Local Development Setup
