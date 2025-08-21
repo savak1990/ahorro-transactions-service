@@ -53,10 +53,10 @@ func (db *ExchangeRatesDbImpl) GetExchangeRates(ctx context.Context, baseCurrenc
 		TableName: aws.String(db.dbName),
 		Key: map[string]types.AttributeValue{
 			"Key": &types.AttributeValueMemberS{
-				Value: baseCurrency,
+				Value: targetDate,
 			},
 			"SortKey": &types.AttributeValueMemberS{
-				Value: targetDate,
+				Value: baseCurrency,
 			},
 		},
 	}
