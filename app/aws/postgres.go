@@ -223,6 +223,7 @@ func autoMigrate(db *gorm.DB) error {
 		&models.Category{},
 		&models.Transaction{},
 		&models.TransactionEntry{},
+		&models.TransactionEntryAmount{},
 	)
 
 	if err != nil {

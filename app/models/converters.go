@@ -7,6 +7,20 @@ import (
 	"github.com/google/uuid"
 )
 
+// buildCurrencyAmountsMap converts TransactionEntryAmounts to a map of currency -> amount
+func buildCurrencyAmountsMap(amounts []TransactionEntryAmount) map[string]int {
+	if len(amounts) == 0 {
+		return nil
+	}
+
+	currencyAmounts := make(map[string]int)
+	for _, amount := range amounts {
+		currencyAmounts[amount.Currency] = int(amount.Amount)
+	}
+
+	return currencyAmounts
+}
+
 // Conversion methods between DAO models (database) and DTO models (API)
 
 // ToAPICategory converts Category (DAO) to CategoryDto (API model)
@@ -428,13 +442,14 @@ func ToAPICreateTransactionEntry(te *TransactionEntry) CreateTransactionEntryDto
 	amountCents := int(te.Amount)
 
 	return CreateTransactionEntryDto{
-		ID:          te.ID.String(),
-		Description: desc,
-		Amount:      amountCents,
-		CategoryID:  categoryID,
-		CreatedAt:   te.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:   te.UpdatedAt.Format(time.RFC3339),
-		DeletedAt:   formatTimePtr(te.DeletedAt),
+		ID:              te.ID.String(),
+		Description:     desc,
+		Amount:          amountCents,
+		CategoryID:      categoryID,
+		CurrencyAmounts: buildCurrencyAmountsMap(te.TransactionEntryAmounts),
+		CreatedAt:       te.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:       te.UpdatedAt.Format(time.RFC3339),
+		DeletedAt:       formatTimePtr(te.DeletedAt),
 	}
 }
 
@@ -631,6 +646,7 @@ func ToAPITransactionEntry(te *TransactionEntry) TransactionEntryDto {
 		TransactionEntryID:    te.ID.String(),
 		Type:                  transactionType,
 		Amount:                int(amountCents),
+		CurrencyAmounts:       buildCurrencyAmountsMap(te.TransactionEntryAmounts),
 		BalanceTitle:          balanceTitle,
 		BalanceCurrency:       balanceCurrency,
 		BalanceDeleted:        balanceDeleted,
@@ -903,6 +919,7 @@ func ToAPISingleTransactionEntry(te *TransactionEntry, category *Category) Singl
 	dto := SingleTransactionEntryDto{
 		TransactionEntryID: te.ID.String(),
 		Amount:             int(te.Amount),
+		CurrencyAmounts:    buildCurrencyAmountsMap(te.TransactionEntryAmounts),
 		CreatedAt:          te.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:          te.UpdatedAt.Format(time.RFC3339),
 		DeletedAt:          formatTimePtr(te.DeletedAt),

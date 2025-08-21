@@ -1,0 +1,67 @@
+### Test Multi-Currency Functionality
+
+### 1. Check existing transactions
+GET http://localhost:8080/transactions?userId=99bb2200-0011-2233-4455-667788990011&limit=5
+
+### 2. Get a specific transaction to check currencyAmounts
+GET http://localhost:8080/transactions/tr001111-1111-1111-1111-111111111111
+
+### 3. Create a new USD transaction to test static exchange rates
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "userId": "99bb2200-0011-2233-4455-667788990011",
+  "groupId": "88aa1100-0011-2233-4455-667788990011",
+  "balanceId": "ba005555-5555-5555-5555-555555555555",
+  "type": "expense",
+  "merchantId": "me001111-1111-1111-1111-111111111111",
+  "transactedAt": "2025-08-21T10:00:00Z",
+  "approvedAt": "2025-08-21T10:00:00Z",
+  "transactionEntries": [
+    {
+      "description": "USD Coffee test",
+      "amount": 500,
+      "categoryId": "ca001111-1111-1111-1111-111111111111"
+    }
+  ]
+}
+
+### 4. Create a new GBP transaction to test static exchange rates
+POST http://localhost:8080/transactions
+Content-Type: application/json
+
+{
+  "userId": "99bb2200-0011-2233-4455-667788990011",
+  "groupId": "88aa1100-0011-2233-4455-667788990011", 
+  "balanceId": "ba006666-6666-6666-6666-666666666666",
+  "type": "expense",
+  "merchantId": "me002222-2222-2222-2222-222222222222",
+  "transactedAt": "2025-08-21T11:00:00Z",
+  "approvedAt": "2025-08-21T11:00:00Z",
+  "transactionEntries": [
+    {
+      "description": "GBP Lunch test",
+      "amount": 1500,
+      "categoryId": "ca001111-1111-1111-1111-111111111111"
+    }
+  ]
+}
+
+### 5. Test transaction stats with different currencies
+GET http://localhost:8080/transactions/stats?userId=99bb2200-0011-2233-4455-667788990011&displayCurrency=EUR
+
+### 6. Test transaction stats with USD
+GET http://localhost:8080/transactions/stats?userId=99bb2200-0011-2233-4455-667788990011&displayCurrency=USD
+
+### 7. Test transaction stats with GBP
+GET http://localhost:8080/transactions/stats?userId=99bb2200-0011-2233-4455-667788990011&displayCurrency=GBP
+
+### 8. Test transaction stats with unsupported currency (UAH)
+GET http://localhost:8080/transactions/stats?userId=99bb2200-0011-2233-4455-667788990011&displayCurrency=UAH
+
+### 9. Test transaction stats with supported but different currency (JPY)
+GET http://localhost:8080/transactions/stats?userId=99bb2200-0011-2233-4455-667788990011&displayCurrency=JPY
+
+### 10. Test transaction stats with empty displayCurrency (should default to balance currency)
+GET http://localhost:8080/transactions/stats?userId=99bb2200-0011-2233-4455-667788990011

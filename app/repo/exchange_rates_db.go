@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,6 +15,7 @@ import (
 type ExchangeRatesDb interface {
 	GetExchangeRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error)
 	GetSupportedCurrencies(ctx context.Context) ([]string, error)
+	GetSupportedCurrenciesRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error)
 }
 
 type ExchangeRatesDbImpl struct {
@@ -136,11 +138,158 @@ func (db *ExchangeRatesDbImpl) GetSupportedCurrencies(ctx context.Context) ([]st
 	return nil, nil
 }
 
+// GetSupportedCurrenciesRates retrieves exchange rates for all supported currencies
+func (db *ExchangeRatesDbImpl) GetSupportedCurrenciesRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error) {
+	// This method is essentially the same as GetExchangeRates
+	return db.GetExchangeRates(ctx, baseCurrency, date...)
+}
+
 // parseFloat64 safely parses a string to float64
 func parseFloat64(s string) (float64, error) {
 	var f float64
 	err := json.Unmarshal([]byte(s), &f)
 	return f, err
+}
+
+// CachedExchangeRatesDbImpl provides caching wrapper for ExchangeRatesDb
+type CachedExchangeRatesDbImpl struct {
+	underlying                   ExchangeRatesDb
+	ttlSeconds                   int
+	supportedCurrenciesCache     []string
+	supportedCurrenciesCacheTime time.Time
+	supportedCurrenciesMutex     sync.RWMutex
+	exchangeRatesCache           map[string]cacheEntry // key: "date:baseCurrency"
+	exchangeRatesMutex           sync.RWMutex
+}
+
+type cacheEntry struct {
+	rates     map[string]float64
+	timestamp time.Time
+}
+
+var _ ExchangeRatesDb = (*CachedExchangeRatesDbImpl)(nil)
+
+func NewCachedExchangeRatesDb(underlying ExchangeRatesDb, ttlSeconds int) ExchangeRatesDb {
+	return &CachedExchangeRatesDbImpl{
+		underlying:         underlying,
+		ttlSeconds:         ttlSeconds,
+		exchangeRatesCache: make(map[string]cacheEntry),
+	}
+}
+
+// GetExchangeRates retrieves exchange rates with caching
+func (db *CachedExchangeRatesDbImpl) GetExchangeRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error) {
+	// Determine the date to use
+	var targetDate string
+	if len(date) > 0 {
+		targetDate = date[0].Format("2006-01-02")
+	} else {
+		targetDate = time.Now().Format("2006-01-02")
+	}
+
+	// Create cache key
+	cacheKey := targetDate + ":" + baseCurrency
+
+	// Check cache first with read lock
+	db.exchangeRatesMutex.RLock()
+	if entry, exists := db.exchangeRatesCache[cacheKey]; exists {
+		// Check if cache entry is still valid
+		if time.Since(entry.timestamp).Seconds() < float64(db.ttlSeconds) {
+			// Create a copy of the cached rates to avoid external modifications
+			result := make(map[string]float64, len(entry.rates))
+			for k, v := range entry.rates {
+				result[k] = v
+			}
+			db.exchangeRatesMutex.RUnlock()
+			return result, nil
+		}
+	}
+	db.exchangeRatesMutex.RUnlock()
+
+	// Cache miss or expired - acquire write lock and fetch from underlying
+	db.exchangeRatesMutex.Lock()
+	defer db.exchangeRatesMutex.Unlock()
+
+	// Double-check cache after acquiring write lock (another goroutine might have populated it)
+	if entry, exists := db.exchangeRatesCache[cacheKey]; exists {
+		if time.Since(entry.timestamp).Seconds() < float64(db.ttlSeconds) {
+			result := make(map[string]float64, len(entry.rates))
+			for k, v := range entry.rates {
+				result[k] = v
+			}
+			return result, nil
+		}
+	}
+
+	// Fetch from underlying implementation
+	rates, err := db.underlying.GetExchangeRates(ctx, baseCurrency, date...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the result if we got valid data
+	if rates != nil {
+		cachedRates := make(map[string]float64, len(rates))
+		for k, v := range rates {
+			cachedRates[k] = v
+		}
+		db.exchangeRatesCache[cacheKey] = cacheEntry{
+			rates:     cachedRates,
+			timestamp: time.Now(),
+		}
+	}
+
+	return rates, nil
+}
+
+// GetSupportedCurrencies retrieves supported currencies with caching
+func (db *CachedExchangeRatesDbImpl) GetSupportedCurrencies(ctx context.Context) ([]string, error) {
+	// Check cache first with read lock
+	db.supportedCurrenciesMutex.RLock()
+	if db.supportedCurrenciesCache != nil {
+		// Check if cache entry is still valid
+		if time.Since(db.supportedCurrenciesCacheTime).Seconds() < float64(db.ttlSeconds) {
+			cachedResult := make([]string, len(db.supportedCurrenciesCache))
+			copy(cachedResult, db.supportedCurrenciesCache)
+			db.supportedCurrenciesMutex.RUnlock()
+			return cachedResult, nil
+		}
+	}
+	db.supportedCurrenciesMutex.RUnlock()
+
+	// Cache miss or expired - acquire write lock and fetch from underlying
+	db.supportedCurrenciesMutex.Lock()
+	defer db.supportedCurrenciesMutex.Unlock()
+
+	// Double-check cache after acquiring write lock (another goroutine might have populated it)
+	if db.supportedCurrenciesCache != nil {
+		if time.Since(db.supportedCurrenciesCacheTime).Seconds() < float64(db.ttlSeconds) {
+			cachedResult := make([]string, len(db.supportedCurrenciesCache))
+			copy(cachedResult, db.supportedCurrenciesCache)
+			return cachedResult, nil
+		}
+	}
+
+	// Fetch from underlying implementation
+	currencies, err := db.underlying.GetSupportedCurrencies(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Cache the result if we got valid data
+	if currencies != nil {
+		db.supportedCurrenciesCache = make([]string, len(currencies))
+		copy(db.supportedCurrenciesCache, currencies)
+		db.supportedCurrenciesCacheTime = time.Now()
+	}
+
+	return currencies, nil
+}
+
+// GetSupportedCurrenciesRates retrieves exchange rates for all supported currencies with caching
+func (db *CachedExchangeRatesDbImpl) GetSupportedCurrenciesRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error) {
+	// This method is essentially the same as GetExchangeRates for the cached implementation
+	return db.GetExchangeRates(ctx, baseCurrency, date...)
 }
 
 // ExchangeRatesStaticImpl provides hardcoded exchange rates for testing
@@ -167,6 +316,12 @@ func (db *ExchangeRatesStaticImpl) GetExchangeRates(ctx context.Context, baseCur
 func (db *ExchangeRatesStaticImpl) GetSupportedCurrencies(ctx context.Context) ([]string, error) {
 	// Return all currencies that have static rates defined
 	return []string{"USD", "EUR", "GBP", "CHF", "JPY"}, nil
+}
+
+// GetSupportedCurrenciesRates returns hardcoded exchange rates for all supported currencies
+func (db *ExchangeRatesStaticImpl) GetSupportedCurrenciesRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error) {
+	// This method is essentially the same as GetExchangeRates for the static implementation
+	return db.GetExchangeRates(ctx, baseCurrency, date...)
 }
 
 // getStaticRates returns predefined exchange rates for supported currencies
@@ -237,6 +392,15 @@ func (db *ExchangeRatesDbMock) GetSupportedCurrencies(ctx context.Context) ([]st
 		return nil, args.Error(1)
 	}
 	return args.Get(0).([]string), args.Error(1)
+}
+
+// GetSupportedCurrenciesRates mocks the GetSupportedCurrenciesRates method
+func (db *ExchangeRatesDbMock) GetSupportedCurrenciesRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error) {
+	args := db.Called(ctx, baseCurrency, date)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(map[string]float64), args.Error(1)
 }
 
 // Ensure ExchangeRatesDbMock implements ExchangeRatesDb interface
