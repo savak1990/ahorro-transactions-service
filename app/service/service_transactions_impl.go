@@ -14,36 +14,38 @@ func (s *ServiceImpl) createTransactionEntryAmounts(
 	entryID uuid.UUID,
 	baseAmount int64,
 	baseCurrency string,
+	supportedCurrencies []string,
 	exchangeRates map[string]float64,
 ) []models.TransactionEntryAmount {
 	var entryAmounts []models.TransactionEntryAmount
 
-	for currency, rate := range exchangeRates {
+	for _, currency := range supportedCurrencies {
 		var amount int64
+		var exchangeRate float64
+
 		if currency == baseCurrency {
 			// Base currency: use original amount and exchange rate of 1.0
 			amount = baseAmount
+			exchangeRate = 1.0
 		} else {
-			// Convert to target currency
-			amount = int64(float64(baseAmount) * rate)
+			// Get exchange rate for this currency
+			if rate, exists := exchangeRates[currency]; exists {
+				// Convert to target currency
+				amount = int64(float64(baseAmount) * rate)
+				exchangeRate = rate
+			} else {
+				// Skip currency if no exchange rate available
+				continue
+			}
 		}
 
 		entryAmount := models.TransactionEntryAmount{
 			TransactionEntryID: entryID,
 			Currency:           currency,
 			Amount:             amount,
-			ExchangeRate:       rate,
+			ExchangeRate:       exchangeRate,
 		}
 		entryAmounts = append(entryAmounts, entryAmount)
-	}
-
-	if _, exists := exchangeRates[baseCurrency]; !exists {
-		entryAmounts = append(entryAmounts, models.TransactionEntryAmount{
-			TransactionEntryID: entryID,
-			Currency:           baseCurrency,
-			Amount:             baseAmount,
-			ExchangeRate:       1.0,
-		})
 	}
 
 	return entryAmounts
@@ -77,6 +79,12 @@ func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transacti
 		}
 	}
 
+	// Fetch supported currencies and exchange rates
+	supportedCurrencies, err := s.exchangeRatesDb.GetSupportedCurrencies(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get supported currencies: %w", err)
+	}
+
 	// Fetch exchange rates for all supported currencies
 	exchangeRates, err := s.exchangeRatesDb.GetSupportedCurrenciesRates(ctx, baseCurrency)
 	if err != nil {
@@ -93,6 +101,7 @@ func (s *ServiceImpl) CreateTransaction(ctx context.Context, tx models.Transacti
 			entry.ID,
 			entry.Amount,
 			baseCurrency,
+			supportedCurrencies,
 			exchangeRates)
 	}
 
@@ -256,6 +265,12 @@ func (s *ServiceImpl) UpdateTransaction(ctx context.Context, transactionID strin
 			baseCurrency = balance.Currency
 		}
 
+		// Fetch supported currencies and exchange rates
+		supportedCurrencies, err := s.exchangeRatesDb.GetSupportedCurrencies(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get supported currencies: %w", err)
+		}
+
 		// Fetch exchange rates for all supported currencies
 		exchangeRates, err := s.exchangeRatesDb.GetSupportedCurrenciesRates(ctx, baseCurrency)
 		if err != nil {
@@ -313,6 +328,7 @@ func (s *ServiceImpl) UpdateTransaction(ctx context.Context, transactionID strin
 				entryID,
 				entry.Amount,
 				baseCurrency,
+				supportedCurrencies,
 				exchangeRates,
 			)
 
