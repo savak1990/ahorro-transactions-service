@@ -16,9 +16,6 @@ type ExchangeRatesDb interface {
 	GetExchangeRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error)
 	GetSupportedCurrencies(ctx context.Context) ([]string, error)
 	GetSupportedCurrenciesRates(ctx context.Context, baseCurrency string, date ...time.Time) (map[string]float64, error)
-}
-
-type ExchangeRatesDbImpl struct {
 	dbName         string
 	dbClient       *dynamodb.Client
 	defaultTimeout time.Duration
